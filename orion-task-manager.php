@@ -26,7 +26,7 @@
  */
 
 // If this file is called directly, abort.
-if ( ! defined( 'WPINC' ) ) {
+if (!defined('WPINC')) {
 	die;
 }
 
@@ -35,14 +35,15 @@ if ( ! defined( 'WPINC' ) ) {
  * Start at version 1.0.0 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
-define( 'ORION_TASK_MANAGER_VERSION', '1.0.0' );
+define('ORION_TASK_MANAGER_VERSION', '1.0.0');
 
 /**
  * The code that runs during plugin activation.
  * This action is documented in includes/class-orion-task-manager-activator.php
  */
-function activate_orion_task_manager() {
-	require_once plugin_dir_path( __FILE__ ) . 'includes/class-orion-task-manager-activator.php';
+function activate_orion_task_manager()
+{
+	require_once plugin_dir_path(__FILE__) . 'includes/class-orion-task-manager-activator.php';
 	Orion_Task_Manager_Activator::activate();
 }
 
@@ -50,19 +51,60 @@ function activate_orion_task_manager() {
  * The code that runs during plugin deactivation.
  * This action is documented in includes/class-orion-task-manager-deactivator.php
  */
-function deactivate_orion_task_manager() {
-	require_once plugin_dir_path( __FILE__ ) . 'includes/class-orion-task-manager-deactivator.php';
+function deactivate_orion_task_manager()
+{
+	require_once plugin_dir_path(__FILE__) . 'includes/class-orion-task-manager-deactivator.php';
 	Orion_Task_Manager_Deactivator::deactivate();
 }
 
-register_activation_hook( __FILE__, 'activate_orion_task_manager' );
-register_deactivation_hook( __FILE__, 'deactivate_orion_task_manager' );
+register_activation_hook(__FILE__, 'activate_orion_task_manager');
+register_activation_hook(__FILE__, 'my_plugin_create_db');
+register_deactivation_hook(__FILE__, 'deactivate_orion_task_manager');
+
+
+function my_plugin_create_db()
+{
+
+	global $wpdb;
+	$charset_collate = $wpdb->get_charset_collate();
+	$table_task = $wpdb->prefix . 'task';
+	$table_subtask = $wpdb->prefix . 'subtask';
+	$table_users = $wpdb->prefix . 'users';
+
+	$sql = "CREATE TABLE $table_task (
+			id bigint NOT NULL,
+			author_id bigint UNSIGNED NOT NULL,
+			title varchar(255) NOT NULL,
+			description text,
+			assigne bigint NOT NULL,
+			duedate datetime NOT NULL,
+			id_task_dependancies bigint,
+			projet bigint NOT NULL,
+			type varchar(100) NOT NULL,
+			session varchar(100),
+			etat varchar(50),
+			created_at datetime NOT NULL,
+			FOREIGN KEY  (author_id) REFERENCES $table_users(id),
+			PRIMARY KEY  (id),
+			UNIQUE KEY id (id)
+		);
+		
+		CREATE TABLE $table_subtask(
+			id bigint NOT NULL,
+			id_task_parent bigint NOT NULL,
+			FOREIGN KEY  (id_task_parent) REFERENCES $table_task(id), 
+			PRIMARY KEY  (id)
+		)$charset_collate;";
+
+	require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+	dbDelta($sql);
+}
 
 /**
  * The core plugin class that is used to define internationalization,
  * admin-specific hooks, and public-facing site hooks.
  */
-require plugin_dir_path( __FILE__ ) . 'includes/class-orion-task-manager.php';
+require plugin_dir_path(__FILE__) . 'includes/class-orion-task-manager.php';
 
 /**
  * Begins execution of the plugin.
@@ -73,21 +115,22 @@ require plugin_dir_path( __FILE__ ) . 'includes/class-orion-task-manager.php';
  *
  * @since    1.0.0
  */
-function run_orion_task_manager() {
+function run_orion_task_manager()
+{
 
 	$plugin = new Orion_Task_Manager();
 	$plugin->run();
-
 }
 
 /**
  * Loads all the necessary files needed by the plugin
  */
-function load_resources() {
+function load_resources()
+{
 
-    require_once plugin_dir_path( __FILE__ ) . '/includes/requires.php';
-    require_once plugin_dir_path( __FILE__ ) . 'includes/function.php';
-    require_once plugin_dir_path( __FILE__ ) . 'includes/asana/asana.php';
+	require_once plugin_dir_path(__FILE__) . '/includes/requires.php';
+	require_once plugin_dir_path(__FILE__) . 'includes/function.php';
+	require_once plugin_dir_path(__FILE__) . 'includes/asana/asana.php';
 }
 
 load_resources();
