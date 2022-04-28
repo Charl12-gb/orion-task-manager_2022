@@ -30,11 +30,50 @@
      */
     console.log("Admin");
 
-
     $(document).ready(function() {
         console.log('Le script JS a bien été chargé');
         $('#userasana').change(function() {
-            console.log('Message');
+            var select = document.getElementById('userasana').value;
+
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'get_user_role',
+                    'id_user': select,
+                },
+                success: function(response) {
+                    console.log("La requête est terminée !");
+                    document.getElementById('roledisabled').value = response;
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
+        $(document).on('submit', '#user_role_asana', function(e) {
+            e.preventDefault();
+            console.log('Le clic sur le bouton a été pris en compte');
+            var select_user = document.getElementById('userasana').value;
+            var select_role = document.getElementById('role_user').value;
+            //console.log(select_user + ' => ' + select_role);
+
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'update_user_role',
+                    'select_user': select_user,
+                    'select_role': select_role
+                },
+                success: function(response) {
+                    //console.log("La requête est terminée !");
+                    console.log('data');
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
         });
     });
 

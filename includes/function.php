@@ -528,6 +528,13 @@ function taches_tab()
 								'options' => array('' => 'Choise email User') + get_all_users()
 							);
 
+							$user_choise = array(
+								'id' => 'roledisabled',
+								'type' => 'affiche',
+								'default' => '',
+								//'class' => ' form-control'
+							);
+
 							$role = array(
 								'title' => __('Choise role', 'task'),
 								'name' => 'role_user',
@@ -535,11 +542,12 @@ function taches_tab()
 								'type' => 'select',
 								'desc' => __('Select user role', 'task'),
 								'default' => '',
+								'class' => ' form-control',
 								'options' => array('' => 'Choise role User') +get_all_role()
 							);
 							$btn = array(
-								'title' => __('Submit', 'task'),
-								'name' => 'role_user',
+								'title' => __('Update Role', 'task'),
+								'name' => 'submit_role',
 								'type' => 'submit',
 								'default' => '',
 								'options' => '',
@@ -549,6 +557,7 @@ function taches_tab()
 							$details = array(
 								$begin,
 								$user,
+								$user_choise,
 								$role,
 								$btn,
 								$end,
@@ -642,4 +651,20 @@ function active_tab()
 		</form>
 	</div>
 <?php
+}
+
+add_action('wp_ajax_get_user_role', 'get_user_role_');
+add_action('wp_ajax_nopriv_get_user_role', 'get_user_role_');
+function get_user_role_(){
+	$action = htmlspecialchars( $_POST['action'] );
+	$user_id = htmlspecialchars( $_POST['id_user'] );
+	if( empty( $user_id ) ){
+		echo 'See role user choise';
+	}else{
+		if( $action == 'get_user_role' ){
+			$user_info = get_userdata( $user_id );
+			$user_role = implode(', ', $user_info->roles);
+			echo ucfirst( $user_role );
+		}
+	}
 }
