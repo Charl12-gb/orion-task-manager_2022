@@ -76,7 +76,7 @@ class Orion_Task_Manager_Admin {
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/orion-task-manager-admin.css', array(), $this->version, 'all' );
 		wp_enqueue_style( 'acd-flexgrid', plugin_dir_url( __FILE__ ) . 'css/flexiblegs.css', array(), $this->version, 'all' );
 		wp_enqueue_style( 'o-ui', plugin_dir_url( __FILE__ ) . 'css/UI.css', array(), $this->version, 'all' );
-
+		wp_enqueue_style( 'bootstrap', 'https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css', array(), $this->version, 'all' );
 	}
 
 	/**
@@ -99,6 +99,10 @@ class Orion_Task_Manager_Admin {
 		 */
 
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/orion-task-manager-admin.js', array( 'jquery' ), $this->version, false );
+		wp_enqueue_script( 'bootstrap1', 'https://code.jquery.com/jquery-3.2.1.min.js', array( 'jquery' ), $this->version, false );
+		wp_enqueue_script( 'bootstrap2', 'https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js', array( 'jquery' ), $this->version, false );
+		wp_enqueue_script( 'bootstrap3', 'https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js', array( 'jquery' ), $this->version, false );
+		wp_localize_script( 'task_manager', 'task_manager', [ 'ajaxurl' => admin_url( 'admin-ajax.php' ) ] );
 
 	}
 

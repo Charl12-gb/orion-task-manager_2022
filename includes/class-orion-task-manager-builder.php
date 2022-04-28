@@ -46,7 +46,35 @@ class Task_Manager_Builder
     }
 
     public static function settings_page(){
-        echo 'Test';
+        ?>
+        <h3 class="pt-2">
+        <?php _e( 'Configuration Task Manager', 'task' ); ?>
+        </h3>
+            <?php
+            $active_tableau = isset( $_GET[ 'set' ] ) ? $_GET[ 'set' ] : 'o_task_manager_setting';
+            ?>
+      
+        <div class="wrap woocommerce wc_addons_wrap">
+            <nav class="nav-tab-wrapper woo-nav-tab-wrapper">
+          <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o_task_manager_setting' ? 'nav-tab-active' : ''; ?>"><?php _e( 'TACHES', 'task' ); ?></a>
+          <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-worklog' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-worklog' ? 'nav-tab-active' : ''; ?>"><?php _e( 'WORKLOG', 'task' ); ?></a>
+          <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-evaluation' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-evaluation' ? 'nav-tab-active' : ''; ?>"><?php _e( 'EVALUATION', 'task' ); ?></a>
+          <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-active' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-active' ? 'nav-tab-active' : ''; ?>"><?php _e( 'ACTIVATION', 'task' ); ?></a>
+            </nav>
+            <div class="o_task_manager_setting addons-featured">
+        <?php
+        if ( $active_tableau == 'o_task_manager_setting' ) {
+            taches_tab();
+        }
+        if ( $active_tableau == 'o-worklog' ) {
+            worklog_tab();
+        }
+        if ( $active_tableau == 'o-evaluation' ) {
+            evaluation_tab();
+        }
+        if ( $active_tableau == 'o-active' ) {
+            active_tab();
+        }
     }
 
     /**

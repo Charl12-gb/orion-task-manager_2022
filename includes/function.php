@@ -161,8 +161,23 @@ function get_json_calendar()
 
 }
 
-function save_user_id_asana()
+function get_all_role()
 {
+	global $wp_roles;
+	$roles_get = $wp_roles->roles;
+	$roles = array();
+	foreach ($roles_get as $key => $value) {
+		$roles = $roles + array($key => $value['name']);
+	}
+	return $roles;
+}
+
+function get_all_users(){	
+	$users = array();
+	foreach (get_users() as $value) {
+		$users = $users + array($value->ID => $value->user_email);
+	}
+	return $users;
 }
 
 function page_task()
@@ -376,7 +391,8 @@ function get_user_task()
 					$post_meta = unserialize($post_meta_bruite['o_task_manager'][0]);
 			?>
 					<tr>
-						<td><a href="https://app.asana.com/<?php _e($post_meta['project'], 'task'); ?>"><?php _e(get_projet_name($post_meta['project']), 'task'); ?></a></td>
+						<td><a href="https://app.asana.com/<?php _e($post_meta['project'], 'task'); ?>"><?php _e(get_projet_name($post_meta['project']), 'task'); ?></a>
+						</td>
 						<td><?php _e($key->post_title, 'task'); ?></td>
 						<td><?php _e(date("d/m/Y à H:i", strtotime($post_meta['date']))); ?></td>
 					</tr>
@@ -409,15 +425,15 @@ add_action('wp_ajax_nopriv_create_new_task', 'create_new_task_manager');
 
 function create_new_task_manager()
 {
-	$task = sanitize_text_field( $_POST['title'] );
-	$assigne = sanitize_text_field( $_POST['assigne'] );
-	$project = sanitize_text_field( $_POST['project'] );
-	$subtask = sanitize_text_field( $_POST['subtask'] );
-	$dependancies = sanitize_text_field( $_POST['dependancies'] );
-	$codage = sanitize_text_field( $_POST['codage'] );
-	$suivi = sanitize_text_field( $_POST['suivi'] );
-	$test = sanitize_text_field( $_POST['test'] );
-	$duedate = sanitize_text_field( $_POST['duedate'] );
+	$task = sanitize_text_field($_POST['title']);
+	$assigne = sanitize_text_field($_POST['assigne']);
+	$project = sanitize_text_field($_POST['project']);
+	$subtask = sanitize_text_field($_POST['subtask']);
+	$dependancies = sanitize_text_field($_POST['dependancies']);
+	$codage = sanitize_text_field($_POST['codage']);
+	$suivi = sanitize_text_field($_POST['suivi']);
+	$test = sanitize_text_field($_POST['test']);
+	$duedate = sanitize_text_field($_POST['duedate']);
 
 	$post_author_id = get_current_user_id();
 	$new_post = array(
@@ -445,8 +461,185 @@ function create_new_task_manager()
 		'date' 			=> $duedate
 	);
 	$meta_key = 'o_task_manager';
-	update_post_meta( $post_id, $meta_key, $tab );
+	update_post_meta($post_id, $meta_key, $tab);
 	echo $post_id;
 	echo 'ok';
 	wp_die();
+}
+
+function taches_tab()
+{
+?>
+	<div class="container pt-3">
+		<div class="row" id="accordion">
+			<div class="col-sm-4">
+				<div class="card-header" id="headingOne">
+					<h5 class="mb-0">
+						<button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+							Ajouter Templates
+						</button>
+					</h5>
+				</div>
+				<div class="card-header" id="headingTwo">
+					<h5 class="mb-0">
+						<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+							Définir Les Rôles
+						</button>
+					</h5>
+				</div>
+				<div class="card-header" id="headingThree">
+					<h5 class="mb-0">
+						<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+							Responsable Projet
+						</button>
+					</h5>
+				</div>
+			</div>
+			<div class="col-sm-8">
+				<div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
+					<div class="card-body">
+						Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3
+						wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum
+						eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla
+						assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt
+						sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer
+						farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus
+						labore sustainable VHS.
+					</div>
+				</div>
+				<div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordion">
+					<div class="card-body">
+
+						<div class='block-form'>
+
+							<?php
+							$begin = array(
+								'type' => 'sectionbegin',
+								'id' => 'task-datasource-container',
+							);
+
+							$user = array(
+								'title' => __('Choise User', 'task'),
+								'name' => 'user',
+								'id' => 'userasana',
+								'type' => 'select',
+								'desc' => __('Select user', 'task'),
+								'default' => '',
+								'options' => array('' => 'Choise email User') + get_all_users()
+							);
+
+							$role = array(
+								'title' => __('Choise role', 'task'),
+								'name' => 'role_user',
+								'id' => 'role_user',
+								'type' => 'select',
+								'desc' => __('Select user role', 'task'),
+								'default' => '',
+								'options' => array('' => 'Choise role User') +get_all_role()
+							);
+							$btn = array(
+								'title' => __('Submit', 'task'),
+								'name' => 'role_user',
+								'type' => 'submit',
+								'default' => '',
+								'options' => '',
+								'class' => ' btn btn-primary'
+							);
+							$end = array('type' => 'sectionend');
+							$details = array(
+								$begin,
+								$user,
+								$role,
+								$btn,
+								$end,
+							);
+							?>
+							<form method="post" id="user_role_asana">
+								<?php
+								echo o_admin_fields($details);
+								?>
+							</form>
+						</div>
+					</div>
+				</div>
+				<div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordion">
+					<div class="card-body">
+						Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3
+						wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum
+						eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla
+						assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt
+						sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer
+						farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus
+						labore sustainable VHS.
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+<?php
+}
+
+function worklog_tab()
+{
+	print_r(get_all_users());
+}
+
+function evaluation_tab()
+{
+	echo '3';
+}
+
+function active_tab()
+{
+	$token = get_option('access_token');
+?>
+	<div class="container pt-2">
+		<?php
+		if ($token != '') {
+			$submit = 'UPDATE';
+			$token = 'XXXX-XXXX-XXXX-XXX';
+			_e('ASANA ACTIVE', 'task');
+		} else {
+			$submit = 'SAVE';
+			_e('Activated ASANA <a href="https://app.asana.com/" target="_blank">https://app.asana.com/</a>', 'task');
+		}
+		?>
+	</div>
+	<div class='block-form container pt-2'>
+		<?php
+		$begin = array(
+			'type' => 'sectionbegin',
+			'id' => 'task-datasource-container',
+		);
+
+		$tokens = array(
+			'title' => __('Token Access', 'task'),
+			'name' => 'tokens',
+			'type' => 'text',
+			'desc' => __('Enter the token', 'task'),
+			'default' => $token,
+		);
+
+		$btn = array(
+			'title' => __($submit, 'task'),
+			'type' => 'button',
+			'id'  => 'submit',
+			'default' => '',
+		);
+
+		$end = array('type' => 'sectionend');
+		$details = array(
+			$begin,
+			$tokens,
+			$btn,
+			$end,
+		);
+		?>
+		<form method="post" action="">
+			<?php
+			echo o_admin_fields($details);
+			?>
+		</form>
+	</div>
+<?php
 }

@@ -98,6 +98,12 @@ function my_plugin_create_db()
 
 	require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 	dbDelta($sql);
+
+	add_role( 'developper', 'developper', array( 'read' => true, 'level_0' => true ) );
+	add_role( 'tester', 'Tester', array( 'read' => true, 'level_0' => true ) );
+	add_role( 'project_manager', 'Project Manager', array( 'read' => true, 'level_0' => true ) );
+	add_role( 'macketer', 'Macketer', array( 'read' => true, 'level_0' => true ) );
+	add_role( 'supporter', 'Supporter', array( 'read' => true, 'level_0' => true ) );
 }
 
 /**

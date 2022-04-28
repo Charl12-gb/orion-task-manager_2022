@@ -142,7 +142,7 @@ function o_admin_fields( $options ) {
 			?>
 	  <tr style="<?php echo esc_attr( $value['row_css'] ); ?>" class="<?php echo esc_attr( $value['row_class'] ); ?>">
 		<td class='label <?php echo $col_class; ?>'>
-			<?php if($value['type'] != 'button')
+			<?php if($value['type'] != 'button' && $value['type'] != 'submit')
 				echo $value['title'] . $tip; 
 			?>
 		  <div class='o-desc'>
@@ -632,6 +632,21 @@ function o_admin_fields( $options ) {
 
 	  id="<?php echo esc_attr( $value['id'] ); ?>"
 	  style="<?php echo esc_attr( $value['css'] ); ?>"
+	  value="<?php echo esc_attr( $option_value ); ?>"
+	  class="<?php echo esc_attr( $value['class'] ); ?>"
+				<?php echo implode( ' ', $custom_attributes ); ?>
+	  ><?php echo esc_attr( $value['title'] ); ?></button>
+
+				<?php
+				break;
+			case 'submit':
+				?>
+
+	  <button
+
+	  id="<?php echo esc_attr( $value['id'] ); ?>"
+	  style="<?php echo esc_attr( $value['css'] ); ?>"
+	  type ="submit"
 	  value="<?php echo esc_attr( $option_value ); ?>"
 	  class="<?php echo esc_attr( $value['class'] ); ?>"
 				<?php echo implode( ' ', $custom_attributes ); ?>
