@@ -67,26 +67,35 @@ function my_plugin_create_db()
 
 	global $wpdb;
 	$charset_collate = $wpdb->get_charset_collate();
+	$table_project = $wpdb->prefix . 'project';
 	$table_task = $wpdb->prefix . 'task';
 	$table_subtask = $wpdb->prefix . 'subtask';
 	$table_users = $wpdb->prefix . 'users';
 
-	$sql = "CREATE TABLE $table_task (
+	$sql = "CREATE TABLE $table_project(
+			id bigint NOT NULL,
+			title varchar(255) NOT NULL,
+			slug varchar(255),
+			project_manager bigint UNSIGNED NOT NULL,
+			collaborator varchar(255),
+			FOREIGN KEY  (project_manager) REFERENCES $table_users(id),
+			PRIMARY KEY  (id)
+		);
+	
+		CREATE TABLE $table_task (
 			id bigint NOT NULL,
 			author_id bigint UNSIGNED NOT NULL,
+			project_id bigint NOT NULL,
 			title varchar(255) NOT NULL,
 			description text,
 			assigne bigint NOT NULL,
 			duedate datetime NOT NULL,
-			id_task_dependancies bigint,
-			projet bigint NOT NULL,
-			type varchar(100) NOT NULL,
-			session varchar(100),
+			valuetemplate text,
 			etat varchar(50),
 			created_at datetime NOT NULL,
 			FOREIGN KEY  (author_id) REFERENCES $table_users(id),
-			PRIMARY KEY  (id),
-			UNIQUE KEY id (id)
+			FOREIGN KEY  (project_id) REFERENCES $table_project(id),
+			PRIMARY KEY  (id)
 		);
 		
 		CREATE TABLE $table_subtask(

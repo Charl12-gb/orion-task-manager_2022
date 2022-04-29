@@ -142,7 +142,7 @@ function o_admin_fields( $options ) {
 			?>
 	  <tr style="<?php echo esc_attr( $value['row_css'] ); ?>" class="<?php echo esc_attr( $value['row_class'] ); ?>">
 		<td class='label <?php echo $col_class; ?>'>
-			<?php if($value['type'] != 'button' && $value['type'] != 'submit' && $value['type'] != 'affiche')
+			<?php if($value['type'] != 'button' && $value['type'] != 'submit' && $value['type'] != 'affiche' && $value['type'] != 'title')
 				echo $value['title'] . $tip; 
 			?>
 		  <div class='o-desc'>
@@ -205,17 +205,12 @@ function o_admin_fields( $options ) {
 				$type = $value['type'];
 				?>
 
-		<input
-		name="<?php echo esc_attr( $value['name'] ); ?>"
+		<h5
 		id="<?php echo esc_attr( $value['id'] ); ?>"
 		type="<?php echo esc_attr( $type ); ?>"
-		style="<?php echo esc_attr( $value['css'] ); ?>"
-		value="<?php echo esc_attr( $option_value ); ?>"
-		class="<?php echo esc_attr( $value['class'] ); ?>"
-		disabled
-		placeholder="See role user choise"
+		>
 				<?php echo implode( ' ', $custom_attributes ); ?>
-		/>
+			</h5>
 
 				<?php
 				break;
@@ -669,6 +664,18 @@ function o_admin_fields( $options ) {
 	  class="<?php echo esc_attr( $value['class'] ); ?>"
 				<?php echo implode( ' ', $custom_attributes ); ?>
 	  ><?php echo esc_attr( $value['title'] ); ?></button>
+
+				<?php
+				break;
+			case 'title':
+				?>
+
+	  <h3
+
+	  id="<?php echo esc_attr( $value['id'] ); ?>"
+	  class="<?php echo esc_attr( $value['class'] ); ?>"
+				<?php echo implode( ' ', $custom_attributes ); ?>
+	  ><?php echo esc_attr( $value['title'] ); ?></h3>
 
 				<?php
 				break;
