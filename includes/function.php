@@ -104,6 +104,9 @@ function get_projet_name($number)
 	return $projet[$number];
 }
 
+// if(isset( $_POST['valideTemplate'] )){
+// 	add_option( 'myhack_extraction_length', '25512', '', 'no' );
+// }
 function get_json_calendar()
 {
 	$args = array(
@@ -208,6 +211,10 @@ function page_task()
 					<div>
 						<h3>Créer une tâche</h3>
 						<?php
+						if(isset($_POST['validetash'])){
+							echo 'Element envoyé';
+							var_dump($_POST);
+						}
 						add_task_form();
 						?>
 					</div>
@@ -215,8 +222,7 @@ function page_task()
 				<div id="collapse5" class="collapse" aria-labelledby="heading5" data-parent="#accordion">
 					<div>
 						<h3>Calendar</h3>
-						<?php //get_json_calendar() 
-						?>
+						<?php require_once('calendar.php'); //get_json_calendar() ?>
 					</div>
 				</div>
 			</div>
@@ -253,6 +259,10 @@ function add_task_form()
 			<label for="titre">Titre</label>
 			<input type="text" class="form-control" name="titre" id="titre" aria-describedby="inputHelp" placeholder="Nom de la tâche">
 		</div>
+		<div class="form-group">
+			<label for="exampleFormControlTextarea1">Description</label>
+			<textarea class="form-control" id="exampleFormControlTextarea1" rows="3"></textarea>
+		</div>
 		<div class="row">
 			<div class="col">
 				<label for="assigne">Assigne : </label>
@@ -265,13 +275,53 @@ function add_task_form()
 				<input type="datetime-local" name="duedate" class="form-control" id="duedate" aria-describedby="duedate">
 			</div>
 		</div>
+		<div class="form-check text-primary">
+			<input type="checkbox" class="form-check-input" name="AddSubtask" id="AddSubtask">
+			<label class="form-check-label" for="exampleCheck1">Ajouter des sous tâches</label>
+		</div>
+		<div class="row text-center card-header" id="choix_check" style="display:none;">
+			<div class="col-sm-4">
+				<input type="checkbox" class="form-check-input" name="show1" id="show1">
+				<label class="form-check-label" for="exampleCheck1">User Templates</label>
+			</div>
+			<div class="col-sm-4">
+				<input type="checkbox" class="form-check-input" name="show2" id="show2">
+				<label class="form-check-label" for="exampleCheck1">Create manuellement</label>
+			</div>
+		</div>
+		<div class="choix_1" style="display: none;">
+			<ol>
+				<li>JavaScript</li>
+				<li>HTML</li>
+				<li>CSS</li>
+				<li>JQuery</li>
+			</ol>
+		</div>
+		<div class="choix_2" style="display: none;">
+		<div class="form-group">
+			<label for="titre">Titre</label>
+			<input type="text" class="form-control" name="titre_manuel" id="titre_manuel" aria-describedby="inputHelp" placeholder="Nom de la tâche">
+		</div>
 		<div class="form-group">
 			<label for="exampleFormControlTextarea1">Description</label>
-			<textarea class="form-control" id="exampleFormControlTextarea1" rows="3"></textarea>
+			<textarea class="form-control" id="description_manuel" name="description_manuel" rows="3"></textarea>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label for="assigne">Assigne : </label>
+				<select class="form-control" id="assigne_manuel" name="assigne_manuel">
+					<?= option_select($user_asana) ?>
+				</select>
+			</div>
+			<div class="col">
+				<label for="duedate">Due Date</label>
+				<input type="datetime-local" name="duedate_manuel" class="form-control" id="duedate_manuel" aria-describedby="duedate">
+			</div>
+		</div>
 		</div>
 
 		<div class="pt-5">
-			<button type="submit">Submit</button>
+			<button type="submit" name="validetash">Submit</button>
 		</div>
 	</form>
 <?php
@@ -411,24 +461,26 @@ function taches_tab()
 			<div class="col-sm-8 card">
 				<div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
 					<div class="card-body">
-
-						<?php
-						if (empty($_POST['valide'])) {
-						?>
 							<div>
 								<h3>New Template</h3>
 								<hr>
-								<form id="create_template" name="create_template" action="" method="post">
+								<form action="" method="post">
 									<div class="form-group">
 										<div class="form-row">
+											<label for="InputTitle">Titre Template</label>
+											<input type="text" name="titlechamps" id="titlechamps" class="form-control" placeholder="Titre template">
+										</div>
+										<div class="form-row">
 											<div class="col">
-												<label for="InputTitle">Titre Template</label>
-												<input type="text" name="titlechamps" id="titlechamps" class="form-control" placeholder="Titre template">
-											</div>
-											<div class="col">
-												<label for="inputState">Template For :</label>
+												<label for="InputTitle">Template For :</label>
 												<select id="inputRole" name="inputRole" class="form-control">
-													<option>Choose...</option>
+													<option value="">Choose...</option>
+													<?= option_select(get_all_role()) ?>
+												</select>											</div>
+											<div class="col">
+												<label for="inputState">Sous Templates</label>
+												<select id="inputRole" name="inputRole" class="form-control">
+													<option value="">Choose...</option>
 													<?= option_select(get_all_role()) ?>
 												</select>
 											</div>
@@ -462,19 +514,17 @@ function taches_tab()
 									</div>
 
 									<div class="form-group">
-										<button type="submit" value="envoyer" name="valide" class="btn btn-primary btn-sm btn-block">SAVE TEMPLATE</button>
+										<button type="submit" value="envoyer" name="valideTemplate" class="btn btn-primary btn-sm btn-block">SAVE TEMPLATE</button>
 									</div>
 								</form>
 							</div>
 						<?php
-						} else {
-							echo 'Voila le résultat du formulaire<br/>';
-							var_dump($_POST);
-							echo '<br/>et voila le résultat des champs en affichage<br/>';
-							foreach ($_POST['typechamps'] as $value) {
-								echo $value . '<br/>';
-							}
-						}
+							// echo 'Voila le résultat du formulaire<br/>';
+							// var_dump($_POST);
+							// echo '<br/>et voila le résultat des champs en affichage<br/>';
+							// foreach ($_POST['typechamps'] as $value) {
+							// 	echo $value . '<br/>';
+							// 
 						?>
 					</div>
 				</div>

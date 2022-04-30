@@ -31,6 +31,33 @@
 
     $(document).ready(function() {
         console.log('Le script JS a bien été chargé');
+
+        $('#AddSubtask').click(function() {
+            if (this.checked) {
+                $('#choix_check').show(1000)
+            } else {
+                $('#choix_check').hide(1000);
+                $('.choix_1').hide(1000);
+                $('.choix_2').hide(1000);
+            }
+        });
+        $('#show1').click(function() {
+            if (this.checked) {
+                $('.choix_1').show(1000);
+            } else {
+                $('.choix_1').hide(1000);
+            }
+        });
+        $('#show2').click(function() {
+            console.log(this.val);
+            if (this.checked) {
+                $('.choix_2').show(1000);
+            } else {
+                $('.choix_2').hide(1000);
+            }
+        });
+
+
         $(document).on('submit', '#create_new_task', function(e) {
             e.preventDefault();
             console.log('Le clic sur le bouton a été pris en compte');
