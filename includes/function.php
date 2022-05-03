@@ -104,24 +104,18 @@ function get_projet_name($number)
 	return $projet[$number];
 }
 
-if (isset($_POST['valideTemplate'])) {
-	update_option($_POST['titlechamps'], array(3 => 'Test 3', 4 => 'Test 4'), '', 'no');
-}
-
 /**
  * Obtenir l'id du dernier option
  */
-function get_the_last_options_id()
-{
+function get_the_last_options_id(){
 	global $wpdb;
 	return $wpdb->get_var("SELECT MAX( option_id ) FROM $wpdb->options");
 }
 
-function save_new_templates(string $title_template, array $data)
-{
+function save_new_templates( array $data ){
 	global $wpdb;
 	$add_table = array(
-		'option_name' => $title_template . get_the_last_options_id(),
+		'option_name' => '_task_template_' . get_the_last_options_id(),
 		'option_value'=> serialize( $data ),
 		'autoload' => 'no'
 	);
@@ -129,81 +123,36 @@ function save_new_templates(string $title_template, array $data)
 	return $wpdb->insert($wpdb->options, $add_table, $format);
 }
 
-function save_new_project($id_user, $data)
-{
-	global $wpdb;
-	$table = $wpdb->prefix . 'project';
-	$id_project = new_project_asana();
-	$data = array('id' => $id_project) + $data;
-	$format = array('%s','%s', '%d', '%s');
-	return $wpdb->insert( $wpdb->prefix . 'project', $data, $format );
+function new_project_asana(){
+	return 3;
 }
 
-function get_all_template()
-{
+function save_new_project($data){
+	global $wpdb;
+	$table = $wpdb->prefix . 'project';
+	$format = array('%d', '%s','%s', '%d', '%s');
+	return $wpdb->insert( $table, $data, $format );
+}
+
+function get_all_templates(){
 	global $wpdb;
 	$type = '_task_template';
 	return $wpdb->get_results("SELECT * FROM $wpdb->options WHERE SUBSTR(option_name,1,14) = '$type'");
 }
-function get_json_calendar()
-{
-	$args = array(
-		'post_type'   => 'o_task_manager',
-	);
-	$post_type = get_posts($args);
 
-	$cal = "";
-?>
-	<table class="table table-hover">
-		<thead>
-			<tr>
-				<th scope="col">Task</th>
-				<th scope="col">Due Date</th>
-				<th scope="col">Assigne</th>
-				<th scope="col">Others</th>
-			</tr>
-		</thead>
-		<tbody>
-			<?php
-			if ($post_type != null) {
-				$user_name = get_user_for_asana();
-				foreach ($post_type as $key) {
-
-					$post_meta_br = get_post_meta($key->ID);
-					$post_meta = unserialize($post_meta_br['o_task_manager'][0]);
-					$val = (array('task' => $key->post_title, 'date' => $post_meta['date'], 'assigne' => $post_meta['assigne'], 'code' => $post_meta['assignecodage'], 'suivi' => $post_meta['assignesuivi'], 'test' => $post_meta['assignetest']));
-
-					$projet = get_projet_name($post_meta['project']);
-					$assigne  = $user_name[($post_meta['assigne'])];
-					$codage  = $user_name[($post_meta['assignecodage'])];
-					$suivi  = $user_name[($post_meta['assignesuivi'])];
-					$test  = $user_name[($post_meta['assignetest'])];
-					$duedate = date("d/m/Y à H:i", strtotime($post_meta['date']));
-			?>
-					<tr>
-						<td><?php _e("$key->post_title <br> ( $projet )", 'task'); ?></td>
-						<td><?php _e($duedate, 'task'); ?></td>
-						<td><?php _e($assigne, 'task'); ?></td>
-						<td><?php _e("Codage: $codage <br> Suivi: $suivi <br> Test: $suivi", 'task'); ?></td>
-					</tr>
-				<?php
-				}
-			} else {
-				?>
-				<tr>
-					<td colspan="2"><?php _e('Auncune tâche', 'task'); ?></td>
-				</tr>
-			<?php
-			}
-			?>
-		</tbody>
-	</table>
-	<?php
-
+function get_template_titles(){
+	$tab_templates = get_all_templates();
+	$title_array = array();
+	foreach ($tab_templates as $template) {
+		$titles = unserialize( $template->option_value );
+		foreach($titles as $title){
+			$title_array += array($template->option_id => $title['template_info']['title_template']);
+		}
+	}
+	return $title_array;
 }
 
-function get_all_role()
-{
+function get_all_role(){
 	global $wp_roles;
 	$roles_get = $wp_roles->roles;
 	$roles = array();
@@ -213,8 +162,7 @@ function get_all_role()
 	return $roles;
 }
 
-function get_all_users()
-{
+function get_all_users(){
 	$users = array();
 	foreach (get_users() as $value) {
 		$users = $users + array($value->ID => $value->user_email);
@@ -222,8 +170,7 @@ function get_all_users()
 	return $users;
 }
 
-function page_task()
-{
+function page_task(){
 	$post_author = get_current_user_id();
 
 	if ($post_author != 0) {
@@ -507,17 +454,18 @@ function taches_tab()
 					<div class="card-body">
 						<div>
 							<h3>New Template</h3>
+							<div id="add_success"></div>
 							<hr>
 							<form action="" method="post" id="create_template">
 								<div class="form-group">
 									<div class="form-row">
 										<label for="InputTitle">Titre Template</label>
-										<input type="text" name="titlechamps" id="titlechamps" class="form-control" placeholder="Titre template">
+										<input type="text" name="titletemplaye" id="titletemplaye" class="form-control" placeholder="Ex: Codage">
 									</div>
 									<div class="form-row">
 										<div class="col">
 											<label for="InputTitle">Template For :</label>
-											<select id="inputRole" name="inputRole" class="form-control">
+											<select id="templatefor" name="templatefor" class="form-control">
 												<option value="">Choose...</option>
 												<?= option_select(get_all_role()) ?>
 											</select>
@@ -526,7 +474,7 @@ function taches_tab()
 											<label for="inputSub">Sous Templates</label>
 											<select id="subTemplate" name="subTemplate" class="form-control">
 												<option value="">Choose...</option>
-												<?= option_select(get_all_role()) ?>
+												<?= option_select(get_template_titles()) ?>
 											</select>
 										</div>
 									</div>
@@ -535,20 +483,22 @@ function taches_tab()
 
 								<div class="form-row">
 									<div class="form-group col-md-5">
-										<input type="hidden" name="nbre_champs" value="1">
-										<select name="typechamps[0]" id="typechamps[0]" class="form-control">
-											<option>Choose Type Champs ...</option>
+										<input type="hidden" id="nbre_champs" name="nbre_champs" value="1">
+										<select name="typechamps0" id="typechamps0" class="form-control">
+											<option value="" >Choose Type Champs ...</option>
 											<option value="text">Text</option>
 											<option value="textarea">Textarea</option>
 											<option value="email">Email</option>
 											<option value="password">Password</option>
+											<option value="select">Select</option>
 											<option value="file">File</option>
+											<option value="date">Date Local</option>
 											<option value="radio">Radio</option>
 											<option value="checkbox">CheckBox</option>
 										</select>
 									</div>
 									<div class="form-group col-md-6">
-										<input type="text" class="form-control" name="placeholderchamps[0]" id="placeholderchamps[0]" placeholder="Placeholder Champs">
+										<input type="text" class="form-control" name="placeholderchamps0" id="placeholderchamps0" placeholder="Placeholder Champs">
 									</div>
 									<div class="form-group col-md-1">
 										<button class="btn btn-outline-danger">x</button>
@@ -590,13 +540,13 @@ function taches_tab()
 							);
 
 							$user = array(
-								'title' => __('Choise User', 'task'),
+								'title' => __('Choose User', 'task'),
 								'name' => 'user',
 								'id' => 'userasana',
 								'type' => 'select',
 								'desc' => __('Select user', 'task'),
 								'default' => '',
-								'options' => array('' => 'Choise email User') + get_all_users()
+								'options' => array('' => 'Choose email User') + get_all_users()
 							);
 
 							$user_choise = array(
@@ -607,14 +557,14 @@ function taches_tab()
 							);
 
 							$role = array(
-								'title' => __('Choise role', 'task'),
+								'title' => __('Choose role', 'task'),
 								'name' => 'role_user',
 								'id' => 'role_user',
 								'type' => 'select',
 								'desc' => __('Select user role', 'task'),
 								'default' => '',
 								'class' => ' form-control',
-								'options' => array('' => 'Choise role User') + get_all_role()
+								'options' => array('' => 'Choose role User') + get_all_role()
 							);
 							$btn = array(
 								'title' => __('Update Role', 'task'),
@@ -647,6 +597,7 @@ function taches_tab()
 					<div class="card-body">
 						<div>
 							<h3>New Projet</h3>
+							<div id="add_success"></div>
 							<hr>
 							<form id="create_new_projet" name="create_new_projet" action="" method="post">
 								<div class="form-group">
@@ -662,7 +613,7 @@ function taches_tab()
 										<div class="col">
 											<label for="inputState">Project Manager :</label>
 											<select id="projectmanager" name="projectmanager" class="form-control">
-												<option>Choose...</option>
+												<option value="">Choose...</option>
 												<?= option_select(get_all_users()) ?>
 											</select>
 										</div>
@@ -754,7 +705,7 @@ function active_tab()
 <?php
 }
 
-function get_user_role_()
+function settings_function()
 {
 	$action = htmlspecialchars($_POST['action']);
 	if ($action == 'get_user_role') {
@@ -769,22 +720,47 @@ function get_user_role_()
 	}
 	if ($action == 'update_user_role') {
 		$user_id = htmlspecialchars($_POST['id_user']);
-		$user_new_role = htmlspecialchars($_POST['select_role']);
-		$user_id = wp_update_user(array('ID' => $user_id, 'role' => $user_new_role));
-		echo 'ok';
-	}
-	if ($action == 'create_template') {
-		echo 'template';
+		$user_info = get_userdata($user_id);
+		$user_role = implode(', ', $user_info->roles);
+		if( $user_role != 'administrator' ){
+			$user_new_role = htmlspecialchars($_POST['select_role']);
+			$user_id = wp_update_user(array('ID' => $user_id, 'role' => $user_new_role));
+			echo ucfirst($user_new_role) . ' (New Role)';
+		}else
+			echo 'Sorry you can\'t change the roles of this user';
 	}
 	if ($action == 'create_new_projet') {
-		echo 'Project';
+		$post = wp_unslash( $_POST );
+		$id_project = new_project_asana();
+		$data = array(
+			'id' => $id_project,
+			'title' => $post['title'],
+			'slug' => $post['slug'],
+			'project_manager' => $post['project_manager'],
+			'collaborator' => serialize( $post['collaborator'] )
+		);
+		echo save_new_project($data);
+	}if ($action == 'create_template') {
+		$send = array_diff( $_POST, array('action' => 'create_template') );
+		$data = wp_unslash( $send );
+		echo save_new_templates( $data );
 	}
 	wp_die();
 }
 
 
-add_action('wp_ajax_nopriv_get_user_role', 'get_user_role_');
-add_action('wp_ajax_get_user_role', 'get_user_role_');
+add_action('wp_ajax_nopriv_get_user_role', 'settings_function');
+add_action('wp_ajax_get_user_role', 'settings_function');
+
+add_action('wp_ajax_nopriv_update_user_role', 'settings_function');
+add_action('wp_ajax_update_user_role', 'settings_function');
+
+add_action('wp_ajax_nopriv_create_new_projet', 'settings_function');
+add_action('wp_ajax_create_new_projet', 'settings_function');
+
+add_action('wp_ajax_nopriv_create_template', 'settings_function');
+add_action('wp_ajax_create_template', 'settings_function');
+
 add_shortcode('orion_task', 'orion_task_shortcode');
 add_action('wp_ajax_create_new_task', 'create_new_task_manager');
 add_action('wp_ajax_nopriv_create_new_task', 'create_new_task_manager');
