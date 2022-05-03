@@ -53,7 +53,7 @@
             });
         });
 
-        $(document).on('submit', '#user_role_asana', function(e) {
+        $('#user_role_asana').submit(function(e) {
             e.preventDefault();
             console.log('Le clic sur le bouton a été pris en compte');
             var select_user = document.getElementById('userasana').value;
@@ -66,7 +66,7 @@
                 data: {
                     'action': 'update_user_role',
                     'id_user': select_user,
-                    'select_role': select_role
+                    'select_role': select_role,
                 },
                 success: function(response) {
                     //console.log("La requête est terminée !");
@@ -78,7 +78,7 @@
             });
         });
 
-        $(document).on('submit', '#create_template', function(e) {
+        $('#create_template').submit(function(e) {
             e.preventDefault();
             console.log('Le clic sur le bouton a été pris en compte');
             //var nbre_champs = $('#nbre_champs').val();
@@ -87,12 +87,14 @@
             for (var i = 0; i < ton_form.length; i++)
                 tes_param += "'" + ton_form.elements[i].name + "':'" + ton_form.elements[i].value + "',";
 
+            console.log(tes_param);
+
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
                 data: {
                     'action': 'create_template',
-                    tes_param
+                    //tes_param
                 },
                 success: function(response) {
                     //console.log("La requête est terminée !");
@@ -105,13 +107,31 @@
             //console.log(tes_param);
         });
 
-        $(document).on('submit', '#create_new_projet', function(e) {
+        $('#create_new_projet').submit(function(e) {
             e.preventDefault();
             console.log('Le clic sur le bouton a été pris en compte');
-            //var multi_choix = $('#multichoix').val();
-            //var multi_choix = document.getElementById('multichoix').value;
             var multi_choix = $('#multichoix option:selected').toArray().map(item => item.value);
-            console.log(multi_choix);
+            var projectmanager = document.getElementById('projectmanager').value;
+            var title = $('#titleproject').val();
+            var slug = $('#slug').val();
+            //console.log(projectmanager + " => " + title + " => " + slug);
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'create_new_projet',
+                    'title_project': title,
+                    'slug': slug,
+                    'projecct_manager': projectmanager,
+                    'collaborator': multi_choix,
+                },
+                success: function(response) {
+                    console.log(response);
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
         });
     });
 

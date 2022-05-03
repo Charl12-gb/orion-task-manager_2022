@@ -104,9 +104,47 @@ function get_projet_name($number)
 	return $projet[$number];
 }
 
-// if(isset( $_POST['valideTemplate'] )){
-// 	add_option( 'myhack_extraction_length', '25512', '', 'no' );
-// }
+if (isset($_POST['valideTemplate'])) {
+	update_option($_POST['titlechamps'], array(3 => 'Test 3', 4 => 'Test 4'), '', 'no');
+}
+
+/**
+ * Obtenir l'id du dernier option
+ */
+function get_the_last_options_id()
+{
+	global $wpdb;
+	return $wpdb->get_var("SELECT MAX( option_id ) FROM $wpdb->options");
+}
+
+function save_new_templates(string $title_template, array $data)
+{
+	global $wpdb;
+	$add_table = array(
+		'option_name' => $title_template . get_the_last_options_id(),
+		'option_value'=> serialize( $data ),
+		'autoload' => 'no'
+	);
+	$format = array('%s','%s', '%s');
+	return $wpdb->insert($wpdb->options, $add_table, $format);
+}
+
+function save_new_project($id_user, $data)
+{
+	global $wpdb;
+	$table = $wpdb->prefix . 'project';
+	$id_project = new_project_asana();
+	$data = array('id' => $id_project) + $data;
+	$format = array('%s','%s', '%d', '%s');
+	return $wpdb->insert( $wpdb->prefix . 'project', $data, $format );
+}
+
+function get_all_template()
+{
+	global $wpdb;
+	$type = '_task_template';
+	return $wpdb->get_results("SELECT * FROM $wpdb->options WHERE SUBSTR(option_name,1,14) = '$type'");
+}
 function get_json_calendar()
 {
 	$args = array(
@@ -192,9 +230,17 @@ function page_task()
 	?>
 		<div class="container card">
 			<div class="row text-center card-header">
-				<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse1" aria-expanded="true" aria-controls="collapse1" href="" class="nav-tab"><h5><?php _e('Listes des tâches', 'task'); ?></h5></a></div>
-				<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse3" aria-expanded="false" aria-controls="collapse3" href="" class="nav-tab"><h5><?php _e('Créer une tâche', 'task'); ?></a></h5></div>
-				<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse5" aria-expanded="false" aria-controls="collapse5" href="" class="nav-tab"><h5><?php _e('Calendar', 'task'); ?></a></h5></div>
+				<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse1" aria-expanded="true" aria-controls="collapse1" href="" class="nav-tab">
+						<h5><?php _e('Listes des tâches', 'task'); ?></h5>
+					</a></div>
+				<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse3" aria-expanded="false" aria-controls="collapse3" href="" class="nav-tab">
+						<h5><?php _e('Créer une tâche', 'task'); ?>
+					</a></h5>
+				</div>
+				<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse5" aria-expanded="false" aria-controls="collapse5" href="" class="nav-tab">
+						<h5><?php _e('Calendar', 'task'); ?>
+					</a></h5>
+				</div>
 			</div>
 			<div id="accordion" class="card-body">
 				<div id="collapse1" class="collapse show" aria-labelledby="heading1" data-parent="#accordion">
@@ -211,7 +257,7 @@ function page_task()
 					<div>
 						<h3>Créer une tâche</h3>
 						<?php
-						if(isset($_POST['validetash'])){
+						if (isset($_POST['validetash'])) {
 							echo 'Element envoyé';
 							var_dump($_POST);
 						}
@@ -222,7 +268,8 @@ function page_task()
 				<div id="collapse5" class="collapse" aria-labelledby="heading5" data-parent="#accordion">
 					<div>
 						<h3>Calendar</h3>
-						<?php require_once('calendar.php'); //get_json_calendar() ?>
+						<?php require_once('calendar.php'); //get_json_calendar() 
+						?>
 					</div>
 				</div>
 			</div>
@@ -247,7 +294,7 @@ function login_redirect()
 //if( get_permalink() === home_url() . '/index.php/orion-task/' ){
 //add_action( 'wp', 'login_redirect' );		
 //}
-add_action('wp', 'login_redirect');
+
 
 function add_task_form()
 {
@@ -298,26 +345,26 @@ function add_task_form()
 			</ol>
 		</div>
 		<div class="choix_2" style="display: none;">
-		<div class="form-group">
-			<label for="titre">Titre</label>
-			<input type="text" class="form-control" name="titre_manuel" id="titre_manuel" aria-describedby="inputHelp" placeholder="Nom de la tâche">
-		</div>
-		<div class="form-group">
-			<label for="exampleFormControlTextarea1">Description</label>
-			<textarea class="form-control" id="description_manuel" name="description_manuel" rows="3"></textarea>
-		</div>
-		<div class="row">
-			<div class="col">
-				<label for="assigne">Assigne : </label>
-				<select class="form-control" id="assigne_manuel" name="assigne_manuel">
-					<?= option_select($user_asana) ?>
-				</select>
+			<div class="form-group">
+				<label for="titre">Titre</label>
+				<input type="text" class="form-control" name="titre_manuel" id="titre_manuel" aria-describedby="inputHelp" placeholder="Nom de la tâche">
 			</div>
-			<div class="col">
-				<label for="duedate">Due Date</label>
-				<input type="datetime-local" name="duedate_manuel" class="form-control" id="duedate_manuel" aria-describedby="duedate">
+			<div class="form-group">
+				<label for="exampleFormControlTextarea1">Description</label>
+				<textarea class="form-control" id="description_manuel" name="description_manuel" rows="3"></textarea>
 			</div>
-		</div>
+			<div class="row">
+				<div class="col">
+					<label for="assigne">Assigne : </label>
+					<select class="form-control" id="assigne_manuel" name="assigne_manuel">
+						<?= option_select($user_asana) ?>
+					</select>
+				</div>
+				<div class="col">
+					<label for="duedate">Due Date</label>
+					<input type="datetime-local" name="duedate_manuel" class="form-control" id="duedate_manuel" aria-describedby="duedate">
+				</div>
+			</div>
 		</div>
 
 		<div class="pt-5">
@@ -381,10 +428,7 @@ function orion_task_shortcode()
 	return page_task();
 }
 
-add_shortcode('orion_task', 'orion_task_shortcode');
 
-add_action('wp_ajax_create_new_task', 'create_new_task_manager');
-add_action('wp_ajax_nopriv_create_new_task', 'create_new_task_manager');
 
 function create_new_task_manager()
 {
@@ -461,70 +505,71 @@ function taches_tab()
 			<div class="col-sm-8 card">
 				<div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
 					<div class="card-body">
-							<div>
-								<h3>New Template</h3>
-								<hr>
-								<form action="" method="post">
-									<div class="form-group">
-										<div class="form-row">
-											<label for="InputTitle">Titre Template</label>
-											<input type="text" name="titlechamps" id="titlechamps" class="form-control" placeholder="Titre template">
-										</div>
-										<div class="form-row">
-											<div class="col">
-												<label for="InputTitle">Template For :</label>
-												<select id="inputRole" name="inputRole" class="form-control">
-													<option value="">Choose...</option>
-													<?= option_select(get_all_role()) ?>
-												</select>											</div>
-											<div class="col">
-												<label for="inputState">Sous Templates</label>
-												<select id="inputRole" name="inputRole" class="form-control">
-													<option value="">Choose...</option>
-													<?= option_select(get_all_role()) ?>
-												</select>
-											</div>
-										</div>
-									</div>
-									<label for="inputState">Template info :</label>
-
+						<div>
+							<h3>New Template</h3>
+							<hr>
+							<form action="" method="post" id="create_template">
+								<div class="form-group">
 									<div class="form-row">
-										<div class="form-group col-md-5">
-											<input type="hidden" name="nbre_champs" value="1">
-											<select name="typechamps[0]" id="typechamps[0]" class="form-control">
-												<option>Choose Type Champs ...</option>
-												<option value="text">Text</option>
-												<option value="textarea">Textarea</option>
-												<option value="email">Email</option>
-												<option value="password">Password</option>
-												<option value="file">File</option>
-												<option value="radio">Radio</option>
-												<option value="checkbox">CheckBox</option>
+										<label for="InputTitle">Titre Template</label>
+										<input type="text" name="titlechamps" id="titlechamps" class="form-control" placeholder="Titre template">
+									</div>
+									<div class="form-row">
+										<div class="col">
+											<label for="InputTitle">Template For :</label>
+											<select id="inputRole" name="inputRole" class="form-control">
+												<option value="">Choose...</option>
+												<?= option_select(get_all_role()) ?>
 											</select>
 										</div>
-										<div class="form-group col-md-6">
-											<input type="text" class="form-control" name="placeholderchamps[0]" id="placeholderchamps[0]" placeholder="Placeholder Champs">
-										</div>
-										<div class="form-group col-md-1">
-											<button class="btn btn-outline-danger">x</button>
+										<div class="col">
+											<label for="inputSub">Sous Templates</label>
+											<select id="subTemplate" name="subTemplate" class="form-control">
+												<option value="">Choose...</option>
+												<?= option_select(get_all_role()) ?>
+											</select>
 										</div>
 									</div>
-									<div class="form-group">
-										<span id="leschamps_1"><a href="javascript:create_champ(1)"><button type="button" class="btn btn-outline-primary">+</button></a></span>
-									</div>
+								</div>
+								<label for="inputState">Template info :</label>
 
-									<div class="form-group">
-										<button type="submit" value="envoyer" name="valideTemplate" class="btn btn-primary btn-sm btn-block">SAVE TEMPLATE</button>
+								<div class="form-row">
+									<div class="form-group col-md-5">
+										<input type="hidden" name="nbre_champs" value="1">
+										<select name="typechamps[0]" id="typechamps[0]" class="form-control">
+											<option>Choose Type Champs ...</option>
+											<option value="text">Text</option>
+											<option value="textarea">Textarea</option>
+											<option value="email">Email</option>
+											<option value="password">Password</option>
+											<option value="file">File</option>
+											<option value="radio">Radio</option>
+											<option value="checkbox">CheckBox</option>
+										</select>
 									</div>
-								</form>
-							</div>
+									<div class="form-group col-md-6">
+										<input type="text" class="form-control" name="placeholderchamps[0]" id="placeholderchamps[0]" placeholder="Placeholder Champs">
+									</div>
+									<div class="form-group col-md-1">
+										<button class="btn btn-outline-danger">x</button>
+									</div>
+								</div>
+								<div class="form-group">
+									<span id="leschamps_1"><a href="javascript:create_champ(1)"><button type="button" class="btn btn-outline-primary">+</button></a></span>
+								</div>
+
+								<div class="form-group">
+									<button type="submit" value="envoyer" name="valideTemplate" class="btn btn-primary btn-sm btn-block">SAVE TEMPLATE</button>
+								</div>
+							</form>
+						</div>
 						<?php
-							// echo 'Voila le résultat du formulaire<br/>';
-							// var_dump($_POST);
-							// echo '<br/>et voila le résultat des champs en affichage<br/>';
-							// foreach ($_POST['typechamps'] as $value) {
-							// 	echo $value . '<br/>';
-							// 
+						// echo 'Voila le résultat du formulaire<br/>';
+						// var_dump($_POST);
+						// echo '<br/>et voila le résultat des champs en affichage<br/>';
+						// foreach ($_POST['typechamps'] as $value) {
+						// 	echo $value . '<br/>';
+						// 
 						?>
 					</div>
 				</div>
@@ -590,7 +635,7 @@ function taches_tab()
 								$end,
 							);
 							?>
-							<form method="post" id="user_role_asana">
+							<form method="post" action="" id="user_role_asana">
 								<?php
 								echo o_admin_fields($details);
 								?>
@@ -709,15 +754,13 @@ function active_tab()
 <?php
 }
 
-add_action('wp_ajax_get_user_role', 'get_user_role_');
-add_action('wp_ajax_nopriv_get_user_role', 'get_user_role_');
 function get_user_role_()
 {
 	$action = htmlspecialchars($_POST['action']);
 	if ($action == 'get_user_role') {
 		$user_id = htmlspecialchars($_POST['id_user']);
 		if (empty($user_id)) {
-			echo 'See role user choise';
+			echo '';
 		} else {
 			$user_info = get_userdata($user_id);
 			$user_role = implode(', ', $user_info->roles);
@@ -733,4 +776,16 @@ function get_user_role_()
 	if ($action == 'create_template') {
 		echo 'template';
 	}
+	if ($action == 'create_new_projet') {
+		echo 'Project';
+	}
+	wp_die();
 }
+
+
+add_action('wp_ajax_nopriv_get_user_role', 'get_user_role_');
+add_action('wp_ajax_get_user_role', 'get_user_role_');
+add_shortcode('orion_task', 'orion_task_shortcode');
+add_action('wp_ajax_create_new_task', 'create_new_task_manager');
+add_action('wp_ajax_nopriv_create_new_task', 'create_new_task_manager');
+add_action('wp', 'login_redirect');

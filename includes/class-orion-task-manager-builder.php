@@ -324,4 +324,32 @@ class Orion_Task_Manager_Table_List extends WP_List_Table
                 return print_r( $item, true ) ;
         }
     }
+
+    public static function get_user_role_(){
+	$action = htmlspecialchars($_POST['action']);
+	if ($action == 'get_user_role') {
+		$user_id = htmlspecialchars($_POST['id_user']);
+		if (empty($user_id)) {
+			echo '';
+		} else {
+			$user_info = get_userdata($user_id);
+			$user_role = implode(', ', $user_info->roles);
+			echo ucfirst($user_role);
+		}
+	}
+	if ($action == 'update_user_role') {
+		$user_id = htmlspecialchars($_POST['id_user']);
+		$user_new_role = htmlspecialchars($_POST['select_role']);
+		$user_id = wp_update_user(array('ID' => $user_id, 'role' => $user_new_role));
+		echo 'ok';
+	}
+	if ($action == 'create_template') {
+		echo 'template';
+	}
+	if ($action == 'create_new_projet') {
+		echo 'Project';
+	}
+	wp_die();
+}
+
 }
