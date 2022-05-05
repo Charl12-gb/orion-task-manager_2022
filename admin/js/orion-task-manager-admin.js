@@ -81,7 +81,7 @@
             var nbre_champs = $('#nbre_champs').val();
             var title_template = $('#titletemplaye').val();
             var templatefor = $('#templatefor').val();
-            var subTemplate = $('#subTemplate').val();
+            var parentTemplate = $('#parentTemplate').val();
             var template_form = document.forms['create_template'];
 
             var form_parametre = {};
@@ -89,10 +89,12 @@
             var parametre = {};
             let name1 = "",
                 name2 = "",
+                name3 = "",
                 value1 = "",
-                value2 = "";
+                value2 = "",
+                value3 = "";
 
-            info_template['template_info'] = { title_template: title_template, templatefor: templatefor, subTemplate: subTemplate };
+            info_template['template_info'] = { title_template: title_template, templatefor: templatefor, parentTemplate: parentTemplate };
             form_parametre = jQuery.extend(form_parametre, info_template);
 
             for (var i = 0; i < template_form.length; i++) {
@@ -103,11 +105,14 @@
             for (var i = 0; i < nbre_champs; i++) {
                 name1 = "typechamps" + i;
                 name2 = "placeholderchamps" + i;
+                name3 = "namechamps" + i;
                 value1 = $('#' + name1).val();
                 value2 = $('#' + name2).val();
+                value3 = $('#' + name3).val();
                 parametre[i + 1] = {
                     champtype: value1,
-                    placeholderchamp: value2
+                    placeholderchamp: value2,
+                    namechamp: value3
                 };
                 form_parametre = jQuery.extend(form_parametre, parametre);
             }
@@ -128,7 +133,6 @@
                     console.log(errorThrown);
                 }
             });
-            //console.log(form_parametre);
         });
 
         $('#create_new_projet').submit(function(e) {
@@ -166,6 +170,6 @@
 function create_champ(i) {
     var i2 = i + 1;
     //console.log(i);
-    document.getElementById('leschamps_' + i).innerHTML = '<div class="form-row"><div class="form-group col-md-5"> <input type="hidden" name="nbre_champs" value ="' + (i + 1) + '"> <select name="typechamps' + i + '" id="typechamps' + i + '" class="form-control"> <option value="">Choose Type Champs ...</option> <option value="text">Text</option> <option value="textarea">Textarea</option> <option value="email">Email</option> <option value="password">Password</option> <option value="select">Select</option> <option value="file">File</option> <option value="date">Date Local</option> <option value="radio">Radio</option> <option value="checkbox">CheckBox</option> </select> </div> <div class="form-group col-md-6"> <input type="text" class="form-control" name="placeholderchamps' + i + '" id="placeholderchamps' + i + '" placeholder="Placeholder Champs"> </div> <div class="form-group col-md-1"> <button class="btn btn-outline-danger">x</button> </div> </div> <div class="">';
+    document.getElementById('leschamps_' + i).innerHTML = '<div class="form-row"><div class="form-group col-md-3"> <input type="hidden" name="nbre_champs" value ="' + (i + 1) + '"> <select name="typechamps' + i + '" id="typechamps' + i + '" class="form-control"> <option value="">Choose Type Champs ...</option> <option value="text">Text</option> <option value="textarea">Textarea</option> <option value="email">Email</option> <option value="password">Password</option> <option value="select">Select</option> <option value="file">File</option> <option value="date">Date Local</option> <option value="radio">Radio</option> <option value="checkbox">CheckBox</option> </select> </div> <div class="form-group col-md-4"><input type="text" class="form-control" name="namechamps' + i + '" id="namechamps' + i + '" placeholder="Name Champs"></div> <div class="form-group col-md-4"> <input type="text" class="form-control" name="placeholderchamps' + i + '" id="placeholderchamps' + i + '" placeholder="Placeholder Champs"> </div> <div class="form-group col-md-1"> <button class="btn btn-outline-danger">x</button> </div> </div> <div class="">';
     document.getElementById('leschamps_' + i).innerHTML += (i <= 10) ? '<span id="leschamps_' + i2 + '"><a href="javascript:create_champ(' + i2 + ')"><button type="button" class="btn btn-outline-primary">+</button></a></span> </div>' : '';
 }

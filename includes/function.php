@@ -107,52 +107,65 @@ function get_projet_name($number)
 /**
  * Obtenir l'id du dernier option
  */
-function get_the_last_options_id(){
+function get_the_last_options_id()
+{
 	global $wpdb;
 	return $wpdb->get_var("SELECT MAX( option_id ) FROM $wpdb->options");
 }
 
-function save_new_templates( array $data ){
+function save_new_templates(array $data)
+{
 	global $wpdb;
 	$add_table = array(
 		'option_name' => '_task_template_' . get_the_last_options_id(),
-		'option_value'=> serialize( $data ),
+		'option_value' => serialize($data),
 		'autoload' => 'no'
 	);
-	$format = array('%s','%s', '%s');
+	$format = array('%s', '%s', '%s');
 	return $wpdb->insert($wpdb->options, $add_table, $format);
 }
 
-function new_project_asana(){
-	return 3;
+function new_project_asana()
+{
+	return 5;
 }
 
-function save_new_project($data){
+function save_new_project($data)
+{
 	global $wpdb;
 	$table = $wpdb->prefix . 'project';
-	$format = array('%d', '%s','%s', '%d', '%s');
-	return $wpdb->insert( $table, $data, $format );
+	$format = array('%d', '%s', '%s', '%d', '%s');
+	return $wpdb->insert($table, $data, $format);
 }
 
-function get_all_templates(){
+function get_all_project(){
+	global $wpdb;
+	$table = $wpdb->prefix . 'project';
+	return $wpdb->get_results("SELECT * FROM $table ");
+}
+
+function get_all_templates()
+{
 	global $wpdb;
 	$type = '_task_template';
 	return $wpdb->get_results("SELECT * FROM $wpdb->options WHERE SUBSTR(option_name,1,14) = '$type'");
 }
 
-function get_template_titles(){
+function get_template_titles()
+{
 	$tab_templates = get_all_templates();
 	$title_array = array();
 	foreach ($tab_templates as $template) {
-		$titles = unserialize( $template->option_value );
-		foreach($titles as $title){
+		$titles = unserialize($template->option_value);
+		foreach ($titles as $title) {
 			$title_array += array($template->option_id => $title['template_info']['title_template']);
 		}
 	}
 	return $title_array;
 }
 
-function get_all_role(){
+function get_all_role()
+{
 	global $wp_roles;
 	$roles_get = $wp_roles->roles;
 	$roles = array();
@@ -162,31 +175,64 @@ function get_all_role(){
 	return $roles;
 }
 
-function get_all_users(){
+function get_all_users()
+{
 	$users = array();
 	foreach (get_users() as $value) {
-		$users = $users + array($value->ID => $value->user_email);
+		$users += array($value->ID => $value->user_email);
 	}
 	return $users;
 }
 
-function page_task(){
+function is_project_manager( int $id_user = null){
+	global $wpdb, $current_user;
+	$table = $wpdb->prefix . 'project';
+	$projects = get_all_project();
+	$user_project = array();
+	if( $id_user == null ){$id_user = $current_user->ID;}
+	$i=0;
+	foreach ($projects as $project) {
+		if( $project->project_manager == $id_user ){
+			$i++;
+			$user_project += array( $i => (array)$project);
+		}
+	}
+	return $user_project;	
+}
+
+function get_project_manger_project(){
+	$projects = array();
+	foreach (is_project_manager() as $project) {
+		$projects += array( $project['id'] => $project['title'] );
+	}
+	return $projects;
+}
+
+function page_task()
+{
 	$post_author = get_current_user_id();
 
 	if ($post_author != 0) {
-	?>
+?>
 		<div class="container card">
 			<div class="row text-center card-header">
 				<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse1" aria-expanded="true" aria-controls="collapse1" href="" class="nav-tab">
 						<h5><?php _e('Listes des tâches', 'task'); ?></h5>
-					</a></div>
-				<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse3" aria-expanded="false" aria-controls="collapse3" href="" class="nav-tab">
-						<h5><?php _e('Créer une tâche', 'task'); ?>
-					</a></h5>
-				</div>
+						</a>
+					</div>
+					<?php 
+						if( is_project_manager() != null ){
+							?>
+							<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse3" aria-expanded="false" aria-controls="collapse3" href="" class="nav-tab">
+									<h5><?php _e('Créer une tâche', 'task'); ?>
+								</h5></a>
+							</div>
+							<?php
+						}
+					?>
 				<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse5" aria-expanded="false" aria-controls="collapse5" href="" class="nav-tab">
 						<h5><?php _e('Calendar', 'task'); ?>
-					</a></h5>
+					</h5></a>
 				</div>
 			</div>
 			<div id="accordion" class="card-body">
@@ -204,11 +250,13 @@ function page_task(){
 					<div>
 						<h3>Créer une tâche</h3>
 						<?php
-						if (isset($_POST['validetash'])) {
-							echo 'Element envoyé';
-							var_dump($_POST);
+						// if (isset($_POST['validetash'])) {
+						// 	echo 'Element envoyé';
+						// 	var_dump($_POST);
+						// }
+						if( is_project_manager() != null ){
+							add_task_form();
 						}
-						add_task_form();
 						?>
 					</div>
 				</div>
@@ -249,9 +297,17 @@ function add_task_form()
 	$tasks = get_all_task();
 	?>
 	<form method="post" action="" id="create_new_task">
-		<div class="form-group">
+		<div class="row">
+			<div class="col">
 			<label for="titre">Titre</label>
 			<input type="text" class="form-control" name="titre" id="titre" aria-describedby="inputHelp" placeholder="Nom de la tâche">
+			</div>
+			<div class="col">
+				<label for="proectlabel">Select Project : </label>
+				<select class="form-control" id="project" name="project">
+					<?= option_select(get_project_manger_project()) ?>
+				</select>
+			</div>
 		</div>
 		<div class="form-group">
 			<label for="exampleFormControlTextarea1">Description</label>
@@ -274,22 +330,29 @@ function add_task_form()
 			<label class="form-check-label" for="exampleCheck1">Ajouter des sous tâches</label>
 		</div>
 		<div class="row text-center card-header" id="choix_check" style="display:none;">
-			<div class="col-sm-4">
+			<div class="col-sm-6">
 				<input type="checkbox" class="form-check-input" name="show1" id="show1">
 				<label class="form-check-label" for="exampleCheck1">User Templates</label>
 			</div>
-			<div class="col-sm-4">
+			<div class="col-sm-6">
 				<input type="checkbox" class="form-check-input" name="show2" id="show2">
 				<label class="form-check-label" for="exampleCheck1">Create manuellement</label>
 			</div>
 		</div>
-		<div class="choix_1" style="display: none;">
-			<ol>
-				<li>JavaScript</li>
-				<li>HTML</li>
-				<li>CSS</li>
-				<li>JQuery</li>
-			</ol>
+		<div class="choix_1" id="choix_1" style="display: none;">
+			<div class="form-row mt-3">
+				<div class="form-group col-md-10">
+					<input type="hidden" id="nbre_champs1" name="nbre_champs" value="1">
+					<select name="0" id="selectTemplate0" class="form-control choose_template">
+						<option value="">Choose Type Champs ...</option>
+						<?= option_select(get_template_titles()) ?>
+					</select>
+				</div>
+				<div class="form-group">
+					<span id="add_template" name="add_template" class="btn btn-outline-primary">Add Template</span>
+				</div>
+				<span id="see_template0"></span>
+			</div>
 		</div>
 		<div class="choix_2" style="display: none;">
 			<div class="form-group">
@@ -471,8 +534,8 @@ function taches_tab()
 											</select>
 										</div>
 										<div class="col">
-											<label for="inputSub">Sous Templates</label>
-											<select id="subTemplate" name="subTemplate" class="form-control">
+											<label for="inputSub">Parent Templates</label>
+											<select id="parentTemplate" name="parentTemplate" class="form-control">
 												<option value="">Choose...</option>
 												<?= option_select(get_template_titles()) ?>
 											</select>
@@ -482,10 +545,10 @@ function taches_tab()
 								<label for="inputState">Template info :</label>
 
 								<div class="form-row">
-									<div class="form-group col-md-5">
+									<div class="form-group col-md-3">
 										<input type="hidden" id="nbre_champs" name="nbre_champs" value="1">
 										<select name="typechamps0" id="typechamps0" class="form-control">
-											<option value="" >Choose Type Champs ...</option>
+											<option value="">Choose Type Champs ...</option>
 											<option value="text">Text</option>
 											<option value="textarea">Textarea</option>
 											<option value="email">Email</option>
@@ -497,7 +560,10 @@ function taches_tab()
 											<option value="checkbox">CheckBox</option>
 										</select>
 									</div>
-									<div class="form-group col-md-6">
+									<div class="form-group col-md-4">
+										<input type="text" class="form-control" name="namechamps0" id="namechamps0" placeholder="Name Champs">
+									</div>
+									<div class="form-group col-md-4">
 										<input type="text" class="form-control" name="placeholderchamps0" id="placeholderchamps0" placeholder="Placeholder Champs">
 									</div>
 									<div class="form-group col-md-1">
@@ -513,14 +579,6 @@ function taches_tab()
 								</div>
 							</form>
 						</div>
-						<?php
-						// echo 'Voila le résultat du formulaire<br/>';
-						// var_dump($_POST);
-						// echo '<br/>et voila le résultat des champs en affichage<br/>';
-						// foreach ($_POST['typechamps'] as $value) {
-						// 	echo $value . '<br/>';
-						// 
-						?>
 					</div>
 				</div>
 				<div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordion">
@@ -705,6 +763,94 @@ function active_tab()
 <?php
 }
 
+function get_project_collaborator( int $id_project ){
+	$collaborators = array();
+	foreach (is_project_manager() as $project) {
+		if( $project['id'] == $id_project ){
+			foreach (unserialize( $project['collaborator'] ) as $collaborator) {
+				$the_user = get_user_by( 'ID', $collaborator ); 
+				$collaborators += array( $the_user->ID => $the_user->user_email );
+			}
+		}
+	}	
+	return $collaborators;
+}
+
+/**
+ * 
+ * @param int $id id template
+ */
+function get_template_form(int $id){
+	$all_templates = get_all_templates();
+	foreach ($all_templates as $templates) {
+		if ($templates->option_id == $id)
+			$template = $templates;
+	}
+	$templates_form = unserialize($template->option_value); $i=0;
+	foreach ($templates_form['parametre'] as $key => $value) {
+		if( isset( $value['champtype'], $value['namechamp'] ) and !empty( $value['champtype'] )){
+			?>
+			<div class="form-row">
+				<div class="form-group col-sm-12">
+				<?php
+				switch ($value['champtype']) {
+					case 'text':
+					case 'email':
+					case 'file':
+					case 'date':
+					case 'number':
+					case 'password':
+						$type = $value['champtype'];
+						?>
+						<input
+						name="<?= esc_attr( $value['namechamps'] . $i) ; ?>"
+						id="<?= esc_attr( $value['namechamps'] . $i) ; ?>"
+						type="<?= esc_attr( $type ); ?>"
+						placeholder="<?= ucfirst( esc_attr( $value['placeholderchamps'] ) ); ?>"
+						class="form-control"/>
+						<?php
+					break;
+					case 'textarea':
+						?>
+						<textarea
+						name="<?= esc_attr( $value['namechamps'] . $i) ; ?>"
+						id="<?= esc_attr( $value['namechamps'] . $i) ; ?>"
+						placeholder="<?= ucfirst( esc_attr( $value['placeholderchamps'] ) ); ?>"
+						class="form-control"></textarea>
+				
+						<?php
+					break;
+					case 'select':
+					case 'multiselect':
+							?>
+							<select 
+							name="<?= esc_attr( $value['namechamps'] . $i) ; ?>"
+							id="<?= esc_attr( $value['namechamps'] . $i) ; ?>"
+							select_id="<?= esc_attr( $i ) ?>"
+							<?php if ( $value['type'] == 'multiselect' ){ ?> class="selectpicker form-control" multiple data-live-search="true" <?php } if ( $value['type'] == 'select' ){ ?> class="form-control" <?php } ?> >
+								<option></option>
+					  		</select>
+							<?php
+					break;
+					
+					default:
+						# code...
+						break;
+				}
+				?>
+					<select name="0" id="selectTemplate0" class="form-control choose_template">
+						<option value="">Choose Type Champs ...</option>
+						<?= option_select(get_template_titles()) ?>
+					</select>
+				</div>
+			</div>
+			<?php
+		}$i++;
+	}
+
+	var_dump ($templates_form);
+}
+
 function settings_function()
 {
 	$action = htmlspecialchars($_POST['action']);
@@ -722,28 +868,32 @@ function settings_function()
 		$user_id = htmlspecialchars($_POST['id_user']);
 		$user_info = get_userdata($user_id);
 		$user_role = implode(', ', $user_info->roles);
-		if( $user_role != 'administrator' ){
+		if ($user_role != 'administrator') {
 			$user_new_role = htmlspecialchars($_POST['select_role']);
 			$user_id = wp_update_user(array('ID' => $user_id, 'role' => $user_new_role));
 			echo ucfirst($user_new_role) . ' (New Role)';
-		}else
+		} else
 			echo 'Sorry you can\'t change the roles of this user';
 	}
 	if ($action == 'create_new_projet') {
-		$post = wp_unslash( $_POST );
+		$post = wp_unslash($_POST);
 		$id_project = new_project_asana();
 		$data = array(
 			'id' => $id_project,
 			'title' => $post['title'],
 			'slug' => $post['slug'],
 			'project_manager' => $post['project_manager'],
-			'collaborator' => serialize( $post['collaborator'] )
+			'collaborator' => serialize($post['collaborator'])
 		);
 		echo save_new_project($data);
-	}if ($action == 'create_template') {
-		$send = array_diff( $_POST, array('action' => 'create_template') );
-		$data = wp_unslash( $send );
-		echo save_new_templates( $data );
+	}
+	if ($action == 'create_template') {
+		$send = array_diff($_POST, array('action' => 'create_template'));
+		$data = wp_unslash($send);
+		echo save_new_templates($data);
+	}
+	if ($action == 'get_option_add') {
+		echo option_select(get_template_titles());
 	}
 	wp_die();
 }
@@ -760,6 +910,9 @@ add_action('wp_ajax_create_new_projet', 'settings_function');
 
 add_action('wp_ajax_nopriv_create_template', 'settings_function');
 add_action('wp_ajax_create_template', 'settings_function');
+
+add_action('wp_ajax_nopriv_get_option_add', 'settings_function');
+add_action('wp_ajax_get_option_add', 'settings_function');
 
 add_shortcode('orion_task', 'orion_task_shortcode');
 add_action('wp_ajax_create_new_task', 'create_new_task_manager');

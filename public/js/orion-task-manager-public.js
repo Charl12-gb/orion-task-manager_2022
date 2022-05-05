@@ -32,6 +32,42 @@
     $(document).ready(function() {
         console.log('Le script JS a bien été chargé');
 
+        var i = 1;
+        $('#add_template').click(function() {
+            i++;
+            $('#choix_1').append('<div id="rm' + i + '" class="form-row mt-3"><div class="form-group col-md-10"><select name="' + i + '" id="selectTemplate' + i + '" class="form-control choose_template"><option value="">Choose Type Champs... </option></select></div><div class="form-group col-md-1"><button type="button" name="remove" id="' + i + '" class="btn btn-outline-danger btn_remove">X</button></div><span id="see_template' + i + '"></span></div>');
+            $.ajax({
+                url: task_manager.ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'get_option_add',
+                },
+                success: function(response) {
+                    $('#selectTemplate' + i).append(response);
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
+
+        $(document).on('click', '.btn_remove', function() {
+            var button_id = $(this).attr("id");
+            $('#rm' + button_id + '').remove();
+        });
+
+        $(document).on('change', '.choose_template', function() {
+            var i = $(this).attr("name");
+            var select = document.getElementById('selectTemplate' + i).value;
+            $('#see_template' + i).append(select + " => " + i + "Lorem, ipsum dolor sit amet consectetur adipisicing elit. Molestias mollitia ab atque exercitationem, dolorem excepturi maiores aliquam, eos quibusdam cumque accusantium optio natus sequi nostrum error consequuntur vitae! Sint, delectus?");
+        })
+
+        function get_last_champs() {
+            var nbre_champs = $('#choix_1 input').last().attr('id');
+            return nbre_champs;
+            //console.log(nbre_champs);
+        }
+
         $('#AddSubtask').click(function() {
             if (this.checked) {
                 $('#choix_check').show(1000)
@@ -49,7 +85,6 @@
             }
         });
         $('#show2').click(function() {
-            console.log(this.val);
             if (this.checked) {
                 $('.choix_2').show(1000);
             } else {
@@ -58,78 +93,10 @@
         });
 
 
-        $(document).on('submit', '#create_new_task', function(e) {
-            e.preventDefault();
-            console.log('Le clic sur le bouton a été pris en compte');
-            var title = $('#titre').val();
-            var assigne = $('#assigne').val();
-            var project = $('#project').val();
-            var subtask = $('#subtask').val();
-            var dependancies = $('#dependancies').val();
-            var codage = $('#codage').val();
-            var suivi = $('#suivi').val();
-            var test = $('#test').val();
-            var duedate = $('#duedate').val();
-            //console.log(task_manager.ajaxurl);
-
-            $.ajax({
-                url: task_manager.ajaxurl,
-                type: "POST",
-                data: {
-                    'action': 'create_new_task',
-                    'title': title,
-                    'assigne': assigne,
-                    'project': project,
-                    'subtask': subtask,
-                    'dependancies': dependancies,
-                    'codage': codage,
-                    'suivi': suivi,
-                    'test': test,
-                    'duedate': duedate,
-                },
-                success: function(response) {
-                    //console.log("La requête est terminée !");
-                    console.log(response);
-                },
-                error: function(errorThrown) {
-                    console.log(errorThrown);
-                }
-            });
-        });
-        $(document).on('submit', '#create_simple_task', function(e) {
-            e.preventDefault();
-            console.log('Le clic sur le bouton a été pris en compte');
-            var title = $('#titre').val();
-            var assigne = $('#assigne').val();
-            var project = $('#project').val();
-            var subtask = $('#subtask').val();
-            var dependancies = $('#dependancies').val();
-            var duedate = $('#duedate').val();
-            //console.log(task_manager.ajaxurl);
-
-            $.ajax({
-                url: task_manager.ajaxurl,
-                type: "POST",
-                data: {
-                    'action': 'create_simple_task',
-                    'title': title,
-                    'assigne': assigne,
-                    'project': project,
-                    'subtask': subtask,
-                    'dependancies': dependancies,
-                    'codage': codage,
-                    'suivi': suivi,
-                    'test': test,
-                    'duedate': duedate,
-                },
-                success: function(response) {
-                    //console.log("La requête est terminée !");
-                    console.log(response);
-                },
-                error: function(errorThrown) {
-                    console.log(errorThrown);
-                }
-            });
+        $(get_last_champs()).change(function() {
+            var lastC = get_last_champs().charAt(str.length - 1);
+            //var select = document.getElementById().value;
+            console.log(lastC);
         });
     });
 })(jQuery);
