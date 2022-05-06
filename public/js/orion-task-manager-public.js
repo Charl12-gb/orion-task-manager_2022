@@ -35,7 +35,7 @@
         var i = 1;
         $('#add_template').click(function() {
             i++;
-            $('#choix_1').append('<div id="rm' + i + '" class="form-row mt-3"><div class="form-group col-md-10"><select name="' + i + '" id="selectTemplate' + i + '" class="form-control choose_template"><option value="">Choose Type Champs... </option></select></div><div class="form-group col-md-1"><button type="button" name="remove" id="' + i + '" class="btn btn-outline-danger btn_remove">X</button></div><span id="see_template' + i + '"></span></div>');
+            $('#choix_1').append('<div id="rm' + i + '"><div class="form-row mt-3"><div class="form-group col-md-10"><select name="' + i + '" id="selectTemplate' + i + '" class="form-control choose_template"><option value="">Choose Type Champs... </option></select></div><div class="form-group col-md-1"><button type="button" name="remove" id="' + i + '" class="btn btn-outline-danger btn_remove">X</button></div></div><span id="see_template' + i + '"></span></div>');
             $.ajax({
                 url: task_manager.ajaxurl,
                 type: "POST",
@@ -56,17 +56,59 @@
             $('#rm' + button_id + '').remove();
         });
 
+        $(document).on('change', '.project', function() {
+            var project_id = document.getElementById('project').value;
+            $.ajax({
+                url: task_manager.ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'get_option_add_template',
+                    'project_id': project_id
+                },
+                success: function(response) {
+                    document.getElementById('assign0').innerHTML = response;
+                    //$('#assign0').append(response);
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
+
         $(document).on('change', '.choose_template', function() {
             var i = $(this).attr("name");
             var select = document.getElementById('selectTemplate' + i).value;
-            $('#see_template' + i).append(select + " => " + i + "Lorem, ipsum dolor sit amet consectetur adipisicing elit. Molestias mollitia ab atque exercitationem, dolorem excepturi maiores aliquam, eos quibusdam cumque accusantium optio natus sequi nostrum error consequuntur vitae! Sint, delectus?");
-        })
 
-        function get_last_champs() {
-            var nbre_champs = $('#choix_1 input').last().attr('id');
-            return nbre_champs;
-            //console.log(nbre_champs);
-        }
+            $.ajax({
+                url: task_manager.ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'get_template_choose',
+                    'template_id': select
+                },
+                success: function(response) {
+                    document.getElementById('see_template' + i).innerHTML = response;
+                    var project_id = document.getElementById('project').value;
+                    $.ajax({
+                        url: task_manager.ajaxurl,
+                        type: "POST",
+                        data: {
+                            'action': 'get_option_add_template',
+                            'project_id': project_id
+                        },
+                        success: function(response) {
+                            document.getElementById('assign0').innerHTML = response;
+                        },
+                        error: function(errorThrown) {
+                            console.log(errorThrown);
+                        }
+                    });
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        })
 
         $('#AddSubtask').click(function() {
             if (this.checked) {
@@ -92,11 +134,16 @@
             }
         });
 
-
-        $(get_last_champs()).change(function() {
-            var lastC = get_last_champs().charAt(str.length - 1);
-            //var select = document.getElementById().value;
-            console.log(lastC);
-        });
     });
 })(jQuery);
+
+function open_sub_templaye(valeur) {
+    var div = document.getElementById(valeur);
+    if (div.style.display === "none") {
+        div.style.display = "block";
+        document.getElementById("change" + valeur).innerHTML = ' - ';
+    } else {
+        div.style.display = "none";
+        document.getElementById("change" + valeur).innerHTML = ' + ';
+    }
+}

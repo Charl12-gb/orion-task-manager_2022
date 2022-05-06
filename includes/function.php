@@ -304,7 +304,7 @@ function add_task_form()
 			</div>
 			<div class="col">
 				<label for="proectlabel">Select Project : </label>
-				<select class="form-control" id="project" name="project">
+				<select class="form-control project" id="project" name="project">
 					<?= option_select(get_project_manger_project()) ?>
 				</select>
 			</div>
@@ -344,15 +344,15 @@ function add_task_form()
 				<div class="form-group col-md-10">
 					<input type="hidden" id="nbre_champs1" name="nbre_champs" value="1">
 					<select name="0" id="selectTemplate0" class="form-control choose_template">
-						<option value="">Choose Type Champs ...</option>
+						<option value="">Choose Template ...</option>
 						<?= option_select(get_template_titles()) ?>
 					</select>
 				</div>
 				<div class="form-group">
 					<span id="add_template" name="add_template" class="btn btn-outline-primary">Add Template</span>
 				</div>
-				<span id="see_template0"></span>
 			</div>
+			<span id="see_template0"></span>
 		</div>
 		<div class="choix_2" style="display: none;">
 			<div class="form-group">
@@ -776,18 +776,16 @@ function get_project_collaborator( int $id_project ){
 	return $collaborators;
 }
 
-/**
- * 
- * @param int $id id template
- */
-function get_template_form(int $id){
-	$all_templates = get_all_templates();
-	foreach ($all_templates as $templates) {
-		if ($templates->option_id == $id)
-			$template = $templates;
-	}
-	$templates_form = unserialize($template->option_value); $i=0;
-	foreach ($templates_form['parametre'] as $key => $value) {
+function get_form( array $array ){
+
+	$i=0;
+	?>
+	<div class="form-group">
+		<label for="InputTitle"> Task Title </label>
+		<input type="text" name="titletask" id="titletask" class="form-control" disabled value="<?= $array['parametre']['template_info']['title_template']  ?>">
+	</div>
+	<?php
+	foreach ($array['parametre'] as $key => $value) {
 		if( isset( $value['champtype'], $value['namechamp'] ) and !empty( $value['champtype'] )){
 			?>
 			<div class="form-row">
@@ -801,21 +799,24 @@ function get_template_form(int $id){
 					case 'number':
 					case 'password':
 						$type = $value['champtype'];
+						if( $type == 'file' or $type == 'date' ){
+							?><label for="InputTitle"><?= ucfirst( esc_attr( $value['placeholderchamp'] ) ); ?> </label><?php
+						}
 						?>
 						<input
-						name="<?= esc_attr( $value['namechamps'] . $i) ; ?>"
-						id="<?= esc_attr( $value['namechamps'] . $i) ; ?>"
-						type="<?= esc_attr( $type ); ?>"
-						placeholder="<?= ucfirst( esc_attr( $value['placeholderchamps'] ) ); ?>"
+						name="<?= esc_attr( $value['namechamp'] . $i) ; ?>"
+						id="<?= esc_attr( $value['namechamp'] . $i) ; ?>"
+						type="<?php if( $value['champtype'] == 'date' ) echo 'datetime-local'; else echo esc_attr( $type ); ?>"
+						placeholder="<?= ucfirst( esc_attr( $value['placeholderchamp'] ) ); ?>"
 						class="form-control"/>
 						<?php
 					break;
 					case 'textarea':
 						?>
 						<textarea
-						name="<?= esc_attr( $value['namechamps'] . $i) ; ?>"
-						id="<?= esc_attr( $value['namechamps'] . $i) ; ?>"
-						placeholder="<?= ucfirst( esc_attr( $value['placeholderchamps'] ) ); ?>"
+						name="<?= esc_attr( $value['namechamp'] . $i) ; ?>"
+						id="<?= esc_attr( $value['namechamp'] . $i) ; ?>"
+						placeholder="<?= ucfirst( esc_attr( $value['placeholderchamp'] ) ); ?>"
 						class="form-control"></textarea>
 				
 						<?php
@@ -823,12 +824,13 @@ function get_template_form(int $id){
 					case 'select':
 					case 'multiselect':
 							?>
+							<label for="InputTitle"><?= ucfirst( esc_attr( $value['placeholderchamp'] ) ); ?> </label>
 							<select 
-							name="<?= esc_attr( $value['namechamps'] . $i) ; ?>"
-							id="<?= esc_attr( $value['namechamps'] . $i) ; ?>"
+							name="<?= esc_attr( $value['namechamp'] . $i) ; ?>"
+							id="<?= esc_attr( $value['namechamp'] . $i) ; ?>"
 							select_id="<?= esc_attr( $i ) ?>"
 							<?php if ( $value['type'] == 'multiselect' ){ ?> class="selectpicker form-control" multiple data-live-search="true" <?php } if ( $value['type'] == 'select' ){ ?> class="form-control" <?php } ?> >
-								<option></option>
+								
 					  		</select>
 							<?php
 					break;
@@ -838,17 +840,52 @@ function get_template_form(int $id){
 						break;
 				}
 				?>
-					<select name="0" id="selectTemplate0" class="form-control choose_template">
-						<option value="">Choose Type Champs ...</option>
-						<?= option_select(get_template_titles()) ?>
-					</select>
 				</div>
 			</div>
 			<?php
 		}$i++;
 	}
+}
 
-	var_dump ($templates_form);
+function get_sub_templates( $id_template_parent ){
+	$templates_get = array(); $i = 0;
+	foreach (get_all_templates() as $templates_all) {
+		$templates = unserialize( $templates_all->option_value );
+		if( $templates['parametre']['template_info']['parentTemplate'] == $id_template_parent ){
+			$templates_get += array( $i => $templates );
+			$i++;
+		}
+	}
+	return $templates_get;
+}
+
+/**
+ * 
+ * @param int $id id template
+ */
+function get_template_form(int $id){
+	$all_templates = get_all_templates();
+	foreach ($all_templates as $templates) {
+		if ($templates->option_id == $id)
+			$template = $templates;
+	}
+	$templates_form = unserialize( $template->option_value );
+	get_form( $templates_form );
+	$sub_templates = get_sub_templates( $id );
+	if( $sub_templates != null ){
+		$j=0;
+		foreach ($sub_templates as $sub_template) {
+			?>
+			<div class="row pl-5 pr-5 pb-4">
+				<span onclick="open_sub_templaye(<?= $j ?>)" class="btn btn-outline-primary"><span id="change<?= $j ?>"> + </span> <?= $sub_template['parametre']['template_info']['title_template']  ?> </span>
+			</div>
+			<div id="<?= $j ?>" style="display:none;" class="pl-5 pr-5">
+				<?php get_form( $sub_template ); ?>
+			</div>
+			<?php
+			$j++;
+		}
+	}
 }
 
 function settings_function()
@@ -895,6 +932,14 @@ function settings_function()
 	if ($action == 'get_option_add') {
 		echo option_select(get_template_titles());
 	}
+	if ($action == 'get_option_add_template') {
+		$id_project = htmlentities( $_POST['project_id'] );
+		echo option_select( array( '' => 'Choose ...' ) + get_project_collaborator( $id_project ) );
+	}
+	if( $action == 'get_template_choose' ){
+		$id_template = htmlentities( $_POST['template_id'] );
+		echo get_template_form( $id_template );
+	}
 	wp_die();
 }
 
@@ -913,6 +958,12 @@ add_action('wp_ajax_create_template', 'settings_function');
 
 add_action('wp_ajax_nopriv_get_option_add', 'settings_function');
 add_action('wp_ajax_get_option_add', 'settings_function');
+
+add_action('wp_ajax_nopriv_get_template_choose', 'settings_function');
+add_action('wp_ajax_get_template_choose', 'settings_function');
+
+add_action('wp_ajax_nopriv_get_option_add_template', 'settings_function');
+add_action('wp_ajax_get_option_add_template', 'settings_function');
 
 add_shortcode('orion_task', 'orion_task_shortcode');
 add_action('wp_ajax_create_new_task', 'create_new_task_manager');
