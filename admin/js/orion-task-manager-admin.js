@@ -33,6 +33,17 @@
 
     $(document).ready(function() {
 
+        var i = 1;
+        $('#addchamp').click(function() {
+            i++;
+            $('#champadd').append('<div id="rm2' + i + '"><div class="form-row"><div class="form-group col-md-3"><input type="hidden" id="nbre_champs" name="nbre_champs" value="' + i + '"><select name="typechamps' + i + '" id="typechamps' + i + '" class="form-control"><option value="">Choose Type Champs ...</option><option value="text">Text</option><option value="textarea">Textarea</option><option value="email">Email</option><option value="password">Password</option><option value="select">Select</option><option value="file">File</option><option value="date">Date Local</option><option value="radio">Radio</option><option value="checkbox">CheckBox</option></select></div><div class="form-group col-md-4"><input type="text" class="form-control" name="namechamps' + i + '" id="namechamps' + i + '" placeholder="Name Champs"></div><div class="form-group col-md-4"><input type="text" class="form-control" name="placeholderchamps' + i + '" id="placeholderchamps' + i + '" placeholder="Placeholder Champs"></div><div class="form-group col-md-1"><span name="remove" id="' + i + '" class="btn btn-outline-danger btn_remove_template">X</span></div></div></div>');
+        });
+
+        $(document).on('click', '.btn_remove_template', function() {
+            var button_id = $(this).attr("id");
+            $('#rm2' + button_id + '').remove();
+        });
+
         console.log('Le script JS a bien été chargé');
         $('#userasana').change(function() {
             var select = document.getElementById('userasana').value;
@@ -102,7 +113,7 @@
                     nbre_champs = template_form.elements[i].value;
             }
 
-            for (var i = 0; i < nbre_champs; i++) {
+            for (var i = 0; i < (nbre_champs + 1); i++) {
                 name1 = "typechamps" + i;
                 name2 = "placeholderchamps" + i;
                 name3 = "namechamps" + i;
@@ -166,10 +177,3 @@
     });
 
 })(jQuery);
-
-function create_champ(i) {
-    var i2 = i + 1;
-    //console.log(i);
-    document.getElementById('leschamps_' + i).innerHTML = '<div class="form-row"><div class="form-group col-md-3"> <input type="hidden" name="nbre_champs" value ="' + (i + 1) + '"> <select name="typechamps' + i + '" id="typechamps' + i + '" class="form-control"> <option value="">Choose Type Champs ...</option> <option value="text">Text</option> <option value="textarea">Textarea</option> <option value="email">Email</option> <option value="password">Password</option> <option value="select">Select</option> <option value="file">File</option> <option value="date">Date Local</option> <option value="radio">Radio</option> <option value="checkbox">CheckBox</option> </select> </div> <div class="form-group col-md-4"><input type="text" class="form-control" name="namechamps' + i + '" id="namechamps' + i + '" placeholder="Name Champs"></div> <div class="form-group col-md-4"> <input type="text" class="form-control" name="placeholderchamps' + i + '" id="placeholderchamps' + i + '" placeholder="Placeholder Champs"> </div> <div class="form-group col-md-1"> <button class="btn btn-outline-danger">x</button> </div> </div> <div class="">';
-    document.getElementById('leschamps_' + i).innerHTML += (i <= 10) ? '<span id="leschamps_' + i2 + '"><a href="javascript:create_champ(' + i2 + ')"><button type="button" class="btn btn-outline-primary">+</button></a></span> </div>' : '';
-}

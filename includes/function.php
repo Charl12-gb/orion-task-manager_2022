@@ -544,34 +544,33 @@ function taches_tab()
 								</div>
 								<label for="inputState">Template info :</label>
 
-								<div class="form-row">
-									<div class="form-group col-md-3">
-										<input type="hidden" id="nbre_champs" name="nbre_champs" value="1">
-										<select name="typechamps0" id="typechamps0" class="form-control">
-											<option value="">Choose Type Champs ...</option>
-											<option value="text">Text</option>
-											<option value="textarea">Textarea</option>
-											<option value="email">Email</option>
-											<option value="password">Password</option>
-											<option value="select">Select</option>
-											<option value="file">File</option>
-											<option value="date">Date Local</option>
-											<option value="radio">Radio</option>
-											<option value="checkbox">CheckBox</option>
-										</select>
-									</div>
-									<div class="form-group col-md-4">
-										<input type="text" class="form-control" name="namechamps0" id="namechamps0" placeholder="Name Champs">
-									</div>
-									<div class="form-group col-md-4">
-										<input type="text" class="form-control" name="placeholderchamps0" id="placeholderchamps0" placeholder="Placeholder Champs">
-									</div>
-									<div class="form-group col-md-1">
-										<button class="btn btn-outline-danger">x</button>
+								<div id="champadd" name="champadd">
+									<div class="form-row">
+										<div class="form-group col-md-3">
+											<input type="hidden" id="nbre_champs" name="nbre_champs" value="1">
+											<select name="typechamps0" id="typechamps0" class="form-control">
+												<option value="">Choose Type Champs ...</option>
+												<option value="text">Text</option>
+												<option value="textarea">Textarea</option>
+												<option value="email">Email</option>
+												<option value="password">Password</option>
+												<option value="select">Select</option>
+												<option value="file">File</option>
+												<option value="date">Date Local</option>
+												<option value="radio">Radio</option>
+												<option value="checkbox">CheckBox</option>
+											</select>
+										</div>
+										<div class="form-group col-md-4">
+											<input type="text" class="form-control" name="namechamps0" id="namechamps0" placeholder="Name Champs">
+										</div>
+										<div class="form-group col-md-5">
+											<input type="text" class="form-control" name="placeholderchamps0" id="placeholderchamps0" placeholder="Placeholder Champs">
+										</div>
 									</div>
 								</div>
 								<div class="form-group">
-									<span id="leschamps_1"><a href="javascript:create_champ(1)"><button type="button" class="btn btn-outline-primary">+</button></a></span>
+									<span id="addchamp" name="addchamp" class="btn btn-outline-primary">+</span>
 								</div>
 
 								<div class="form-group">
