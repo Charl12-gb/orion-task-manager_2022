@@ -33,15 +33,16 @@
 
     $(document).ready(function() {
 
-        var i = 1;
+        var i = 0;
         $('#addchamp').click(function() {
             i++;
-            $('#champadd').append('<div id="rm2' + i + '"><div class="form-row"><div class="form-group col-md-3"><input type="hidden" id="nbre_champs" name="nbre_champs" value="' + i + '"><select name="typechamps' + i + '" id="typechamps' + i + '" class="form-control"><option value="">Choose Type Champs ...</option><option value="text">Text</option><option value="textarea">Textarea</option><option value="email">Email</option><option value="password">Password</option><option value="select">Select</option><option value="file">File</option><option value="date">Date Local</option><option value="radio">Radio</option><option value="checkbox">CheckBox</option></select></div><div class="form-group col-md-4"><input type="text" class="form-control" name="namechamps' + i + '" id="namechamps' + i + '" placeholder="Name Champs"></div><div class="form-group col-md-4"><input type="text" class="form-control" name="placeholderchamps' + i + '" id="placeholderchamps' + i + '" placeholder="Placeholder Champs"></div><div class="form-group col-md-1"><span name="remove" id="' + i + '" class="btn btn-outline-danger btn_remove_template">X</span></div></div></div>');
+            $('#champadd').append('<div id="rm2' + i + '"><div class="form-row pt-2"><div class="col-sm-11"><input type="text" name="tasktitle' + i + '" id="tasktitle' + i + '" class="form-control" placeholder="Task Title"></div><div class="col-sm-1"><span name="remove" id="' + i + '" class="btn btn-outline-danger btn_remove_template">X</span></div></div></div>');
         });
 
         $(document).on('click', '.btn_remove_template', function() {
             var button_id = $(this).attr("id");
             $('#rm2' + button_id + '').remove();
+            i = i - 1
         });
 
         console.log('Le script JS a bien été chargé');
@@ -89,50 +90,28 @@
         $('#create_template').submit(function(e) {
             e.preventDefault();
             console.log('Le clic sur le bouton a été pris en compte');
-            var nbre_champs = $('#nbre_champs').val();
-            var title_template = $('#titletemplaye').val();
-            var templatefor = $('#templatefor').val();
-            var parentTemplate = $('#parentTemplate').val();
-            var template_form = document.forms['create_template'];
-
-            var form_parametre = {};
-            var info_template = {};
+            var template = {};
+            var subtemplate = {};
             var parametre = {};
-            let name1 = "",
-                name2 = "",
-                name3 = "",
-                value1 = "",
-                value2 = "",
-                value3 = "";
-
-            info_template['template_info'] = { title_template: title_template, templatefor: templatefor, parentTemplate: parentTemplate };
-            form_parametre = jQuery.extend(form_parametre, info_template);
-
-            for (var i = 0; i < template_form.length; i++) {
-                if (template_form.elements[i].name === 'nbre_champs')
-                    nbre_champs = template_form.elements[i].value;
+            var subtitle = "";
+            var templatetitle = $('#templatetitle').val();
+            var tasktitle = $('#tasktitle').val();
+            var role = $('#role').val();
+            template = { templatetitle: templatetitle, tasktitle: tasktitle, role: role };
+            if (i != 0) {
+                for (var y = 1; y <= i; y++) {
+                    subtitle = $('#tasktitle' + y).val();;
+                    subtemplate[y] = { subtitle };
+                }
             }
-
-            for (var i = 0; i < (nbre_champs + 1); i++) {
-                name1 = "typechamps" + i;
-                name2 = "placeholderchamps" + i;
-                name3 = "namechamps" + i;
-                value1 = $('#' + name1).val();
-                value2 = $('#' + name2).val();
-                value3 = $('#' + name3).val();
-                parametre[i + 1] = {
-                    champtype: value1,
-                    placeholderchamp: value2,
-                    namechamp: value3
-                };
-                form_parametre = jQuery.extend(form_parametre, parametre);
-            }
+            parametre = { template: template, subtemplate: subtemplate }
+                //console.log(parametre);
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
                 data: {
                     'action': 'create_template',
-                    'parametre': form_parametre
+                    'parametre': parametre
                 },
                 success: function(response) {
                     if (response)
