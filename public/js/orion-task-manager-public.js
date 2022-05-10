@@ -35,55 +35,13 @@
         $('#create_new_task').submit(function(e) {
             e.preventDefault();
             console.log('Le clic sur le bouton a été pris en compte');
-            var template_form = document.forms['create_new_task'];
-            var task_form_parametre = {};
-            var principal_task = {};
-            var manuel_task = {};
-            var sub_task = {};
-            let title1 = "titre",
-                description1 = "description",
-                duedate1 = "duedate",
-                assign1 = "assign",
-                email1 = "email ",
-                password1 = "password",
-                multiselect = "multiselect";
+            var firstchoose = $("input[name='show']:checked").val();
+            if (firstchoose == 'userTemplate') {
 
+            } else {
 
-            //Tâche Principale
-            var title = $('#title').val();
-            var project = $('#project').val();
-            var description = $('#description').val();
-            var assign = $('#assign').val();
-            var duedate = $('#duedate').val();
-            principal_task['principal_task'] = { title: title, project: project, description: description, assign: assign, duedate: duedate };
-            task_form_parametre = jQuery.extend(task_form_parametre, principal_task);
-
-            if ($('#AddSubtask').is(":checked")) {
-                if ($('#show1').is(":checked")) {
-                    console.log('show1');
-                    for (var t = 0; t < template_form.length; t++) {
-                        for (var x = 0; x <= i; x++) {
-                            for (var y = 0; y <= 6; y++) {
-                                //if ($('#' + title1 + "" + x + "-" + y))
-                                console.log($('#' + title1 + "" + x + "-" + y));
-                            }
-                        }
-                        console.log(template_form.elements[i].name + " => " + template_form.elements[i].value);
-                    }
-                }
-                if ($('#show2').is(":checked")) {
-                    //Tâche manuel
-                    var title_manuel = $('#title_manuel').val();
-                    var project = $('#project').val();
-                    var description_manuel = $('#description_manuel').val();
-                    var assign_manuel = $('#assign_manuel').val();
-                    var duedate_manuel = $('#duedate_manuel').val();
-                    manuel_task['principal_manuel'] = { title: title_manuel, project: project, description: description_manuel, assign: assign_manuel, duedate: duedate_manuel };
-                    task_form_parametre = jQuery.extend(task_form_parametre, manuel_task);
-                }
             }
 
-            console.log(task_form_parametre);
         });
 
         $('#add_template').click(function() {
@@ -119,21 +77,12 @@
                     'project_id': project_id
                 },
                 success: function(response) {
-                    var radioValue = $("input[name='show']:checked").val();
-                    if (radioValue == 'userTemplate') {
-                        for (var t = 0; t < 10; t++) {
-                            if (document.getElementById('assign' + t))
-                                document.getElementById('assign' + t).innerHTML = response;
-                        }
-                    } else {
-                        document.getElementById('assign').innerHTML = response;
-                        for (var l = 0; l < 30; l++) {
-                            for (var t = 0; t < 6; t++) {
-                                if (document.getElementById('assign' + l + '-' + t))
-                                    document.getElementById('assign' + l + '-' + t).innerHTML = response;
-                            }
-                        }
+                    document.getElementById('assign').innerHTML = response;
+                    for (var t = 0; t < 20; t++) {
+                        if (document.getElementById('assign' + t))
+                            document.getElementById('assign' + t).innerHTML = response;
                     }
+                    document.getElementById('label1').style.color = 'black';
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -143,12 +92,20 @@
 
         $(document).on('change', '#selectTemplate', function() {
             var select = document.getElementById('selectTemplate').value;
+            var radioValue = $("input[name='show1']:checked").val();
+            var istemp;
+            if (radioValue == undefined) {
+                istemp = 'no';
+            } else {
+                istemp = 'yes';
+            }
             $.ajax({
                 url: task_manager.ajaxurl,
                 type: "POST",
                 data: {
                     'action': 'get_template_choose',
                     'template_id': select,
+                    'istemplate': istemp
                 },
                 success: function(response) {
                     document.getElementById('template_select').innerHTML = response;
@@ -162,22 +119,46 @@
         $('input[type=radio][name=show]').change(function() {
             if (this.value == 'userTemplate') {
                 var type = "usertemplate";
-                $('#manuel_get').hide(1000)
+                $('#manuel_get').hide(1000);
             }
             if (this.value == 'manuelTemplate') {
                 var type = "manueltemplate";
-                $('#manuel_get').show(1000)
+                $('#manuel_get').show(1000);
             }
             $.ajax({
                 url: task_manager.ajaxurl,
                 type: "POST",
                 data: {
                     'action': 'get_first_form',
-                    'type': type
+                    'type': type,
+                    'istemplate': 'no'
                 },
                 success: function(response) {
                     document.getElementById("first_choix").innerHTML = response;
                     $('#hidden_submit').show(1000)
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
+        $('input[type=radio][name=show1]').change(function() {
+            if (this.value == 'userTemplate1') {
+                var type = "usertemplate";
+            }
+            if (this.value == 'manuelTemplate1') {
+                var type = "manueltemplate";
+            }
+            $.ajax({
+                url: task_manager.ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'get_first_form',
+                    'type': type,
+                    'istemplate': 'yes'
+                },
+                success: function(response) {
+                    document.getElementById("second_choix").innerHTML = response;
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -190,8 +171,6 @@
                 $('#choix_check').show(1000)
             } else {
                 $('#choix_check').hide(1000);
-                $('.choix_1').hide(1000);
-                $('.choix_2').hide(1000);
             }
         });
 

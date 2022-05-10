@@ -310,13 +310,15 @@ function add_task_form()
 			</div>
 			<div class="row text-center card-header" id="choix_check" style="display:none;">
 				<div class="col-sm-6">
-					<input type="radio" class="form-check-input" name="show1" id="show1">
+					<input type="radio" class="form-check-input" name="show1" id="userTemplate1" value="userTemplate1">
 					<label class="form-check-label" for="exampleCheck1">Use Templates</label>
 				</div>
-				<div class="col-sm-6">						<input type="radio" class="form-check-input" name="show1" id="show2">
+				<div class="col-sm-6">						
+					<input type="radio" class="form-check-input" name="show1" id="manuelTemplate1" value="manuelTemplate1">
 					<label class="form-check-label" for="exampleCheck1">Create manually</label>
 				</div>
 			</div>
+			<span id="second_choix"></span>
 		</div>
 		<div class="pt-5" id="hidden_submit" style="display:none">
 			<button type="submit" name="validetash">Submit</button>
@@ -661,29 +663,42 @@ function get_project_collaborator(int $id_project)
 	return $collaborators;
 }
 
-function get_form(array $array){
+function get_form(array $array, $istemplate){
 	$template = $array['parametre']['template'];
 	?>
 	<div class="pb-3">
-		<div class="row">
-			<div class="col">
+		<?php
+			if( $istemplate ){
+				?>
+				<div class="form-group">
 				<label for="title">Titre</label>
-				<input type="text" class="form-control" disabled name="title" id="title" value="<?= $template['tasktitle']  ?>">
-			</div>
-			<div class="col">
-				<label for="proectlabel">Select Project : </label>
-				<select class="form-control project" id="project" name="project">
-					<?= option_select(array('' => 'Choose project ...') + get_project_manger_project()) ?>
-				</select>
-			</div>
-		</div>
+						<input type="text" class="form-control" disabled name="title" id="title" value="<?= $template['tasktitle']  ?>">
+				</div>
+				<?php
+			}else{
+				?>
+				<div class="row">
+					<div class="col">
+						<label for="title">Titre</label>
+						<input type="text" class="form-control" disabled name="title" id="title" value="<?= $template['tasktitle']  ?>">
+					</div>
+					<div class="col">
+						<label for="proectlabel" id="label1" style="color:red">Select Project : </label>
+						<select class="form-control project" id="project" name="project">
+							<?= option_select(array('' => 'Choose project ...') + get_project_manger_project()) ?>
+						</select>
+					</div>
+				</div>
+				<?php
+			}
+		?>
 		<div class="form-group">
 			<label for="exampleFormControlTextarea1">Description</label>
 			<textarea class="form-control" id="description" name="description" placeholder="Description..." rows="3"></textarea>
 		</div>
 		<div class="form-group">
 			<label for="exampleFormControlTextarea1">Commentaire</label>
-			<textarea class="form-control" id="commentaire" name="commentaire" placeholder="Commentaire" rows="3"></textarea>
+			<textarea class="form-control" id="commentaire" name="commentaire" placeholder="Commentaire..." rows="3"></textarea>
 		</div>
 		<div class="row">
 			<div class="col">
@@ -727,7 +742,7 @@ function get_form(array $array){
 	}
 }
 
-function get_first_choose( $type ){
+function get_first_choose( $type, $istemplate = false ){
 	if( $type == 'usertemplate' ){
 	?>
 		<div class="form-group col-md-10 pt-3">
@@ -743,34 +758,47 @@ function get_first_choose( $type ){
 	if( $type == 'manueltemplate' ){
 		?>
 		<div class="pb-3">
-			<div class="row">
-				<div class="col">
-					<label for="title">Titre</label>
-					<input type="text" class="form-control" name="title" id="title">
-				</div>
-				<div class="col">
-					<label for="proectlabel">Select Project : </label>
-					<select class="form-control project" id="project" name="project">
-						<?= option_select(array('' => 'Choose project ...') + get_project_manger_project()) ?>
-					</select>
-				</div>
-			</div>
+			<?php 
+				if( $istemplate ){
+					?>
+					<div class="form-group">
+						<label for="title">Titre</label>
+						<input type="text" class="form-control" name="manuel_title" id="manuel_title">
+					</div>
+					<?php
+				}else{
+					?>
+					<div class="row">
+						<div class="col">
+							<label for="title">Titre</label>
+							<input type="text" class="form-control" name="title" id="title">
+						</div>
+						<div class="col">
+							<label for="proectlabel" id="label1" style="color:red">Select Project : </label>
+							<select class="form-control project" id="project" name="project">
+								<?= option_select(array('' => 'Choose project ...') + get_project_manger_project()) ?>
+							</select>
+						</div>
+					</div>
+					<?php
+				}
+			?>
 			<div class="form-group">
 				<label for="exampleFormControlTextarea1">Description</label>
-				<textarea class="form-control" id="description" name="description" placeholder="Description..." rows="3"></textarea>
+				<textarea class="form-control" id="<?php if($istemplate) echo 'manuel_' ?>description" name="<?php if($istemplate) echo 'manuel_' ?>description" placeholder="Description..." rows="3"></textarea>
 			</div>
 			<div class="form-group">
 				<label for="exampleFormControlTextarea1">Commentaire</label>
-				<textarea class="form-control" id="commentaire" name="commentaire" placeholder="Commentaire" rows="3"></textarea>
+				<textarea class="form-control" id="<?php if($istemplate) echo 'manuel_' ?>commentaire" name="<?php if($istemplate) echo 'manuel_' ?>commentaire" placeholder="Commentaire..." rows="3"></textarea>
 			</div>
 			<div class="row">
 				<div class="col">
 					<label for="assigne">Assigne : </label>
-					<select class="form-control" id="assign" name="assign"></select>
+					<select class="form-control" id="<?php if($istemplate) echo 'manuel_' ?>assign" name="<?php if($istemplate) echo 'manuel_' ?>assign"></select>
 				</div>
 				<div class="col">
 					<label for="duedate">Due Date</label>
-					<input type="datetime-local" name="duedate" class="form-control" id="duedate" aria-describedby="duedate">
+					<input type="datetime-local" name="<?php if($istemplate) echo 'manuel_' ?>duedate" class="form-control" id="<?php if($istemplate) echo 'manuel_' ?>duedate" aria-describedby="duedate">
 				</div>
 			</div>
 		</div>
@@ -781,7 +809,7 @@ function get_first_choose( $type ){
  * 
  * @param int $id id template
  */
-function get_template_form(int $id)
+function get_template_form(int $id, $istemplate=false)
 {
 	$all_templates = get_all_templates();
 	foreach ($all_templates as $templates) {
@@ -789,7 +817,7 @@ function get_template_form(int $id)
 			$template = $templates;
 	}
 	$templates_form = unserialize($template->option_value);
-	get_form( $templates_form );
+	get_form( $templates_form, $istemplate );
 }
 
 function settings_function()
@@ -845,12 +873,17 @@ function settings_function()
 	}
 	if ($action == 'get_template_choose') {
 		$id_template = htmlentities($_POST['template_id']);
-		if( empty( $nbre_temp ) ) $nbre_temp = 0;
-		echo get_template_form($id_template);
+		$istemplate = htmlentities($_POST['istemplate']);
+		if( $istemplate == 'yes' ) echo get_template_form($id_template, true);
+		else echo get_template_form($id_template);
 	}
 	if ($action == 'get_first_form') {
 		$type = htmlentities($_POST['type']);
-		echo get_first_choose( $type );
+		$istemplate = htmlentities($_POST['istemplate']);
+		if( $istemplate == 'yes' )
+			echo get_first_choose( $type, true );
+		else
+			echo get_first_choose( $type );
 	}
 	wp_die();
 }
