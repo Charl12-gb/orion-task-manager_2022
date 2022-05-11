@@ -143,10 +143,11 @@
                     'collaborator': multi_choix,
                 },
                 success: function(response) {
+                    console.log(response);
                     if (response)
-                        document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">New project created successfully</div>';
+                        document.getElementById('add_success1').innerHTML = '<div class="alert alert-success" role="alert">New project created successfully</div>';
                     else
-                        document.getElementById('add_success').innerHTML = '<div class="alert alert-danger" role="alert">Error occurred during project creation</div>';
+                        document.getElementById('add_success1').innerHTML = '<div class="alert alert-danger" role="alert">Error occurred during project creation</div>';
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
