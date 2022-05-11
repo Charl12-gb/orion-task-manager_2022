@@ -226,7 +226,7 @@
                 },
                 beforeSend: function() {
                     //first_choix
-                    document.getElementById('first_choix').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading choose ... </div>';
+                    document.getElementById('first_choix').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
                 },
                 success: function(response) {
                     document.getElementById("first_choix").innerHTML = response;

@@ -39,6 +39,102 @@
             $('#champadd').append('<div id="rm2' + i + '"><div class="form-row pt-2"><div class="col-sm-11"><input type="text" name="tasktitle' + i + '" id="tasktitle' + i + '" class="form-control" placeholder="Task Title"></div><div class="col-sm-1"><span name="remove" id="' + i + '" class="btn btn-outline-danger btn_remove_template">X</span></div></div></div>');
         });
 
+        $(document).on('click', '.btn_list_task', function() {
+            var action_template = $(this).attr('id');
+            document.getElementById('add_success').innerHTML = '';
+            if (action_template == 'template_btn_list') {
+                document.getElementById('template_btn_list').innerHTML = 'Add New Template';
+                $(this).attr('id', 'template_btn_add');
+                document.getElementById('template_label').innerHTML = 'List Template';
+            }
+            if (action_template == 'template_btn_add') {
+                document.getElementById('template_btn_add').innerHTML = 'List Template';
+                $(this).attr('id', 'template_btn_list');
+                document.getElementById('template_label').innerHTML = 'Add New Template';
+            }
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'get_template_card',
+                    'valeur': action_template
+                },
+                beforeSend: function() {
+                    document.getElementById('template_card').innerHTML = '';
+                    document.getElementById('create_template').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
+                },
+                success: function(response) {
+                    if (action_template == 'template_btn_list') {
+                        document.getElementById('create_template').innerHTML = '';
+                        document.getElementById('template_card').innerHTML = response;
+                    }
+                    if (action_template == 'template_btn_add') {
+                        document.getElementById('template_card').innerHTML = '';
+                        document.getElementById('create_template').innerHTML = response;
+                    }
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
+
+        $(document).on('click', '.worklog_authorized', function() {
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'worklog_update',
+                },
+                beforeSend: function() {
+                    document.getElementById('worklog_card').innerHTML = '<div class="alert alert-info mt-4 card" role="alert">Loading ... </div>';
+                },
+                success: function(response) {
+                    document.getElementById('worklog_card').innerHTML = response;
+                }
+            });
+        });
+
+        $(document).on('click', '.template_remove', function() {
+            var id_template = $(this).attr('id');
+            //console.log(id_template);
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'delete_template_',
+                    'id_template': id_template
+                },
+                success: function(response) {
+                    document.getElementById('template_card').innerHTML = response;
+                    document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">Deletion completed successfully</div>';
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
+
+        $(document).on('click', '.template_edit', function() {
+            var id_template = $(this).attr('id');
+            console.log(id_template);
+            // $.ajax({
+            //     url: ajaxurl,
+            //     type: "POST",
+            //     data: {
+            //         'action': 'update_template',
+            //         'id_template': id_template
+            //     },
+            //     success: function(response) {
+            //         document.getElementById('template_card').innerHTML = response;
+            //     },
+            //     error: function(errorThrown) {
+            //         console.log(errorThrown);
+            //     }
+            // });
+        });
+
+
         $(document).on('click', '.btn_remove_template', function() {
             var button_id = $(this).attr("id");
             $('#rm2' + button_id + '').remove();

@@ -67,7 +67,11 @@ class Task_Manager_Builder
             taches_tab();
         }
         if ( $active_tableau == 'o-worklog' ) {
-            worklog_tab();
+            ?>
+            <div id="worklog_card">
+                <?php worklog_tab(); ?>
+            </div>
+            <?php
         }
         if ( $active_tableau == 'o-evaluation' ) {
             evaluation_tab();

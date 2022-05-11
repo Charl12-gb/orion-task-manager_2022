@@ -70,6 +70,7 @@ function my_plugin_create_db()
 	$table_project = $wpdb->prefix . 'project';
 	$table_task = $wpdb->prefix . 'task';
 	$table_subtask = $wpdb->prefix . 'subtask';
+	$table_worklog = $wpdb->prefix . 'worklog';
 	$table_users = $wpdb->prefix . 'users';
 
 	$sql = "CREATE TABLE $table_project(
@@ -104,6 +105,13 @@ function my_plugin_create_db()
 			id_task_parent bigint NOT NULL,
 			FOREIGN KEY  (id_task_parent) REFERENCES $table_task(id), 
 			PRIMARY KEY  (id)
+		);
+		CREATE TABLE $table_worklog(
+			id_task bigint NOT NULL,
+			status varchar(50),
+			evaluation int,
+			FOREIGN KEY  (id_task) REFERENCES $table_task(id), 
+			PRIMARY KEY  (id_task)
 		)$charset_collate;";
 
 	require_once(ABSPATH . 'wp-admin/includes/upgrade.php');

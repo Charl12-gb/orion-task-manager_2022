@@ -103,6 +103,13 @@ function save_new_templates(array $data)
 	return $wpdb->insert($wpdb->options, $add_table, $format);
 }
 
+function delete_template($id_template)
+{
+	global $wpdb;
+	$ok = $wpdb->delete($wpdb->options, array('option_id' => $id_template));
+	return $ok;
+}
+
 function new_project_asana()
 {
 	return 8;
@@ -149,16 +156,16 @@ function get_all_project()
 	return $wpdb->get_results("SELECT * FROM $table ");
 }
 
-function get_all_task( $specification = null, $value = null )
+function get_all_task($specification = null, $value = null)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'task';
-	if( $specification != null && $value != null ) $sql = "SELECT * FROM $table WHERE $specification = $value ORDER BY duedate" ;
+	if ($specification != null && $value != null) $sql = "SELECT * FROM $table WHERE $specification = $value ORDER BY duedate";
 	else $sql = "SELECT * FROM $table ORDER BY duedate";
 	return $wpdb->get_results($sql);
 }
 
-function get_all_subtask( $task_id )
+function get_all_subtask($task_id)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'subtask';
@@ -170,10 +177,10 @@ function get_user_current_project($id_user)
 {
 	$user_projects_id = array();
 	if ($id_user == null) $id_user = get_current_user_id();
-	$j=0;
+	$j = 0;
 	foreach (get_all_project() as $value) {
 		if (in_array($id_user, unserialize($value->collaborator))) {
-			$user_projects_id += array( $j => array('id' => $value->id, 'title' => $value->title));
+			$user_projects_id += array($j => array('id' => $value->id, 'title' => $value->title));
 			$j++;
 		}
 	}
@@ -250,13 +257,13 @@ function get_project_manger_project()
 function page_task()
 {
 	$post_author = get_current_user_id();
-
+	$download_worklog = get_option( '_worklog_authorized' );
 	if ($post_author != 0) {
 ?>
 		<div class="container card">
 			<div class="row text-center card-header">
 				<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse1" aria-expanded="true" aria-controls="collapse1" href="" class="nav-tab">
-						<h5><?php _e('Task lists', 'task'); ?></h5>
+						<h5><?php _e('Task lists', 'task'); ?> </h5>
 					</a>
 				</div>
 				<?php
@@ -279,7 +286,7 @@ function page_task()
 			<div id="accordion" class="card-body">
 				<div id="collapse1" class="collapse show" aria-labelledby="heading1" data-parent="#accordion">
 					<div>
-						<h3>Task lists <button class="btn btn-outline-success">See otherwise</button></h3>
+						<h3>Task lists <?php if( $download_worklog == 'true' ){ ?> <button class="btn btn-outline-success">Download Worklog</button> <?php } ?></h3>
 						<span class="text-primary">List of projects on which you collaborate. Click on one of the projects, you see your tasks</span>
 						<?php
 						get_user_task();
@@ -313,6 +320,88 @@ function page_task()
 	}
 }
 
+function get_form_template()
+{
+	?>
+
+	<div class="form-group">
+		<div class="form-row">
+			<label for="InputTitle">Titre Template</label>
+			<input type="text" name="templatetitle" id="templatetitle" class="form-control" placeholder="Titre Template">
+		</div>
+		<div class="form-row">
+			<div class="col">
+				<label for="InputTitle">Main Task Title</label>
+				<input type="text" name="tasktitle" id="tasktitle" class="form-control" placeholder="Ex: Dev">
+			</div>
+			<div class="col">
+				<label for="InputTitle">Role :</label>
+				<select id="role" name="role" class="form-control">
+					<option value="">Choose...</option>
+					<?= option_select(get_all_role()) ?>
+				</select>
+			</div>
+		</div>
+	</div>
+	<label for="inputState">Task details :</label>
+	<div id="champadd" class="pb-3"></div>
+	<div class="form-group">
+		<span id="addchamp" name="addchamp" class="btn btn-outline-success">+ Add SubTask</span>
+	</div>
+	<div class="form-group">
+		<button type="submit" value="envoyer" name="valideTemplate" class="btn btn-primary">SAVE TEMPLATE</button>
+	</div>
+<?php
+}
+
+function get_list_template()
+{
+	$tab_templates = get_all_templates();
+	$title_array = array();
+?>
+	<table class="table table-hover">
+		<thead>
+			<tr>
+				<th>N°</th>
+				<th>Template name</th>
+				<th>Main Task Title</th>
+				<th>Remove</th>
+			</tr>
+		</thead>
+		<tbody>
+			<?php
+			$k = 0;
+			foreach ($tab_templates as $template) {
+				$titles = unserialize($template->option_value);
+				foreach ($titles as $title) {
+			?>
+					<tr class="alert alert-primary">
+						<td><?= $k + 1 ?></td>
+						<td><span class="btn btn-link template_edit" id="<?= $template->option_id ?>"><?= $title['template']['templatetitle'] ?></span></td>
+						<td><?= $title['template']['tasktitle'] ?></td>
+						<td>
+							<span class="text-danger btn btn-link template_remove" id="<?= $template->option_id ?>">Delete</span>
+						</td>
+					</tr>
+				<?php
+					$k++;
+				}
+			}
+			if ($k == 0) {
+				?>
+				<div class="alert alert-primary" role="alert">
+					Template not found
+				</div>
+			<?php
+			}
+			?>
+		</tbody>
+	</table>
+<?php
+	//$title_array += array($template->option_id => $title['template']['templatetitle']);
+	//return $title_array;
+}
+
 //Redirect users who arent logged in...
 function login_redirect()
 {
@@ -331,7 +420,7 @@ function login_redirect()
 
 function add_task_form()
 {
-	?>
+?>
 	<form method="post" action="" id="create_new_task">
 		<div id="">
 			<div class="row text-center card-header">
@@ -381,153 +470,54 @@ function get_user_task()
 			<?php
 			foreach ($user_current_tasks as $project) {
 			?>
-			<div class="card">
-				<div class="card-header" id="heading<?= $project['id'] . $project['title'] ?>" data-toggle="collapse" data-target="#collapse<?= $project['id'] . $project['title'] ?>" aria-expanded="true" aria-controls="collapse<?= $project['id'] . $project['title'] ?>">
-					<h3 class="mb-0 ">
-						<button class="btn btn-link" >
-							<?= $project['title'] ?>
-						</button>
-					</h3>
-				</div>
-				<div id="collapse<?= $project['id'] . $project['title'] ?>" class="collapse <?php if( $i == 1 ) echo 'show'; ?>" aria-labelledby="heading<?= $project['id'] . $project['title'] ?>" data-parent="#accord">
-					<div class="card-body">
-						<table class="table table-hover">
-							<thead>
-							<tr>
-								<th>N°</th>
-								<th>Task title</th>
-								<th>Due Date</th>
-								<th>Status</th>
-							</tr>
-							</thead>
-							<tbody>
-								<?php 
-								$k=0;
-									foreach(get_all_task() as $task){
-										if( $project['id'] == $task->project_id && $task->assigne == get_current_user_id() ){
-											?>
+				<div class="card">
+					<div class="card-header" id="heading<?= $project['id'] . $project['title'] ?>" data-toggle="collapse" data-target="#collapse<?= $project['id'] . $project['title'] ?>" aria-expanded="true" aria-controls="collapse<?= $project['id'] . $project['title'] ?>">
+						<h3 class="mb-0 ">
+							<button class="btn btn-link">
+								<?= $project['title'] ?>
+							</button>
+						</h3>
+					</div>
+					<div id="collapse<?= $project['id'] . $project['title'] ?>" class="collapse <?php if ($i == 1) echo 'show'; ?>" aria-labelledby="heading<?= $project['id'] . $project['title'] ?>" data-parent="#accord">
+						<div class="card-body">
+							<table class="table table-hover">
+								<thead>
+									<tr>
+										<th>N°</th>
+										<th>Task title</th>
+										<th>Due Date</th>
+										<th>Status</th>
+									</tr>
+								</thead>
+								<tbody>
+									<?php
+									$k = 0;
+									foreach (get_all_task() as $task) {
+										if ($project['id'] == $task->project_id && $task->assigne == get_current_user_id()) {
+									?>
 											<tr>
-												<td><?= $k+1 ?></td>
+												<td><?= $k + 1 ?></td>
 												<td><?= $task->title ?></td>
 												<td class="alert alert-primary"><?= $task->duedate ?></td>
 												<td class="text-success">Render</td>
 											</tr>
-											<?php 
+										<?php
 											$k++;
 										}
 									}
-									if( $k == 0 ){
+									if ($k == 0) {
 										?>
 										<div class="alert alert-primary" role="alert">
 											No tasks for this project at the moment
 										</div>
 									<?php
 									}
-								?>
-							</tbody>
-						</table>
+									?>
+								</tbody>
+							</table>
+						</div>
 					</div>
 				</div>
-			</div>
-			<?php
-				$i++;
-			}
-			?>
-		</div>
-	<?php
-	} else {
-	?>
-		<div class="alert alert-primary" role="alert">
-			You have no tasks at the moment
-		</div>
-	<?php
-	}
-}
-
-function see_otherwise_task(  ){
-	$tasks = get_all_task( 'status', '' );
-	$user_current_tasks = get_user_current_project(get_current_user_id());
-	if ($user_current_tasks != null) {
-		$i = 1;
-	?>
-			<?php
-			foreach ($user_current_tasks as $project) {
-			?>
-			<div class="card">
-				<div>
-					<h3 class="mb-0 ">
-						<button class="btn btn-link disabled" >
-							<?= $project['title'] ?>
-						</button>
-					</h3>
-				</div>
-				<div>
-					<div class="card-body">
-						<table class="table table-hover">
-							<thead>
-							<tr>
-								<th>N°</th>
-								<th>Task title</th>
-								<th>Due Date</th>
-								<th>Status</th>
-							</tr>
-							</thead>
-							<tbody>
-								<?php 
-								$k=0;
-									foreach($tasks as $task){
-										if( $project['id'] == $task->project_id && $task->assigne == get_current_user_id() ){
-											?>
-											<tr>
-												<td class="h6"><?= $k+1 ?></td>
-												<td class="h6"><?= $task->title ?></td>
-												<td class="alert alert-primary h6"><?= $task->duedate ?></td>
-												<td class="text-success h6">Render</td>
-											</tr>
-											<?php 
-											$substasks = get_all_subtask( $task->id ) ;
-											if( $substasks != null ){
-												?>
-													<tr>
-														<td colspan="4" class="pt-0 pb-0 h6">Sub Tasks</td>
-													</tr>
-												<?php
-												$l = 1;
-												foreach( $substasks as $substask ){
-													?>
-													<tr>
-														<td class="pt-0 pb-0"><?= $l ?></td>
-														<td class="pt-0 pb-0"><?= $task->title ?></td>
-														<td class="alert alert-warning pt-0 pb-0"><?= $task->duedate ?></td>
-														<td class="text-danger pt-0 pb-0">Render</td>
-													</tr>
-													<?php
-													$l++;
-												}
-												?>
-													<tr>
-														<td colspan="4" class="pt-0 pb-0 h6">.</td>
-													</tr>
-												<?php
-											}
-											?>
-											<?php 
-											$k++;
-										}
-									}
-									if( $k == 0 ){
-										?>
-										<div class="alert alert-primary" role="alert">
-											No tasks for this project at the moment
-										</div>
-									<?php
-									}
-								?>
-							</tbody>
-						</table>
-					</div>
-				</div>
-			</div>
 			<?php
 				$i++;
 			}
@@ -565,7 +555,7 @@ function taches_tab()
 				<div class="card-header" id="headingOne">
 					<h5 class="mb-0">
 						<button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-							Add Template
+							List Template
 						</button>
 					</h5>
 				</div>
@@ -651,38 +641,15 @@ function taches_tab()
 				<div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordion">
 					<div class="card-body">
 						<div>
-							<h3>New Template</h3>
+							<h3><span id="template_label">List Template</span> <button class="btn btn-outline-success btn_list_task" id="template_btn_add">Add New Template</button> </h3>
 							<div id="add_success"></div>
 							<hr>
 							<form action="" method="post" id="create_template">
-								<div class="form-group">
-									<div class="form-row">
-										<label for="InputTitle">Titre Template</label>
-										<input type="text" name="templatetitle" id="templatetitle" class="form-control" placeholder="Titre Template">
-									</div>
-									<div class="form-row">
-										<div class="col">
-											<label for="InputTitle">Main Task Title</label>
-											<input type="text" name="tasktitle" id="tasktitle" class="form-control" placeholder="Ex: Dev">
-										</div>
-										<div class="col">
-											<label for="InputTitle">Role :</label>
-											<select id="role" name="role" class="form-control">
-												<option value="">Choose...</option>
-												<?= option_select(get_all_role()) ?>
-											</select>
-										</div>
-									</div>
-								</div>
-								<label for="inputState">Task details :</label>
-								<div id="champadd" class="pb-3"></div>
-								<div class="form-group">
-									<span id="addchamp" name="addchamp" class="btn btn-outline-success">+ Add SubTask</span>
-								</div>
-								<div class="form-group">
-									<button type="submit" value="envoyer" name="valideTemplate" class="btn btn-primary btn-sm">SAVE TEMPLATE</button>
-								</div>
 							</form>
+							<div id="template_card">
+								<?= get_list_template(); //get_form_template() 
+								?>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -732,9 +699,36 @@ function taches_tab()
 <?php
 }
 
-function worklog_tab()
+function worklog_tab( )
 {
-	print_r(get_all_users());
+	$value = get_option('_worklog_authorized');
+	if(!isset($value)) $active = false;
+	else{
+		if( $value == 'true' ) $active = true;
+		else $active = false;
+	}
+?>
+	<div class="card">
+		<h5 class="card-header">Worklog Authorization</h5>
+		<div class="card-body">
+			<div class="custom-control custom-checkbox my-1 mr-sm-2 worklog_authorized">
+				<input type="checkbox" <?php if($active) echo 'checked'; ?> class="custom-control-input" id="id_worklog_authorized">
+				<label class="custom-control-label <?php if($active) echo 'text-success'; else echo 'text-danger'; ?>" for="id_worklog_authorized">Check to allow downloading of the worklog file</label>
+				<?php
+					if( $active ){
+						?>
+						<div class="text-success">Download permission accept</div>
+						<?php
+					}else{
+						?>
+						<div class="text-danger">Download permission denied</div>
+						<?php
+					}
+				?>
+			</div>
+		</div>
+	</div>
+<?php
 }
 
 function evaluation_tab()
@@ -1051,6 +1045,33 @@ function settings_function()
 		$data = wp_unslash($send);
 		echo (save_new_task($data));
 	}
+	if ($action == 'get_template_card') {
+		if ($_POST['valeur'] == 'template_btn_list')
+			echo get_list_template();
+		if ($_POST['valeur'] == 'template_btn_add')
+			echo get_form_template();
+	}
+	if ($action == 'delete_template_') {
+		$id_template = htmlentities($_POST['id_template']);
+		delete_template($id_template);
+		echo get_list_template();
+	}
+	if( $action == 'worklog_update' ){
+		$worklog_status  = get_option('_worklog_authorized');
+		if(!isset( $worklog_status )){
+			$new_status = 'true';
+		}else{
+			if( $worklog_status == 'true' ){
+				$new_status = 'false';
+			}
+			else{
+				$new_status = 'true';
+			}
+		}
+		//echo $new_status;
+		update_option('_worklog_authorized', $new_status);
+		echo worklog_tab();
+	}
 	wp_die();
 }
 
@@ -1081,6 +1102,15 @@ add_action('wp_ajax_get_first_form', 'settings_function');
 
 add_action('wp_ajax_create_new_task', 'settings_function');
 add_action('wp_ajax_nopriv_create_new_task', 'settings_function');
+
+add_action('wp_ajax_get_template_card', 'settings_function');
+add_action('wp_ajax_nopriv_get_template_card', 'settings_function');
+
+add_action('wp_ajax_delete_template_', 'settings_function');
+add_action('wp_ajax_nopriv_delete_template_', 'settings_function');
+
+add_action('wp_ajax_worklog_update', 'settings_function');
+add_action('wp_ajax_nopriv_worklog_update', 'settings_function');
 
 add_action('wp', 'login_redirect');
 add_shortcode('orion_task', 'orion_task_shortcode');
