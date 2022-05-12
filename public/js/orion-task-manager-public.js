@@ -122,6 +122,45 @@
             $('#rm' + button_id + '').remove();
         });
 
+        $(document).on('click', '.event_btn', function() {
+            var task_id = $(this).attr("id");
+            $.ajax({
+                url: task_manager.ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'get_task_detail',
+                    'task_id': task_id
+                },
+                success: function(response) {
+
+                },
+                error: function(errorThrown) {
+
+                }
+            });
+        });
+
+        $(document).on('change', '.user_calendar', function() {
+            var user_id = document.getElementById('user_calendar').value;
+            $.ajax({
+                url: task_manager.ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'get_calendar',
+                    'id_user': user_id
+                },
+                beforeSend: function() {
+                    document.getElementById('calendar_card').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
+                },
+                success: function(response) {
+                    document.getElementById('calendar_card').innerHTML = response;
+                },
+                error: function(errorThrown) {
+                    document.getElementById('calendar_card').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Failed to get calendar. Try again</div>';
+                }
+            });
+        });
+
         $(document).on('change', '.project', function() {
             var project_id = document.getElementById('project').value;
             $.ajax({
@@ -225,7 +264,6 @@
                     'istemplate': 'no'
                 },
                 beforeSend: function() {
-                    //first_choix
                     document.getElementById('first_choix').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
                 },
                 success: function(response) {

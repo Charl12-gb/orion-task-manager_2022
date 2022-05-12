@@ -75,8 +75,6 @@ class Orion_Task_Manager_Public {
 
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/orion-task-manager-public.css', array(), $this->version, 'all' );
 		wp_enqueue_style( 'bootstrap', 'https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css', array(), $this->version, 'all' );
-		wp_enqueue_style( 'calendar_css', plugin_dir_url( __FILE__ ) . 'css/fullcalendar.css', array(), $this->version, 'all' );
-		wp_enqueue_style( 'calendar_css1', plugin_dir_url( __FILE__ ) . 'css/fullcalendar.print.css', array(), $this->version, 'all' );
 	}
 
 	/**
@@ -103,10 +101,6 @@ class Orion_Task_Manager_Public {
 		wp_enqueue_script( 'bootstrap1', 'https://code.jquery.com/jquery-3.2.1.min.js', array( 'jquery' ), $this->version, false );
 		wp_enqueue_script( 'bootstrap2', 'https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js', array( 'jquery' ), $this->version, false );
 		wp_enqueue_script( 'bootstrap3', 'https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js', array( 'jquery' ), $this->version, false );
-		wp_enqueue_script( 'calendar_script1', plugin_dir_url( __FILE__ ) . 'js/jquery-1.10.2.js', array( 'jquery' ), $this->version, false );
-		wp_enqueue_script( 'calendar_script2', plugin_dir_url( __FILE__ ) . 'js/jquery-ui.custom.min.js', array( 'jquery' ), $this->version, false );
-		wp_enqueue_script( 'calendar_script3', plugin_dir_url( __FILE__ ) . 'js/fullcalendar.js', array( 'jquery' ), $this->version, false );
-		wp_enqueue_script( 'calendar_script4', plugin_dir_url( __FILE__ ) . 'js/js.js', array( 'jquery' ), $this->version, false );
 		// Envoyer une variable de PHP à JS proprement
   		wp_localize_script( 'task_manager', 'task_manager', [ 'ajaxurl' => admin_url( 'admin-ajax.php' ) ] );
 

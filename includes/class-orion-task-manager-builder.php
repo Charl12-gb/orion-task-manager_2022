@@ -147,10 +147,9 @@ class Orion_Task_Manager_Table_List extends WP_List_Table
     {
         $columns = array(
             'cb'        => '<input type="checkbox" />',
-            'title'       => 'Title',
-            'assigne' => 'Assigne',
-            'duedate'        => 'Due Date',
-            'status'    => 'Status'
+            'title'       => 'Project Title',
+            'slug' => 'Slug',
+            'project_manager'        => 'Project Manager',
         );
 
         return $columns;
@@ -158,8 +157,8 @@ class Orion_Task_Manager_Table_List extends WP_List_Table
 
     public function column_title($item) {
         $actions = array(
-                  'edit'      => sprintf('<a href="?page=%s&action=%s&task=%s">Edit</a>',$_REQUEST['page'],'edit',$item['ID']),
-                  'delete'    => sprintf('<a href="?page=%s&action=%s&task=%s">Delete</a>',$_REQUEST['page'],'delete',$item['ID']),
+                  'edit'      => sprintf('<a href="?page=%s&action=%s&task=%s">Edit</a>',$_REQUEST['page'],'edit',$item['id']),
+                  'delete'    => sprintf('<a href="?page=%s&action=%s&task=%s">Delete</a>',$_REQUEST['page'],'delete',$item['id']),
               );
       
         return sprintf('%1$s %2$s', $item['title'], $this->row_actions($actions) );
@@ -168,7 +167,7 @@ class Orion_Task_Manager_Table_List extends WP_List_Table
     public function process_bulk_action(){
 
         global $wpdb;
-        $table_name = $wpdb->prefix."task"; 
+        $table_name = $wpdb->prefix."project"; 
     
             if ('delete' === $this->current_action()) {
     
@@ -191,7 +190,7 @@ class Orion_Task_Manager_Table_List extends WP_List_Table
 
     function column_cb($item) {
         return sprintf(
-            '<input type="checkbox" name="task[]" value="%s" />', $item['ID']
+            '<input type="checkbox" name="task[]" value="%s" />', $item['id']
         );    
     }
 
@@ -223,87 +222,12 @@ class Orion_Task_Manager_Table_List extends WP_List_Table
     private function table_data()
     {
         $data = array();
-
-        $data[] = array(
-            'ID'          => 1,
-                    'title'       => 'The Shawshank Redemption',
-                    'assigne' => 'Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency.',
-                    'duedate'        => '1994',
-                    'status'    => 'Frank Darabont',
-                    );
-
-        $data[] = array(
-            'ID'          => 2,
-                    'title'       => 'The Godfather',
-                    'assigne' => 'The aging patriarch of an organized crime dynasty transfers control of his clandestine empire to his reluctant son.',
-                    'duedate'        => '1972',
-                    'status'    => 'Francis Ford Coppola',
-                    );
-
-        $data[] = array(
-            'ID'          => 3,
-                    'title'       => 'The Godfather: Part II',
-                    'assigne' => 'The early life and career of Vito Corleone in 1920s New York is portrayed while his son, Michael, expands and tightens his grip on his crime syndicate stretching from Lake Tahoe, Nevada to pre-revolution 1958 Cuba.',
-                    'duedate'        => '1974',
-                    'status'    => 'Francis Ford Coppola',
-                    );
-
-        $data[] = array(
-            'ID'          => 4,
-                    'title'       => 'Pulp Fiction',
-                    'assigne' => 'The lives of two mob hit men, a boxer, a gangster\'s wife, and a pair of diner bandits intertwine in four tales of violence and redemption.',
-                    'duedate'        => '1994',
-                    'status'    => 'Quentin Tarantino',
-                    );
-
-        $data[] = array(
-            'ID'          => 5,
-                    'title'       => 'The Good, the Bad and the Ugly',
-                    'assigne' => 'A bounty hunting scam joins two men in an uneasy alliance against a third in a race to find a fortune in gold buried in a remote cemetery.',
-                    'duedate'        => '1966',
-                    'status'    => 'Sergio Leone',
-                    );
-
-        $data[] = array(
-            'ID'          => 6,
-                    'title'       => 'The Dark Knight',
-                    'assigne' => 'When Batman, Gordon and Harvey Dent launch an assault on the mob, they let the clown out of the box, the Joker, bent on turning Gotham on itself and bringing any heroes down to his level.',
-                    'duedate'        => '2008',
-                    'status'    => 'Christopher Nolan',
-                    );
-
-        $data[] = array(
-            'ID'          =>7,
-                    'title'       => '12 Angry Men',
-                    'assigne' => 'A dissenting juror in a murder trial slowly manages to convince the others that the case is not as obviously clear as it seemed in court.',
-                    'duedate'        => '1957',
-                    'status'    => 'Sidney Lumet',
-                    );
-
-        $data[] = array(
-            'ID'          => 8,
-                    'title'       => 'Schindler\'s List',
-                    'assigne' => 'In Poland during World War II, Oskar Schindler gradually becomes concerned for his Jewish workforce after witnessing their persecution by the Nazis.',
-                    'duedate'        => '1993',
-                    'status'    => 'Steven Spielberg',
-                    );
-
-        $data[] = array(
-            'ID'          => 9,
-                    'title'       => 'The Lord of the Rings: The Return of the King',
-                    'assigne' => 'Gandalf and Aragorn lead the World of Men against Sauron\'s army to draw his gaze from Frodo and Sam as they approach Mount Doom with the One Ring.',
-                    'duedate'        => '2003',
-                    'status'    => 'Peter Jackson',
-                    );
-
-        $data[] = array(
-            'ID'          => 10,
-                    'title'       => 'Fight Club',
-                    'assigne' => 'An insomniac office worker looking for a way to change his life crosses paths with a devil-may-care soap maker and they form an underground fight club that evolves into something much, much more...',
-                    'duedate'        => '1999',
-                    'status'    => 'David Fincher',
-                    );
-
+        foreach( get_all_project(  ) as $projects ){
+            $data_format = (array) $projects;
+            $projec_manager = get_userdata( $data_format['project_manager'] )->user_email . ' ('.get_userdata( $data_format['project_manager'] )->display_name .')';
+            $project = array_replace( $data_format, array('project_manager' => $projec_manager) ) ;
+            $data[] = (array) $project;
+        }
         return $data;
     }
 
@@ -319,9 +243,8 @@ class Orion_Task_Manager_Table_List extends WP_List_Table
     {
         switch( $column_name ) {
             case 'title':
-            case 'assigne':
-            case 'duedate':
-            case 'status':
+            case 'slug':
+            case 'project_manager':
                 return $item[ $column_name ];
 
             default:
@@ -344,7 +267,7 @@ class Orion_Task_Manager_Table_List extends WP_List_Table
 	if ($action == 'update_user_role') {
 		$user_id = htmlspecialchars($_POST['id_user']);
 		$user_new_role = htmlspecialchars($_POST['select_role']);
-		$user_id = wp_update_user(array('ID' => $user_id, 'role' => $user_new_role));
+		$user_id = wp_update_user(array('id' => $user_id, 'role' => $user_new_role));
 		echo 'ok';
 	}
 	if ($action == 'create_template') {

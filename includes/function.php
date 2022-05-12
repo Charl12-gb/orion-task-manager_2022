@@ -112,7 +112,7 @@ function delete_template($id_template)
 
 function new_project_asana()
 {
-	return 8;
+	return 1;
 }
 
 function save_new_project($data)
@@ -136,7 +136,7 @@ function save_new_task(array $data)
 	$task_id = 2; // A récupérer depuis asana api
 	$task = array('id' => $task_id, 'author_id' => get_current_user_id(), 'project_id' => $project, 'title' => $array['title'], 'description' => $array['description'], 'commentaire' => $array['commentaire'], 'assigne' => $array['assign'], 'duedate' => $array['duedate'], 'etat' => '', 'created_at' => date('Y-m-d H:i:s',  strtotime('+1 hours')));
 	$ok = $wpdb->insert($tabletask, $task, $formattask);
-	$worklog = array('id_task' => $task_id, 'finaly_date'=> null, 'status' => null, 'evaluation' => null);
+	$worklog = array('id_task' => $task_id, 'finaly_date' => null, 'status' => null, 'evaluation' => null);
 	$wpdb->insert($tableworklog, $worklog, $formatworklog);
 
 	if (isset($data['parametre']['subtask'])) {
@@ -146,7 +146,7 @@ function save_new_task(array $data)
 			$wpdb->insert($tabletask, $task, $formattask);
 			$subtask = array('id' => $id_subtask, 'id_task_parent' => $task_id);
 			$wpdb->insert($tablesubtask, $subtask, $formatsubtask);
-			$worklog = array('id_task' => $id_subtask, 'finaly_date'=> null, 'status' => null, 'evaluation' => null);
+			$worklog = array('id_task' => $id_subtask, 'finaly_date' => null, 'status' => null, 'evaluation' => null);
 			$wpdb->insert($tableworklog, $worklog, $formatworklog);
 			$id_subtask++;
 		}
@@ -159,7 +159,9 @@ function get_all_project()
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'project';
-	return $wpdb->get_results("SELECT * FROM $table ");
+	$table1 = $wpdb->prefix . 'users';
+	$sql = "SELECT * FROM $table";
+	return $wpdb->get_results($sql);
 }
 
 function get_all_task($specification = null, $value = null)
@@ -167,9 +169,11 @@ function get_all_task($specification = null, $value = null)
 	global $wpdb;
 	$table = $wpdb->prefix . 'task';
 	$table1 = $wpdb->prefix . 'worklog';
-	if ($specification != null && $value != null) 
+	if ($specification != null && $value != null)
 		$sql = "SELECT * FROM $table INNER JOIN $table1 ON id=id_task WHERE $specification = $value";
-	else 
+	else if( $specification != null && $value == null )
+		$sql = "SELECT * FROM $table WHERE assigne = $specification";
+	else
 		$sql = "SELECT * FROM $table ORDER BY duedate";
 	return $wpdb->get_results($sql);
 }
@@ -263,23 +267,33 @@ function get_project_manger_project()
 	return $projects;
 }
 
-function get_task_status( $task_id ){
+function get_project_title( $id_project ){
+	$projects = get_all_project();
+	foreach( $projects as $project ){
+		if( $project->id == $id_project ){
+			return $project->title;
+		}
+	}
+}
+
+function get_task_status($task_id)
+{
 	$task = get_all_task('id', $task_id)[0];
 	$duedate = strtotime($task->duedate);
-	if( $task->status == null ){
-		$finaly_date = strtotime( date('Y-m-d H:i:s',  strtotime('+1 hours')));
-		if( $duedate < $finaly_date ){
+	if ($task->status == null) {
+		$finaly_date = strtotime(date('Y-m-d H:i:s',  strtotime('+1 hours')));
+		if ($duedate < $finaly_date) {
 			return 'Not returned';
-		}elseif( $duedate == $finaly_date ){
+		} elseif ($duedate == $finaly_date) {
 			return 'Today deadline';
-		}else{
+		} else {
 			return 'Progess';
 		}
-	}else{
-		$finaly_date = strtotime($task->finaly_date );
-		if( $duedate >= $finaly_date ){
+	} else {
+		$finaly_date = strtotime($task->finaly_date);
+		if ($duedate >= $finaly_date) {
 			return 'Render';
-		}else{
+		} else {
 			return 'Returned late';
 		}
 	}
@@ -330,13 +344,13 @@ function page_task()
 				if (is_project_manager() != null) {
 				?>
 					<div id="collapse4" class="collapse show" aria-labelledby="heading1" data-parent="#accordion">
-					<div>
-						<h3>Project Lists</h3>
-						<?php
-						get_user_project_form();
-						?>
+						<div>
+							<h3>Project Lists</h3>
+							<?php
+							get_user_project_form();
+							?>
+						</div>
 					</div>
-				</div>
 				<?php
 				}
 				?>
@@ -364,8 +378,16 @@ function page_task()
 				<div id="collapse5" class="collapse" aria-labelledby="heading5" data-parent="#accordion">
 					<div>
 						<h3>Calendar</h3>
-						<?php require_once('calendar.php'); //get_json_calendar() 
-						?>
+						<div class="form-group">
+							<label for="user_calendar">Filter calendar by name</label>
+							<select id="user_calendar" name="user_calendar" class="form-control user_calendar">
+								<option value="">All users</option>
+								<?= option_select(get_all_users()) ?>
+							</select>
+						</div>
+						<div id="calendar_card">
+							<?php get_task_calendar();?>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -375,9 +397,67 @@ function page_task()
 	}
 }
 
+function get_task_calendar( $id_user = null )
+{
+if( $id_user == null ) $tasks = get_all_task();
+else $tasks = get_all_task( $id_user );
+
+//print_r( $tasks );
+
+	?>
+	<div id='jumbotron'>
+		<div id='calendar_task'>
+			<?php
+			$days_count = date('t');
+			$current_day = date('d');
+			$week_day_first = date('N', mktime(0, 0, 0, date('m'), 1, date('Y')));
+			$monthName = date('F', mktime(0, 0, 0, date('m'), 10));
+			?>
+			<h3><?= $monthName ?></h3>
+			<div id="task_detail"></div>
+			<table class="table table-responsive-lg">
+				<tr>
+					<th>Monday</th>
+					<th>Tuesday</th>
+					<th>Wednesday</th>
+					<th>Thursday</th>
+					<th>Friday</th>
+					<th style="color: red;">Saturday</th>
+					<th style="color: red;">Sunday</th>
+				</tr>
+				<?php for ($w = 1 - $week_day_first + 1; $w <= $days_count; $w = $w + 7) : ?>
+					<tr>
+						<?php $counter = 0; ?>
+						<?php for ($d = $w; $d <= $w + 6; $d++) : ?>
+							<td style="<?php if ($counter > 4) : ?>color: red;<?php endif; ?><?php if ($current_day == $d) : ?>color:blue;font-weight:bold;<?php endif; ?>">
+								<?php echo ($d > 0 ? ($d > $days_count ? '' : $d) : '') ?>
+								<?php 
+									foreach( $tasks as $task ){
+										if( date('d',strtotime( $task->duedate )) == $d ){
+											?>
+											<span class="event_btn btn btn-link" id="<?= $task->id ?>">
+												<div class="alert alert-primary p-0 m-0 mt-1" role="alert">
+													<?= $task->title; ?> <br> ( <?= get_userdata( $task->assigne )->display_name ?> )
+												</div>
+											</span>
+											<?php
+										}
+									}
+								?> 
+							</td>
+							<?php $counter++; ?>
+						<?php endfor; ?>
+					</tr>
+				<?php endfor; ?>
+			</table>
+		</div>
+	</div>
+<?php
+}
+
 function get_form_template()
 {
-	?>
+?>
 
 	<div class="form-group">
 		<div class="form-row">
@@ -584,13 +664,15 @@ function get_user_task()
 									$k = 0;
 									foreach (get_all_task() as $task) {
 										if ($project['id'] == $task->project_id && $task->assigne == get_current_user_id()) {
-											$status = get_task_status( $task->id );
+											$status = get_task_status($task->id);
 									?>
 											<tr>
 												<td><?= $k + 1 ?></td>
 												<td><?= $task->title ?></td>
 												<td class="alert alert-primary"><?= $task->duedate ?></td>
-												<td class="<?php if( $status == 'Not returned' || $status == 'Returned late' ) echo 'text-danger'; elseif( $status == 'Progess' || $status == 'Render' ) echo 'text-success';else echo 'text-warning';  ?>"><?= $status ?></td>
+												<td class="<?php if ($status == 'Not returned' || $status == 'Returned late') echo 'text-danger';
+															elseif ($status == 'Progess' || $status == 'Render') echo 'text-success';
+															else echo 'text-warning';  ?>"><?= $status ?></td>
 											</tr>
 										<?php
 											$k++;
@@ -1159,9 +1241,13 @@ function settings_function()
 				$new_status = 'true';
 			}
 		}
-		//echo $new_status;
 		update_option('_worklog_authorized', $new_status);
 		echo worklog_tab();
+	}
+	if( $action == 'get_calendar' ){
+		$user_id = htmlentities( $_POST['id_user'] );
+		if( empty( $user_id ) ) echo get_task_calendar();
+		else echo get_task_calendar( $user_id );
 	}
 	wp_die();
 }
@@ -1202,6 +1288,9 @@ add_action('wp_ajax_nopriv_delete_template_', 'settings_function');
 
 add_action('wp_ajax_worklog_update', 'settings_function');
 add_action('wp_ajax_nopriv_worklog_update', 'settings_function');
+
+add_action('wp_ajax_get_calendar', 'settings_function');
+add_action('wp_ajax_nopriv_get_calendar', 'settings_function');
 
 add_action('wp', 'login_redirect');
 add_shortcode('orion_task', 'orion_task_shortcode');
