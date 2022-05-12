@@ -92,7 +92,6 @@ function my_plugin_create_db()
 			commentaire text,
 			assigne bigint NOT NULL,
 			duedate datetime NOT NULL,
-			status varchar(25),
 			etat varchar(50),
 			created_at datetime NOT NULL,
 			FOREIGN KEY  (author_id) REFERENCES $table_users(id),
@@ -108,6 +107,7 @@ function my_plugin_create_db()
 		);
 		CREATE TABLE $table_worklog(
 			id_task bigint NOT NULL,
+			finaly_date datetime,
 			status varchar(50),
 			evaluation int,
 			FOREIGN KEY  (id_task) REFERENCES $table_task(id), 

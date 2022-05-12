@@ -127,21 +127,27 @@ function save_new_task(array $data)
 	global $wpdb;
 	$array = $data['parametre']['task'];
 	$project = $array['project'];
-	$task_id = 26; // A récupérer depuis asana api
-	$task = array('id' => $task_id, 'author_id' => get_current_user_id(), 'project_id' => $project, 'title' => $array['title'], 'description' => $array['description'], 'commentaire' => $array['commentaire'], 'assigne' => $array['assign'], 'duedate' => $array['duedate'], 'status' => '', 'etat' => '', 'created_at' => date('Y-m-d H:i:s',  strtotime('-1 hours')));
 	$tabletask = $wpdb->prefix . 'task';
-	$format = array('%d', '%d', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s');
-	$ok = $wpdb->insert($tabletask, $task, $format);
+	$formattask = array('%d', '%d', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s');
+	$tablesubtask = $wpdb->prefix . 'subtask';
+	$formatsubtask = array('%d', '%d');
+	$tableworklog = $wpdb->prefix . 'worklog';
+	$formatworklog = array('%d', '%s', '%s', '%d');
+	$task_id = 2; // A récupérer depuis asana api
+	$task = array('id' => $task_id, 'author_id' => get_current_user_id(), 'project_id' => $project, 'title' => $array['title'], 'description' => $array['description'], 'commentaire' => $array['commentaire'], 'assigne' => $array['assign'], 'duedate' => $array['duedate'], 'etat' => '', 'created_at' => date('Y-m-d H:i:s',  strtotime('+1 hours')));
+	$ok = $wpdb->insert($tabletask, $task, $formattask);
+	$worklog = array('id_task' => $task_id, 'finaly_date'=> null, 'status' => null, 'evaluation' => null);
+	$wpdb->insert($tableworklog, $worklog, $formatworklog);
 
 	if (isset($data['parametre']['subtask'])) {
-		$tablesubtask = $wpdb->prefix . 'subtask';
-		$id_subtask = 27; //Récupérer depuis asana
+		$id_subtask = 3; //Récupérer depuis asana
 		foreach ($data['parametre']['subtask'] as $key => $value) {
-			$task = array('id' => $id_subtask, 'author_id' => get_current_user_id(), 'project_id' => $project, 'title' => $value['title'], 'description' => $array['description'], 'commentaire' => $array['commentaire'], 'assigne' => $value['assign'], 'duedate' => $value['duedate'], 'status' => 'sub', 'etat' => '', 'created_at' => date('Y-m-d H:i:s',  strtotime('-1 hours')));
-			$wpdb->insert($tabletask, $task, $format);
+			$task = array('id' => $id_subtask, 'author_id' => get_current_user_id(), 'project_id' => $project, 'title' => $value['title'], 'description' => $array['description'], 'commentaire' => $array['commentaire'], 'assigne' => $value['assign'], 'duedate' => $value['duedate'], 'etat' => '', 'created_at' => date('Y-m-d H:i:s',  strtotime('+1 hours')));
+			$wpdb->insert($tabletask, $task, $formattask);
 			$subtask = array('id' => $id_subtask, 'id_task_parent' => $task_id);
-			$format2 = array('%d', '%d');
-			$wpdb->insert($tablesubtask, $subtask, $format2);
+			$wpdb->insert($tablesubtask, $subtask, $formatsubtask);
+			$worklog = array('id_task' => $id_subtask, 'finaly_date'=> null, 'status' => null, 'evaluation' => null);
+			$wpdb->insert($tableworklog, $worklog, $formatworklog);
 			$id_subtask++;
 		}
 	}
@@ -160,8 +166,11 @@ function get_all_task($specification = null, $value = null)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'task';
-	if ($specification != null && $value != null) $sql = "SELECT * FROM $table WHERE $specification = $value ORDER BY duedate";
-	else $sql = "SELECT * FROM $table ORDER BY duedate";
+	$table1 = $wpdb->prefix . 'worklog';
+	if ($specification != null && $value != null) 
+		$sql = "SELECT * FROM $table INNER JOIN $table1 ON id=id_task WHERE $specification = $value";
+	else 
+		$sql = "SELECT * FROM $table ORDER BY duedate";
 	return $wpdb->get_results($sql);
 }
 
@@ -254,22 +263,55 @@ function get_project_manger_project()
 	return $projects;
 }
 
+function get_task_status( $task_id ){
+	$task = get_all_task('id', $task_id)[0];
+	$duedate = strtotime($task->duedate);
+	if( $task->status == null ){
+		$finaly_date = strtotime( date('Y-m-d H:i:s',  strtotime('+1 hours')));
+		if( $duedate < $finaly_date ){
+			return 'Not returned';
+		}elseif( $duedate == $finaly_date ){
+			return 'Today deadline';
+		}else{
+			return 'Progess';
+		}
+	}else{
+		$finaly_date = strtotime($task->finaly_date );
+		if( $duedate >= $finaly_date ){
+			return 'Render';
+		}else{
+			return 'Returned late';
+		}
+	}
+}
+
 function page_task()
 {
 	$post_author = get_current_user_id();
-	$download_worklog = get_option( '_worklog_authorized' );
+	$download_worklog = get_option('_worklog_authorized');
 	if ($post_author != 0) {
 ?>
 		<div class="container card">
 			<div class="row text-center card-header">
-				<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse1" aria-expanded="true" aria-controls="collapse1" href="" class="nav-tab">
-						<h5><?php _e('Task lists', 'task'); ?> </h5>
+				<?php
+				if (is_project_manager() != null) {
+				?>
+					<div class="col-sm-3"><a class="button text-dark" data-toggle="collapse" data-target="#collapse4" aria-expanded="false" aria-controls="collapse4" href="" class="nav-tab">
+							<h5><?php _e('Project Lists', 'task'); ?>
+							</h5>
+						</a>
+					</div>
+				<?php
+				}
+				?>
+				<div class="col-sm-3"><a class="button text-dark" data-toggle="collapse" data-target="#collapse1" aria-expanded="true" aria-controls="collapse1" href="" class="nav-tab">
+						<h5><?php _e('Task Lists', 'task'); ?> </h5>
 					</a>
 				</div>
 				<?php
 				if (is_project_manager() != null) {
 				?>
-					<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse3" aria-expanded="false" aria-controls="collapse3" href="" class="nav-tab">
+					<div class="col-sm-3"><a class="button text-dark" data-toggle="collapse" data-target="#collapse3" aria-expanded="false" aria-controls="collapse3" href="" class="nav-tab">
 							<h5><?php _e('Create a Task', 'task'); ?>
 							</h5>
 						</a>
@@ -277,17 +319,31 @@ function page_task()
 				<?php
 				}
 				?>
-				<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse5" aria-expanded="false" aria-controls="collapse5" href="" class="nav-tab">
+				<div class="col-sm-3"><a class="button text-dark" data-toggle="collapse" data-target="#collapse5" aria-expanded="false" aria-controls="collapse5" href="" class="nav-tab">
 						<h5><?php _e('Calendar', 'task'); ?>
 						</h5>
 					</a>
 				</div>
 			</div>
 			<div id="accordion" class="card-body">
-				<div id="collapse1" class="collapse show" aria-labelledby="heading1" data-parent="#accordion">
+				<?php
+				if (is_project_manager() != null) {
+				?>
+					<div id="collapse4" class="collapse show" aria-labelledby="heading1" data-parent="#accordion">
 					<div>
-						<h3>Task lists <?php if( $download_worklog == 'true' ){ ?> <button class="btn btn-outline-success">Download Worklog</button> <?php } ?></h3>
-						<span class="text-primary">List of projects on which you collaborate. Click on one of the projects, you see your tasks</span>
+						<h3>Project Lists</h3>
+						<?php
+						get_user_project_form();
+						?>
+					</div>
+				</div>
+				<?php
+				}
+				?>
+				<div id="collapse1" class="collapse <?php if (is_project_manager() == null) echo 'show'; ?>" aria-labelledby="heading1" data-parent="#accordion">
+					<div>
+						<h3>Task Lists <?php if ($download_worklog == 'true') { ?> <button class="btn btn-outline-success">Download Worklog</button> <?php } ?></h3>
+						<p>List of projects on which you collaborate. Click on one of the projects, you see your tasks</p>
 						<?php
 						get_user_task();
 						?>
@@ -313,7 +369,6 @@ function page_task()
 					</div>
 				</div>
 			</div>
-		</div>
 		</div>
 	<?php
 	} else {
@@ -457,6 +512,41 @@ function add_task_form()
 			<button type="submit" name="validetash">Submit</button>
 		</div>
 	</form>
+<?php
+}
+
+function get_user_project_form()
+{
+	$projects = get_all_project();
+?>
+	<div class="card">
+		<div class="card-body">
+			<table class="table table-hover">
+				<thead>
+					<tr>
+						<th>N°</th>
+						<th>Project title</th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php
+					$i = 0;
+					foreach ($projects as $project) {
+						if ($project->project_manager == get_current_user_id()) {
+					?>
+							<tr>
+								<td><?= $i + 1 ?></td>
+								<td><?= $project->title ?></td>
+							</tr>
+					<?php
+							$i++;
+						}
+					}
+					?>
+				</tbody>
+			</table>
+		</div>
+	</div>
 	<?php
 }
 
@@ -494,12 +584,13 @@ function get_user_task()
 									$k = 0;
 									foreach (get_all_task() as $task) {
 										if ($project['id'] == $task->project_id && $task->assigne == get_current_user_id()) {
+											$status = get_task_status( $task->id );
 									?>
 											<tr>
 												<td><?= $k + 1 ?></td>
 												<td><?= $task->title ?></td>
 												<td class="alert alert-primary"><?= $task->duedate ?></td>
-												<td class="text-success">Render</td>
+												<td class="<?php if( $status == 'Not returned' || $status == 'Returned late' ) echo 'text-danger'; elseif( $status == 'Progess' || $status == 'Render' ) echo 'text-success';else echo 'text-warning';  ?>"><?= $status ?></td>
 											</tr>
 										<?php
 											$k++;
@@ -699,12 +790,12 @@ function taches_tab()
 <?php
 }
 
-function worklog_tab( )
+function worklog_tab()
 {
 	$value = get_option('_worklog_authorized');
-	if(!isset($value)) $active = false;
-	else{
-		if( $value == 'true' ) $active = true;
+	if (!isset($value)) $active = false;
+	else {
+		if ($value == 'true') $active = true;
 		else $active = false;
 	}
 ?>
@@ -712,18 +803,19 @@ function worklog_tab( )
 		<h5 class="card-header">Worklog Authorization</h5>
 		<div class="card-body">
 			<div class="custom-control custom-checkbox my-1 mr-sm-2 worklog_authorized">
-				<input type="checkbox" <?php if($active) echo 'checked'; ?> class="custom-control-input" id="id_worklog_authorized">
-				<label class="custom-control-label <?php if($active) echo 'text-success'; else echo 'text-danger'; ?>" for="id_worklog_authorized">Check to allow downloading of the worklog file</label>
+				<input type="checkbox" <?php if ($active) echo 'checked'; ?> class="custom-control-input" id="id_worklog_authorized">
+				<label class="custom-control-label <?php if ($active) echo 'text-success';
+													else echo 'text-danger'; ?>" for="id_worklog_authorized">Check to allow downloading of the worklog file</label>
 				<?php
-					if( $active ){
-						?>
-						<div class="text-success">Download permission accept</div>
-						<?php
-					}else{
-						?>
-						<div class="text-danger">Download permission denied</div>
-						<?php
-					}
+				if ($active) {
+				?>
+					<div class="text-success">Download permission accept</div>
+				<?php
+				} else {
+				?>
+					<div class="text-danger">Download permission denied</div>
+				<?php
+				}
 				?>
 			</div>
 		</div>
@@ -1056,15 +1148,14 @@ function settings_function()
 		delete_template($id_template);
 		echo get_list_template();
 	}
-	if( $action == 'worklog_update' ){
+	if ($action == 'worklog_update') {
 		$worklog_status  = get_option('_worklog_authorized');
-		if(!isset( $worklog_status )){
+		if (!isset($worklog_status)) {
 			$new_status = 'true';
-		}else{
-			if( $worklog_status == 'true' ){
+		} else {
+			if ($worklog_status == 'true') {
 				$new_status = 'false';
-			}
-			else{
+			} else {
 				$new_status = 'true';
 			}
 		}
