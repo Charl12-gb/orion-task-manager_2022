@@ -5,6 +5,39 @@ if (isset($_POST['tokens']) && !empty($_POST['tokens'])) {
 	update_option('access_token', $data_post);
 }
 
+function download_worklog( $user_id ){
+	$alldata = "";
+	$tasks = get_all_task( 'assigne', $user_id );
+	$m = 1;
+	foreach( $tasks as $task ){
+		$project_manager = get_userdata( $task->author_id )->display_name;
+		$project_title = get_project_title( $task->project_id );
+		$duedate = strtotime($task->duedate);
+	if ($task->status == null) {
+		$finaly_date = strtotime(date('Y-m-d H:i:s',  strtotime('+1 hours')));
+		if ($duedate < $finaly_date) {
+			$status = 'Not returned';
+		} elseif ($duedate == $finaly_date) {
+			$status = 'Today deadline';
+		} else {
+			$status = 'Progess';
+		}
+	} else {
+		$finaly_date = strtotime($task->finaly_date);
+		if ($duedate >= $finaly_date) {
+			$status = 'Render';
+		} else {
+			$status = 'Returned late';
+		}
+	}
+	$alldata .= "$m,$task->title,$project_title,$project_manager,$task->duedate,$status,$task->evaluation\n";
+		
+	$m++;
+	}
+	$response = "data:text/csv;charset=utf-8,N°,Task Title,Project Title,Responsable,Due Date,Status,Note\n";
+	return $response .= $alldata;
+}
+
 function connect_asana()
 {
 	// See class comments and Asana API for full info
@@ -91,7 +124,7 @@ function get_the_last_options_id()
 	return $wpdb->get_var("SELECT MAX( option_id ) FROM $wpdb->options");
 }
 
-function save_new_templates(array $data)
+function save_new_templates( $template_id ='', array $data)
 {
 	global $wpdb;
 	$add_table = array(
@@ -100,7 +133,10 @@ function save_new_templates(array $data)
 		'autoload' => 'no'
 	);
 	$format = array('%s', '%s', '%s');
-	return $wpdb->insert($wpdb->options, $add_table, $format);
+	if( empty( $template_id ) )
+		return $wpdb->insert($wpdb->options, $add_table, $format);
+	else
+		return $wpdb->update($wpdb->options, $add_table, array('option_id'=> $template_id), $format);
 }
 
 function delete_template($id_template)
@@ -133,14 +169,14 @@ function save_new_task(array $data)
 	$formatsubtask = array('%d', '%d');
 	$tableworklog = $wpdb->prefix . 'worklog';
 	$formatworklog = array('%d', '%s', '%s', '%d');
-	$task_id = 2; // A récupérer depuis asana api
+	$task_id = 7; // A récupérer depuis asana api
 	$task = array('id' => $task_id, 'author_id' => get_current_user_id(), 'project_id' => $project, 'title' => $array['title'], 'description' => $array['description'], 'commentaire' => $array['commentaire'], 'assigne' => $array['assign'], 'duedate' => $array['duedate'], 'etat' => '', 'created_at' => date('Y-m-d H:i:s',  strtotime('+1 hours')));
 	$ok = $wpdb->insert($tabletask, $task, $formattask);
 	$worklog = array('id_task' => $task_id, 'finaly_date' => null, 'status' => null, 'evaluation' => null);
 	$wpdb->insert($tableworklog, $worklog, $formatworklog);
 
 	if (isset($data['parametre']['subtask'])) {
-		$id_subtask = 3; //Récupérer depuis asana
+		$id_subtask = 8; //Récupérer depuis asana
 		foreach ($data['parametre']['subtask'] as $key => $value) {
 			$task = array('id' => $id_subtask, 'author_id' => get_current_user_id(), 'project_id' => $project, 'title' => $value['title'], 'description' => $array['description'], 'commentaire' => $array['commentaire'], 'assigne' => $value['assign'], 'duedate' => $value['duedate'], 'etat' => '', 'created_at' => date('Y-m-d H:i:s',  strtotime('+1 hours')));
 			$wpdb->insert($tabletask, $task, $formattask);
@@ -199,16 +235,20 @@ function get_user_current_project($id_user)
 	}
 	return $user_projects_id;
 }
-function get_all_templates()
+function get_templates_( $template_id = null )
 {
 	global $wpdb;
 	$type = '_task_template';
-	return $wpdb->get_results("SELECT * FROM $wpdb->options WHERE SUBSTR(option_name,1,14) = '$type'");
+	if( $template_id != null )
+		$sql = "SELECT * FROM $wpdb->options WHERE option_id = $template_id" ;
+	else 
+		$sql = "SELECT * FROM $wpdb->options WHERE SUBSTR(option_name,1,14) = '$type'";
+	return $wpdb->get_results($sql);
 }
 
 function get_template_titles()
 {
-	$tab_templates = get_all_templates();
+	$tab_templates = get_templates_();
 	$title_array = array();
 	foreach ($tab_templates as $template) {
 		$titles = unserialize($template->option_value);
@@ -230,12 +270,19 @@ function get_all_role()
 	return $roles;
 }
 
-function get_all_users()
+function get_all_users($key = null)
 {
 	$users = array();
-	foreach (get_users() as $value) {
-		$users += array($value->ID => $value->user_email);
+	if( $key != null ){
+		foreach (get_users() as $value) {
+			$users += array($value->ID => $value->display_name);
+		}
+	}else{
+		foreach (get_users() as $value) {
+			$users += array($value->ID => $value->user_email);
+		}
 	}
+	
 	return $users;
 }
 
@@ -356,11 +403,16 @@ function page_task()
 				?>
 				<div id="collapse1" class="collapse <?php if (is_project_manager() == null) echo 'show'; ?>" aria-labelledby="heading1" data-parent="#accordion">
 					<div>
-						<h3>Task Lists <?php if ($download_worklog == 'true') { ?> <button class="btn btn-outline-success">Download Worklog</button> <?php } ?></h3>
-						<p>List of projects on which you collaborate. Click on one of the projects, you see your tasks</p>
-						<?php
-						get_user_task();
-						?>
+						<div>
+							<h3>
+								Task Lists <?php if ($download_worklog == 'true') { echo '<a class="btn btn-outline-success" href="' . download_worklog( get_current_user_id() ) . '" download="'. get_userdata( get_current_user_id() )->user_nicename .'.csv">Download Worklog</a>'; } ?>
+								
+							</h3>
+							<p>List of projects on which you collaborate. Click on one of the projects, you see your tasks</p>
+							<?php
+							get_user_task();
+							?>
+						</div>
 					</div>
 
 				</div>
@@ -381,8 +433,8 @@ function page_task()
 						<div class="form-group">
 							<label for="user_calendar">Filter calendar by name</label>
 							<select id="user_calendar" name="user_calendar" class="form-control user_calendar">
-								<option value="">All users</option>
-								<?= option_select(get_all_users()) ?>
+								<option value="">All</option>
+								<?= option_select(get_all_users('name')) ?>
 							</select>
 						</div>
 						<div id="calendar_card">
@@ -414,7 +466,6 @@ else $tasks = get_all_task( $id_user );
 			$monthName = date('F', mktime(0, 0, 0, date('m'), 10));
 			?>
 			<h3><?= $monthName ?></h3>
-			<div id="task_detail"></div>
 			<table class="table table-responsive-lg">
 				<tr>
 					<th>Monday</th>
@@ -435,7 +486,7 @@ else $tasks = get_all_task( $id_user );
 									foreach( $tasks as $task ){
 										if( date('d',strtotime( $task->duedate )) == $d ){
 											?>
-											<span class="event_btn btn btn-link" id="<?= $task->id ?>">
+											<span class="event_btn" id="<?= $task->id ?>">
 												<div class="alert alert-primary p-0 m-0 mt-1" role="alert">
 													<?= $task->title; ?> <br> ( <?= get_userdata( $task->assigne )->display_name ?> )
 												</div>
@@ -455,52 +506,109 @@ else $tasks = get_all_task( $id_user );
 <?php
 }
 
-function get_form_template()
+function get_form_template( $id_template = null )
 {
+	if( $id_template != null ){
+		$templates = get_templates_( $id_template )[0]->option_value; // unserialize(  );
+		$template = unserialize( $templates )['parametre'];
+		?>
+		<div class="form-group">
+			<div class="form-row">
+				<label for="InputTitle">Titre Template</label>
+				<input type="text" name="templatetitle" id="templatetitle" class="form-control" value="<?= $template['template']['templatetitle'] ?>">
+			</div>
+			<div class="form-row">
+				<div class="col">
+					<label for="InputTitle">Main Task Title</label>
+					<input type="text" name="tasktitle" id="tasktitle" class="form-control" value="<?= $template['template']['tasktitle'] ?>">
+				</div>
+				<div class="col">
+					<label for="InputTitle">Role :</label>
+					<select id="role" name="role" class="form-control">
+						<option value="<?= $template['template']['role'] ?>"><?= ucfirst( $template['template']['role'] ) ?></option>
+						<?= option_select(get_all_role()) ?>
+					</select>
+				</div>
+			</div>
+		</div>
+		<label for="inputState">Task details :</label>
+		<div id="champadd" class="pb-3">
+		<?php
+		$n = 1;
+			foreach( $template['subtemplate'] as $subtemplate){
+				?>
+				<div id="rm2<?= $n ?>">
+					<div class="form-row pt-2">
+						<div class="col-sm-11">
+							<input type="text" name="tasktitle<?= $n ?>" id="tasktitle<?= $n ?>" class="form-control" value="<?= $subtemplate['subtitle'] ?>">
+						</div>
+						<div class="col-sm-1">
+							<span name="remove" id="<?= $n ?>" class="btn btn-outline-danger btn_remove_template">X</span>
+						</div>
+					</div>
+				</div>
+				<?php 
+				$n++;
+			}
+			?>
+			<input type="hidden" name="nbresubtask" id="nbresubtask" value="<?= $n ?>">
+			<input type="hidden" name="updatetempplate_id" id="updatetempplate_id" value="<?= $id_template ?>">
+			</div>
+		<div class="form-group">
+			<span id="addchamp" name="addchamp" class="btn btn-outline-success">+ Add SubTask</span>
+		</div>
+		<div class="form-group">
+			<button type="submit" value="envoyer" class="btn btn-primary">UPDATE TEMPLATE</button>
+		</div>
+		<?php
+	}else{
+		?>
+		<div class="form-group">
+			<div class="form-row">
+				<label for="InputTitle">Titre Template</label>
+				<input type="text" name="templatetitle" id="templatetitle" class="form-control" placeholder="Titre Template">
+			</div>
+			<div class="form-row">
+				<div class="col">
+					<label for="InputTitle">Main Task Title</label>
+					<input type="text" name="tasktitle" id="tasktitle" class="form-control" placeholder="Ex: Dev">
+				</div>
+				<div class="col">
+					<label for="InputTitle">Role :</label>
+					<select id="role" name="role" class="form-control">
+						<option value="">Choose...</option>
+						<?= option_select(get_all_role()) ?>
+					</select>
+				</div>
+			</div>
+		</div>
+		<label for="inputState">Task details :</label>
+		<div id="champadd" class="pb-3"></div>
+		<div class="form-group">
+			<span id="addchamp" name="addchamp" class="btn btn-outline-success">+ Add SubTask</span>
+		</div>
+		<div class="form-group">
+			<button type="submit" value="envoyer" name="valideTemplate" class="btn btn-primary">SAVE TEMPLATE</button>
+		</div>
+		<?php
+	}
 ?>
 
-	<div class="form-group">
-		<div class="form-row">
-			<label for="InputTitle">Titre Template</label>
-			<input type="text" name="templatetitle" id="templatetitle" class="form-control" placeholder="Titre Template">
-		</div>
-		<div class="form-row">
-			<div class="col">
-				<label for="InputTitle">Main Task Title</label>
-				<input type="text" name="tasktitle" id="tasktitle" class="form-control" placeholder="Ex: Dev">
-			</div>
-			<div class="col">
-				<label for="InputTitle">Role :</label>
-				<select id="role" name="role" class="form-control">
-					<option value="">Choose...</option>
-					<?= option_select(get_all_role()) ?>
-				</select>
-			</div>
-		</div>
-	</div>
-	<label for="inputState">Task details :</label>
-	<div id="champadd" class="pb-3"></div>
-	<div class="form-group">
-		<span id="addchamp" name="addchamp" class="btn btn-outline-success">+ Add SubTask</span>
-	</div>
-	<div class="form-group">
-		<button type="submit" value="envoyer" name="valideTemplate" class="btn btn-primary">SAVE TEMPLATE</button>
-	</div>
 <?php
 }
 
 function get_list_template()
 {
-	$tab_templates = get_all_templates();
+	$tab_templates = get_templates_();
 	$title_array = array();
 ?>
-	<table class="table table-hover">
+	<table class="table table-hover table-responsive-lg">
 		<thead>
 			<tr>
 				<th>N°</th>
 				<th>Template name</th>
 				<th>Main Task Title</th>
-				<th>Remove</th>
+				<th>Action</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -515,7 +623,7 @@ function get_list_template()
 						<td><span class="btn btn-link template_edit" id="<?= $template->option_id ?>"><?= $title['template']['templatetitle'] ?></span></td>
 						<td><?= $title['template']['tasktitle'] ?></td>
 						<td>
-							<span class="text-danger btn btn-link template_remove" id="<?= $template->option_id ?>">Delete</span>
+							<span class="text-danger btn btn-link template_remove" id="<?= $template->option_id ?>">Delete</span> | <span class="text-primary btn btn-link template_edit" id="<?= $template->option_id ?>">Edit</span>
 						</td>
 					</tr>
 				<?php
@@ -533,8 +641,7 @@ function get_list_template()
 		</tbody>
 	</table>
 <?php
-	//$title_array += array($template->option_id => $title['template']['templatetitle']);
-	//return $title_array;
+
 }
 
 //Redirect users who arent logged in...
@@ -752,7 +859,7 @@ function taches_tab()
 								'id' => 'task-datasource-container',
 							);
 							$title = array(
-								'title' => __('Définir le rôle des utilisateurs', 'task'),
+								'title' => __('Set user role', 'task'),
 								'type' => 'title',
 								'id' => 'title',
 							);
@@ -762,7 +869,7 @@ function taches_tab()
 								'name' => 'user',
 								'id' => 'userasana',
 								'type' => 'select',
-								'desc' => __('Select user', 'task'),
+								'desc' => __('Selecting a user allows you to define their new role', 'task'),
 								'default' => '',
 								'options' => array('' => 'Choose email User') + get_all_users()
 							);
@@ -779,7 +886,7 @@ function taches_tab()
 								'name' => 'role_user',
 								'id' => 'role_user',
 								'type' => 'select',
-								'desc' => __('Select user role', 'task'),
+								'desc' => __('Assignment of a new role', 'task'),
 								'default' => '',
 								'class' => ' form-control',
 								'options' => array('' => 'Choose role User') + get_all_role()
@@ -1140,7 +1247,7 @@ function get_first_choose($type, $istemplate = false)
  */
 function get_template_form(int $id, $istemplate = false)
 {
-	$all_templates = get_all_templates();
+	$all_templates = get_templates_();
 	foreach ($all_templates as $templates) {
 		if ($templates->option_id == $id)
 			$template = $templates;
@@ -1186,9 +1293,15 @@ function settings_function()
 		echo save_new_project($data);
 	}
 	if ($action == 'create_template') {
-		$send = array_diff($_POST, array('action' => 'create_template'));
+		if(isset( $_POST['updatetempplate_id'] ) && !empty( $_POST['updatetempplate_id'] )){
+			$template_id =htmlentities( $_POST['updatetempplate_id']);
+			$send = array_diff($_POST, array('action' => 'create_template', 'updatetempplate_id' => $template_id));
+		}else{
+			$send = array_diff($_POST, array('action' => 'create_template'));
+			$template_id = '';
+		}
 		$data = wp_unslash($send);
-		echo save_new_templates($data);
+		echo save_new_templates($template_id, $data);
 	}
 	if ($action == 'get_option_add') {
 		echo option_select(get_template_titles());
@@ -1203,8 +1316,12 @@ function settings_function()
 	if ($action == 'get_template_choose') {
 		$id_template = htmlentities($_POST['template_id']);
 		$istemplate = htmlentities($_POST['istemplate']);
-		if ($istemplate == 'yes') echo get_template_form($id_template, true);
-		else echo get_template_form($id_template);
+		if( !empty($id_template) ){
+			if ($istemplate == 'yes') echo get_template_form($id_template, true);
+			else echo get_template_form($id_template);
+		}else{
+			echo '';
+		}
 	}
 	if ($action == 'get_first_form') {
 		$type = htmlentities($_POST['type']);
@@ -1249,6 +1366,10 @@ function settings_function()
 		if( empty( $user_id ) ) echo get_task_calendar();
 		else echo get_task_calendar( $user_id );
 	}
+	if( $action == 'update_template' ){
+		$id_template = htmlentities( $_POST['id_template'] );
+		echo get_form_template( $id_template );
+	}
 	wp_die();
 }
 
@@ -1285,6 +1406,9 @@ add_action('wp_ajax_nopriv_get_template_card', 'settings_function');
 
 add_action('wp_ajax_delete_template_', 'settings_function');
 add_action('wp_ajax_nopriv_delete_template_', 'settings_function');
+
+add_action('wp_ajax_update_template', 'settings_function');
+add_action('wp_ajax_nopriv_update_template', 'settings_function');
 
 add_action('wp_ajax_worklog_update', 'settings_function');
 add_action('wp_ajax_nopriv_worklog_update', 'settings_function');

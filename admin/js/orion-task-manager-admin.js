@@ -34,12 +34,20 @@
     $(document).ready(function() {
 
         var i = 0;
-        $('#addchamp').click(function() {
+        var val;
+        $(document).on('click', '#addchamp', function() {
             i++;
+            if (document.getElementById('nbresubtask')) {
+                val = $('#nbresubtask').val();
+                if (i < val) {
+                    i = val;
+                }
+            }
             $('#champadd').append('<div id="rm2' + i + '"><div class="form-row pt-2"><div class="col-sm-11"><input type="text" name="tasktitle' + i + '" id="tasktitle' + i + '" class="form-control" placeholder="Task Title"></div><div class="col-sm-1"><span name="remove" id="' + i + '" class="btn btn-outline-danger btn_remove_template">X</span></div></div></div>');
         });
 
         $(document).on('click', '.btn_list_task', function() {
+            document.getElementById('add_success').innerHTML = '';
             var action_template = $(this).attr('id');
             document.getElementById('add_success').innerHTML = '';
             if (action_template == 'template_btn_list') {
@@ -117,23 +125,29 @@
 
         $(document).on('click', '.template_edit', function() {
             var id_template = $(this).attr('id');
-            console.log(id_template);
-            // $.ajax({
-            //     url: ajaxurl,
-            //     type: "POST",
-            //     data: {
-            //         'action': 'update_template',
-            //         'id_template': id_template
-            //     },
-            //     success: function(response) {
-            //         document.getElementById('template_card').innerHTML = response;
-            //     },
-            //     error: function(errorThrown) {
-            //         console.log(errorThrown);
-            //     }
-            // });
-        });
+            document.getElementById('template_label').innerHTML = 'Edit Template';
+            document.getElementById('template_btn_add').innerHTML = 'List Template';
+            $('.btn_list_task').attr('id', 'template_btn_list');
 
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'update_template',
+                    'id_template': id_template
+                },
+                beforeSend: function() {
+                    document.getElementById('template_card').innerHTML = '';
+                    document.getElementById('create_template').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
+                },
+                success: function(response) {
+                    document.getElementById('create_template').innerHTML = response;
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
 
         $(document).on('click', '.btn_remove_template', function() {
             var button_id = $(this).attr("id");
@@ -190,9 +204,20 @@
             var subtemplate = {};
             var parametre = {};
             var subtitle = "";
+            var updatetempplate_id = "";
             var templatetitle = $('#templatetitle').val();
             var tasktitle = $('#tasktitle').val();
             var role = $('#role').val();
+            if (document.getElementById('updatetempplate_id')) {
+                updatetempplate_id = $('#updatetempplate_id').val();
+
+            }
+            if (document.getElementById('nbresubtask')) {
+                val = $('#nbresubtask').val();
+                if (i < val) {
+                    i = val - 1;
+                }
+            }
             template = { templatetitle: templatetitle, tasktitle: tasktitle, role: role };
             if (i != 0) {
                 for (var y = 1; y <= i; y++) {
@@ -207,13 +232,22 @@
                 type: "POST",
                 data: {
                     'action': 'create_template',
-                    'parametre': parametre
+                    'parametre': parametre,
+                    'updatetempplate_id': updatetempplate_id
                 },
                 success: function(response) {
-                    if (response)
-                        document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">New template created successfully</div>';
-                    else
-                        document.getElementById('add_success').innerHTML = '<div class="alert alert-danger" role="alert">Error occurred during template creation</div>';
+                    console.log(response);
+                    if (updatetempplate_id != "") {
+                        if (response)
+                            document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">Edit successfully</div>';
+                        else
+                            document.getElementById('add_success').innerHTML = '<div class="alert alert-danger" role="alert">Edit error</div>';
+                    } else {
+                        if (response)
+                            document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">New template created successfully</div>';
+                        else
+                            document.getElementById('add_success').innerHTML = '<div class="alert alert-danger" role="alert">Error occurred during template creation</div>';
+                    }
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);

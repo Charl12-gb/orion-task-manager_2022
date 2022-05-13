@@ -33,6 +33,7 @@
         console.log('Le script public JS a bien été chargé');
         var i = 1;
         $('#create_new_task').submit(function(e) {
+            //e.preventDefault();
             var firstchoose = $("input[name='show']:checked").val();
             var task = {},
                 subtask = {},
@@ -122,24 +123,6 @@
             $('#rm' + button_id + '').remove();
         });
 
-        $(document).on('click', '.event_btn', function() {
-            var task_id = $(this).attr("id");
-            $.ajax({
-                url: task_manager.ajaxurl,
-                type: "POST",
-                data: {
-                    'action': 'get_task_detail',
-                    'task_id': task_id
-                },
-                success: function(response) {
-
-                },
-                error: function(errorThrown) {
-
-                }
-            });
-        });
-
         $(document).on('change', '.user_calendar', function() {
             var user_id = document.getElementById('user_calendar').value;
             $.ajax({
@@ -214,6 +197,9 @@
                     'action': 'get_template_choose',
                     'template_id': select,
                     'istemplate': istemp
+                },
+                beforeSend: function() {
+                    document.getElementById('template_select').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
                 },
                 success: function(response) {
                     document.getElementById('template_select').innerHTML = response;
