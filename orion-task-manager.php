@@ -70,7 +70,9 @@ function my_plugin_create_db()
 	$table_project = $wpdb->prefix . 'project';
 	$table_task = $wpdb->prefix . 'task';
 	$table_subtask = $wpdb->prefix . 'subtask';
+	$table_categories = $wpdb->prefix . 'categories';
 	$table_worklog = $wpdb->prefix . 'worklog';
+	$table_mail = $wpdb->prefix . 'mails';
 	$table_users = $wpdb->prefix . 'users';
 
 	$sql = "CREATE TABLE $table_project(
@@ -82,12 +84,20 @@ function my_plugin_create_db()
 			FOREIGN KEY  (project_manager) REFERENCES $table_users(id),
 			PRIMARY KEY  (id)
 		);
-	
+		CREATE TABLE $table_categories(
+			id int AUTO_INCREMENT,
+			categories_key varchar(255) UNIQUE,
+			categories_name varchar(255) NOT NULL,
+			PRIMARY KEY  (categories_key)
+		);
 		CREATE TABLE $table_task (
 			id bigint NOT NULL,
 			author_id bigint UNSIGNED NOT NULL,
 			project_id bigint NOT NULL,
 			title varchar(255) NOT NULL,
+			type_task varchar(50) NOT NULL,
+			categorie varchar(50) NOT NULL,
+			dependancies int,
 			description text,
 			commentaire text,
 			assigne bigint NOT NULL,
@@ -95,10 +105,10 @@ function my_plugin_create_db()
 			etat varchar(50),
 			created_at datetime NOT NULL,
 			FOREIGN KEY  (author_id) REFERENCES $table_users(id),
+			FOREIGN KEY  (categorie) REFERENCES $table_categories(categories_key),
 			FOREIGN KEY  (project_id) REFERENCES $table_project(id),
 			PRIMARY KEY  (id)
 		);
-		
 		CREATE TABLE $table_subtask(
 			id bigint NOT NULL,
 			id_task_parent bigint NOT NULL,
@@ -109,9 +119,16 @@ function my_plugin_create_db()
 			id_task bigint NOT NULL,
 			finaly_date datetime,
 			status varchar(50),
-			evaluation int,
+			evaluation text,
 			FOREIGN KEY  (id_task) REFERENCES $table_task(id), 
 			PRIMARY KEY  (id_task)
+		);
+		CREATE TABLE $table_mail(
+			id bigint AUTO_INCREMENT,
+			type_task varchar(255),
+			subject varchar(255),
+			content varchar(50),
+			PRIMARY KEY  (id)
 		)$charset_collate;";
 
 	require_once(ABSPATH . 'wp-admin/includes/upgrade.php');

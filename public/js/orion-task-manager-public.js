@@ -32,8 +32,8 @@
     $(document).ready(function() {
         console.log('Le script public JS a bien été chargé');
         var i = 1;
-        $('#create_new_task').submit(function(e) {
-            //e.preventDefault();
+        $(document).on('submit', '#create_new_task', function(e) {
+            e.preventDefault();
             var firstchoose = $("input[name='show']:checked").val();
             var task = {},
                 subtask = {},
@@ -43,10 +43,10 @@
                 if ($('#nbrechamp').val() != undefined) {
                     var nbrechamps = $('#nbrechamp').val() - 1;
                     for (var t = 1; t <= nbrechamps; t++) {
-                        subtask[t] = { title: $('#title' + t).val(), assign: $('#assign' + t).val(), duedate: $('#duedate' + t).val(), description: $('#description' + t).val(), commentaire: $('#commentaire' + t).val() }
+                        subtask[t] = { title: $('#title' + t).val(), type_task: $('#type_task').val(), categorie: $('#categorie' + t).val(), dependance: $('#dependance' + t).val(), assign: $('#assign' + t).val(), duedate: $('#duedate' + t).val(), description: $('#description' + t).val(), commentaire: $('#commentaire' + t).val() }
                     }
                 }
-                task = { title: $('#title').val(), project: $('#project').val(), assign: $('#assign').val(), duedate: $('#duedate').val(), description: $('#description').val(), commentaire: $('#commentaire').val() };
+                task = { title: $('#title').val(), type_task: $('#type_task').val(), categorie: $('#categorie').val(), dependance: '', project: $('#project').val(), assign: $('#assign').val(), duedate: $('#duedate').val(), description: $('#description').val(), commentaire: $('#commentaire').val() };
                 parametre = { task: task, subtask: subtask };
                 $.ajax({
                     url: task_manager.ajaxurl,
@@ -67,18 +67,18 @@
                 var task1 = {},
                     subtask1 = {},
                     parametre = {};
-                task1 = { title: $('#title').val(), project: $('#project').val(), assign: $('#assign').val(), duedate: $('#duedate').val(), description: $('#description').val(), commentaire: $('#commentaire').val() };
+                task1 = { title: $('#title').val(), type_task: $('#type_task').val(), categorie: $('#categorie').val(), dependance: '', project: $('#project').val(), assign: $('#assign').val(), duedate: $('#duedate').val(), description: $('#description').val(), commentaire: $('#commentaire').val() };
                 if ($('#AddSubtask').is(":checked")) {
                     if (secondchoose == 'userTemplate1') {
                         if ($('#nbrechamp').val() != undefined) {
                             var subnbrechamps = $('#nbrechamp').val() - 1;
                             for (var t = 1; t <= subnbrechamps; t++) {
-                                subtask1[t] = { title: $('sub_#title' + t).val(), assign: $('#sub_assign' + t).val(), duedate: $('#sub_duedate' + t).val(), description: $('#sub_description' + t).val(), commentaire: $('#sub_commentaire' + t).val() }
+                                subtask1[t] = { title: $('#sub_title' + t).val(), type_task: $('#type_task' + t).val(), categorie: $('#sub_categorie' + t).val(), dependance: $('#sub_dependance' + t).val(), assign: $('#sub_assign' + t).val(), duedate: $('#sub_duedate' + t).val(), description: $('#sub_description' + t).val(), commentaire: $('#sub_commentaire' + t).val() }
                             }
                         }
-                        subtask1[0] = { title: $('#sub_title').val(), assign: $('#sub_assign').val(), duedate: $('#sub_duedate').val(), description: $('#sub_description').val(), commentaire: $('#sub_commentaire').val() }
+                        subtask1[0] = { title: $('#sub_title').val(), type_task: $('#type_task').val(), categorie: $('#sub_categorie').val(), dependance: $('#sub_dependance').val(), assign: $('#sub_assign').val(), duedate: $('#sub_duedate').val(), description: $('#sub_description').val(), commentaire: $('#sub_commentaire').val() }
                     } else {
-                        subtask1[0] = { title: $('#manuel_title').val(), assign: $('#manuel_assign').val(), duedate: $('#manuel_duedate').val(), description: $('#manuel_description').val(), commentaire: $('#manuel_commentaire').val() };
+                        subtask1[0] = { title: $('#manuel_title').val(), type_task: $('#type_task').val(), categorie: $('#manuel_categorie').val(), dependance: $('#dependance').val(), assign: $('#manuel_assign').val(), duedate: $('#manuel_duedate').val(), description: $('#manuel_description').val(), commentaire: $('#manuel_commentaire').val() };
                     }
                 }
                 parametre = { task: task1, subtask: subtask1 };
@@ -96,8 +96,8 @@
                         console.log(errorThrown);
                     }
                 });
-                //console.log(parametre);
             }
+            console.log(parametre);
         });
 
         $('#add_template').click(function() {

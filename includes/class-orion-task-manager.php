@@ -158,7 +158,72 @@ class Orion_Task_Manager {
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
 		
 		$this->loader->add_action( 'admin_menu', 'Task_Manager_Builder', 'add_menu_Task_Table_List_page' );
-	
+		
+		add_action('wp_ajax_nopriv_get_user_role', 'settings_function');
+		add_action('wp_ajax_get_user_role', 'settings_function');
+		
+		add_action('wp_ajax_nopriv_update_user_role', 'settings_function');
+		add_action('wp_ajax_update_user_role', 'settings_function');
+		
+		add_action('wp_ajax_nopriv_create_new_projet', 'settings_function');
+		add_action('wp_ajax_create_new_projet', 'settings_function');
+		
+		add_action('wp_ajax_nopriv_create_template', 'settings_function');
+		add_action('wp_ajax_create_template', 'settings_function');
+		
+		add_action('wp_ajax_nopriv_get_option_add', 'settings_function');
+		add_action('wp_ajax_get_option_add', 'settings_function');
+		
+		add_action('wp_ajax_nopriv_get_template_choose', 'settings_function');
+		add_action('wp_ajax_get_template_choose', 'settings_function');
+		
+		add_action('wp_ajax_nopriv_get_option_add_template', 'settings_function');
+		add_action('wp_ajax_get_option_add_template', 'settings_function');
+		
+		add_action('wp_ajax_nopriv_get_first_form', 'settings_function');
+		add_action('wp_ajax_get_first_form', 'settings_function');
+		
+		add_action('wp_ajax_create_new_task', 'settings_function');
+		add_action('wp_ajax_nopriv_create_new_task', 'settings_function');
+		
+		add_action('wp_ajax_get_template_card', 'settings_function');
+		add_action('wp_ajax_nopriv_get_template_card', 'settings_function');
+		
+		add_action('wp_ajax_delete_template_', 'settings_function');
+		add_action('wp_ajax_nopriv_delete_template_', 'settings_function');
+		
+		add_action('wp_ajax_update_template', 'settings_function');
+		add_action('wp_ajax_nopriv_update_template', 'settings_function');
+		
+		add_action('wp_ajax_worklog_update', 'settings_function');
+		add_action('wp_ajax_nopriv_worklog_update', 'settings_function');
+		
+		add_action('wp_ajax_get_calendar', 'settings_function');
+		add_action('wp_ajax_nopriv_get_calendar', 'settings_function');
+		
+		add_action('wp_ajax_save_mail_form', 'settings_function');
+		add_action('wp_ajax_nopriv_save_mail_form', 'settings_function');
+		
+		add_action('wp_ajax_get_email_card', 'settings_function');
+		add_action('wp_ajax_nopriv_get_email_card', 'settings_function');
+		
+		add_action('wp_ajax_save_criteria_evaluation', 'settings_function');
+		add_action('wp_ajax_nopriv_save_criteria_evaluation', 'settings_function');
+
+		add_action('wp_ajax_save_categories', 'settings_function');
+		add_action('wp_ajax_nopriv_save_categories', 'settings_function');
+
+		add_action('wp_ajax_edit_template_mail', 'settings_function');
+		add_action('wp_ajax_nopriv_edit_template_mail', 'settings_function');
+
+		add_action('wp_ajax_delete_email_', 'settings_function');
+		add_action('wp_ajax_nopriv_delete_email_', 'settings_function');
+
+		add_action('wp_ajax_update_categorie_', 'settings_function');
+		add_action('wp_ajax_nopriv_update_categorie_', 'settings_function');
+		
+		add_action('wp', 'login_redirect');
+		add_shortcode('orion_task', 'orion_task_shortcode');
 	}
 
 	/**

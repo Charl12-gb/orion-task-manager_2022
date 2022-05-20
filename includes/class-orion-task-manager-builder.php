@@ -17,22 +17,23 @@ class Task_Manager_Builder
         //Generate Task Admin Page
         add_menu_page( 
             'Task', 
-            'Task Manager', 
+            'Tasks Manager', 
             'manage_options', 
             'o_task_manager', 
             'Task_Manager_Builder::list_table_page',
+            'dashicons-welcome-write-blog',
+            30 ,
             '', 
-            30 
         );
         
         //Generate Task Admin Sub Pages
         add_submenu_page( 
             'o_task_manager', 
             'Task', 
-            'General', 
+            'Projects', 
             'manage_options', 
             'o_task_manager', 
-            'Task_Manager_Builder::list_table_page' 
+            'Task_Manager_Builder::list_table_page'
         );
 
         add_submenu_page( 
@@ -59,7 +60,7 @@ class Task_Manager_Builder
           <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o_task_manager_setting' ? 'nav-tab-active' : ''; ?>"><?php _e( 'TASK', 'task' ); ?></a>
           <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-worklog' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-worklog' ? 'nav-tab-active' : ''; ?>"><?php _e( 'WORKLOG', 'task' ); ?></a>
           <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-evaluation' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-evaluation' ? 'nav-tab-active' : ''; ?>"><?php _e( 'EVALUATION', 'task' ); ?></a>
-          <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-active' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-active' ? 'nav-tab-active' : ''; ?>"><?php _e( 'ACTIVATION', 'task' ); ?></a>
+          <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-active' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-active' ? 'nav-tab-active' : ''; ?>"><?php _e( 'INTEGRATION', 'task' ); ?></a>
             </nav>
             <div class="o_task_manager_setting addons-featured">
         <?php
