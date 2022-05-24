@@ -172,24 +172,25 @@ function save_new_categories($datas, $id = null)
 	global $wpdb;
 	$table = $wpdb->prefix . 'categories';
 	$format = array('%s', '%s');
-	if( $id == null ){
+	if ($id == null) {
 		foreach ($datas['valeur'] as $data) {
 			$form = str_replace(" ", "_", strtolower($data['categorie']));
 			$data_format = array('categories_key' => $form, 'categories_name' => $data['categorie']);
 			$wpdb->insert($table, $data_format, $format);
 		}
-	}else{
-		$data1 = str_replace(" ", "_", strtolower( $datas ));
+	} else {
+		$data1 = str_replace(" ", "_", strtolower($datas));
 		$d_format = array('categories_key' => $data1, 'categories_name' => $datas);
-		$wpdb->update($table, $d_format , array('id'=>$id), $format);
+		$wpdb->update($table, $d_format, array('id' => $id), $format);
 	}
 	return;
 }
 
-function delete_categories_( $id ){
+function delete_categories_($id)
+{
 	global $wpdb;
 	$table = $wpdb->prefix . 'categories';
-	return $wpdb->delete($table, array('id'=>$id), array('%d'));
+	return $wpdb->delete($table, array('id' => $id), array('%d'));
 }
 
 function save_new_mail_form(array $data, $id_template = null)
@@ -197,7 +198,7 @@ function save_new_mail_form(array $data, $id_template = null)
 	global $wpdb;
 	$table = $wpdb->prefix . 'mails';
 	$format = array('%s', '%s', '%s');
-	if( $id_template == null )
+	if ($id_template == null)
 		$ok = $wpdb->insert($table, $data, $format);
 	else
 		$ok =  $wpdb->update($table, $data, array('id' => $id_template), $format);
@@ -209,21 +210,21 @@ function save_new_task(array $data)
 	$array = $data['parametre']['task'];
 	$project = $array['project'];
 	$tabletask = $wpdb->prefix . 'task';
-	$formattask = array('%d', '%d', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s');
+	$formattask = array('%d', '%d', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%s');
 	$tablesubtask = $wpdb->prefix . 'subtask';
 	$formatsubtask = array('%d', '%d');
 	$tableworklog = $wpdb->prefix . 'worklog';
 	$formatworklog = array('%d', '%s', '%s', '%d');
-	$task_id = 7; // A récupérer depuis asana api
-	$task = array('id' => $task_id, 'author_id' => get_current_user_id(), 'project_id' => $project, 'title' => $array['title'], 'description' => $array['description'], 'commentaire' => $array['commentaire'], 'assigne' => $array['assign'], 'duedate' => $array['duedate'], 'etat' => '', 'created_at' => date('Y-m-d H:i:s',  strtotime('+1 hours')));
+	$task_id = 3; // A récupérer depuis asana api
+	$task = array('id' => $task_id, 'author_id' => get_current_user_id(), 'project_id' => $project, 'title' => $array['title'], 'type_task' => $array['type_task'], 'categorie' => $array['categorie'], 'dependancies' => $array['dependance'], 'description' => $array['description'], 'commentaire' => $array['commentaire'], 'assigne' => $array['assign'], 'duedate' => $array['duedate'], 'etat' => '', 'created_at' => date('Y-m-d H:i:s',  strtotime('+1 hours')));
 	$ok = $wpdb->insert($tabletask, $task, $formattask);
 	$worklog = array('id_task' => $task_id, 'finaly_date' => null, 'status' => null, 'evaluation' => null);
 	$wpdb->insert($tableworklog, $worklog, $formatworklog);
 
 	if (isset($data['parametre']['subtask'])) {
-		$id_subtask = 8; //Récupérer depuis asana
+		$id_subtask = 4; //Récupérer depuis asana
 		foreach ($data['parametre']['subtask'] as $key => $value) {
-			$task = array('id' => $id_subtask, 'author_id' => get_current_user_id(), 'project_id' => $project, 'title' => $value['title'], 'description' => $array['description'], 'commentaire' => $array['commentaire'], 'assigne' => $value['assign'], 'duedate' => $value['duedate'], 'etat' => '', 'created_at' => date('Y-m-d H:i:s',  strtotime('+1 hours')));
+			$task = array('id' => $id_subtask, 'author_id' => get_current_user_id(), 'project_id' => $project, 'title' => $value['title'], 'type_task' => $array['type_task'], 'categorie' => $array['categorie'], 'dependancies' => $array['dependance'], 'description' => $array['description'], 'commentaire' => $array['commentaire'], 'assigne' => $value['assign'], 'duedate' => $value['duedate'], 'etat' => '', 'created_at' => date('Y-m-d H:i:s',  strtotime('+1 hours')));
 			$wpdb->insert($tabletask, $task, $formattask);
 			$subtask = array('id' => $id_subtask, 'id_task_parent' => $task_id);
 			$wpdb->insert($tablesubtask, $subtask, $formatsubtask);
@@ -234,6 +235,37 @@ function save_new_task(array $data)
 	}
 
 	return $ok;
+}
+
+function  mail_sending_form( $destinataire, $subject, $message)
+{
+	// Pour les champs $expediteur / $copie / $destinataire, séparer par une virgule s'il y a plusieurs adresses
+	$expediteur = 'oriontestorion@gmail.com';
+	$copie = 'oriontestorion@gmail.com';
+	$copie_cachee = 'oriontestorion@gmail.com';
+	$headers  = 'MIME-Version: 1.0' . "\n"; // Version MIME
+	$headers .= 'Content-type: text/html; charset=ISO-8859-1' . "\n"; // l'en-tete Content-type pour le format HTML
+	$headers .= 'Reply-To: ' . $expediteur . "\n"; // Mail de reponse
+	$headers .= 'From: "ORION ORIGIN"<' . $expediteur . '>' . "\n"; // Expediteur
+	$headers .= 'Delivered-to: ' . $destinataire . "\n"; // Destinataire
+	$headers .= 'Cc: ' . $copie . "\n"; // Copie Cc
+	$headers .= 'Bcc: ' . $copie_cachee . "\n\n"; // Copie cachée Bcc        
+	$message = '<div style="width: 100%;text-align: center;color:black"><h3 style="text-align: center; font-weight: bold;">' . $subject . '</h3><p>' . $message . '</p></div>';
+
+	return (wp_mail($destinataire, $subject, $message, $headers));
+}
+
+function content_msg($id_task, $type_task, $content ){
+	$task = get_all_task( 'id', $id_task, 'yes' )[0];
+	$content_format_name_task = str_replace( "{{ task_name }}", "<strong style='color:blue'>".$task->title."</strong>", $content );
+	$content_format_name_project = str_replace( "{{ project_name }}", "<strong style='color:blue'>".get_project_title($task->project_id)."</strong>", $content_format_name_task );
+
+	$task_link = "<a class='btn-link' href='https://app.asana.com/0/". $task->project_id ."/".$task->id."'>https://app.asana.com/0/". $task->project_id ."/".$task->id."</a>";
+	$content_format_task_link = str_replace( "{{ task_link }}", $task_link, $content_format_name_project );
+	
+	$form_link = "<a class='btn-outline-primary' href='".get_site_url()."/evaluation_form?task_id=".$id_task."/&type_task=".$type_task."'><button>".get_site_url()."/evaluation_form</button></a>";
+	$content_format = str_replace( "{{ form_link }}", $form_link, $content_format_task_link );
+	return $content_format;
 }
 
 function get_all_project()
@@ -262,13 +294,13 @@ function get_all_task($specification = null, $value = null, $project = null)
 	$table1 = $wpdb->prefix . 'worklog';
 	if ($project == null) {
 		if ($specification != null && $value != null)
-			$sql = "SELECT * FROM $table INNER JOIN $table1 ON id=id_task WHERE $specification = $value";
+			$sql = "SELECT * FROM $table INNER JOIN $table1 ON id=id_task WHERE $specification = $value"; // Association avec le worklog
 		else if ($specification != null && $value == null)
-			$sql = "SELECT * FROM $table WHERE assigne = $specification";
+			$sql = "SELECT * FROM $table WHERE assigne = $specification"; //Tâche assign à l'utilisateur x
 		else
-			$sql = "SELECT * FROM $table ORDER BY duedate";
+			$sql = "SELECT * FROM $table ORDER BY duedate"; //Toutes les tâches par ordre de la date
 	} else {
-		$sql = "SELECT * FROM $table WHERE $specification = $value";
+		$sql = "SELECT * FROM $table WHERE $specification = $value";  //Tâche avec une spéfication
 	}
 	return $wpdb->get_results($sql);
 }
@@ -424,7 +456,7 @@ function page_task()
 				</div>
 			</div>
 			<div id="accordion" class="card-body">
-				<div id="collapse1" class="collapse <?php if (is_project_manager() == null) echo 'show'; ?>" aria-labelledby="heading1" data-parent="#accordion">
+				<div id="collapse1" class="collapse" aria-labelledby="heading1" data-parent="#accordion">
 					<div>
 						<div class="row">
 							<div class="col-sm-6" style="text-align:left;">
@@ -454,7 +486,6 @@ function page_task()
 						?>
 					</div>
 				</div>
-
 				<div id="collapse3" class="collapse" aria-labelledby="heading3" data-parent="#accordion">
 					<div>
 						<h3>Create a Task</h3>
@@ -470,23 +501,27 @@ function page_task()
 						<h3>Calendar</h3>
 						<div class="form-group">
 							<label for="user_calendar">Filter calendar by name</label>
-							<select id="user_calendar" <?php if (is_project_manager() == null) echo 'disabled'; ?>  name="user_calendar" class="form-control user_calendar">
+							<select id="user_calendar" <?php if (is_project_manager() == null) echo 'disabled'; ?> name="user_calendar" class="form-control user_calendar">
 								<?php if (is_project_manager() != null) {
-									?>
+								?>
 									<option value="">Everyone</option>
 									<?= option_select(get_all_users('name')) ?>
-									<?php
-								}
-								else{
-									?>
-									<option selected><?= get_userdata( get_current_user_id() )->display_name ?></option>
-									<?php
+								<?php
+								} else {
+								?>
+									<option selected><?= get_userdata(get_current_user_id())->display_name ?></option>
+								<?php
 								}
 								?>
 							</select>
 						</div>
 						<div id="calendar_card">
-							<?php get_task_calendar(); ?>
+							<?php 
+							if (is_project_manager() != null)
+								get_task_calendar(); 
+							else
+								get_task_calendar( get_current_user_id() );
+							?>
 						</div>
 					</div>
 				</div>
@@ -741,7 +776,7 @@ function add_task_form()
 			<button type="submit" name="validetash">Submit</button>
 		</div>
 	</form>
-<?php
+	<?php
 }
 
 function get_user_task()
@@ -833,11 +868,12 @@ function taches_tab()
 		<div class="row" id="accordion">
 			<div class="col-sm-4 card bg-light">
 				<div class="card-header" id="headingTwo">
-					<h5 class="mb-0">
+					<h5 class="mb-0 ">
 						<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
 							Roles
 						</button>
 					</h5>
+					<p class="mt-0 mb-0">Set the new user role</p>
 				</div>
 				<div class="card-header" id="headingOne">
 					<h5 class="mb-0">
@@ -845,6 +881,7 @@ function taches_tab()
 							Template
 						</button>
 					</h5>
+					<p class="mt-0 mb-0">Create and modify templates to facilitate the creation of tasks for project managers</p>
 				</div>
 				<div class="card-header" id="headingThree">
 					<h5 class="mb-0">
@@ -852,6 +889,7 @@ function taches_tab()
 							Project
 						</button>
 					</h5>
+					<p class="mt-0 mb-0">Create and edit projects from here</p>
 				</div>
 				<div class="card-header" id="headingFour">
 					<h5 class="mb-0">
@@ -859,6 +897,7 @@ function taches_tab()
 							Categories
 						</button>
 					</h5>
+					<p class="mt-0 mb-0">Add more task categories</p>
 				</div>
 			</div>
 			<div class="col-sm-8 card">
@@ -1017,22 +1056,22 @@ function get_categories_()
 {
 	$all_categories = get_all_categories();
 	foreach ($all_categories as $categorie) {
-		if ($categorie->categories_key == 'implementation' || $categorie->categories_key == 'test' || $categorie->categories_key == 'revue_de_code' || $categorie->categories_key == 'integration'){
-			?>
-				<div class="form-row pt-2">
-					<div class="col-sm-6"><input type="text" disabled value="<?= $categorie->categories_name ?>" class="form-control text-dark"></div>
-					<div class="col-sm-6"><input type="text" disabled value="<?= $categorie->categories_key ?>" class="form-control text-dark"></div>
-				</div>
-			<?php
-		}else{
-			?>
-				<div class="form-row pt-2">
-					<div class="col-sm-6"><input type="text" id="name<?= $categorie->id ?>" disabled value="<?= $categorie->categories_name ?>" class="form-control text-dark"></div>
-					<div class="col-sm-4"><input type="text" id="key<?= $categorie->id ?>" disabled value="<?= $categorie->categories_key ?>" class="form-control text-dark"></div>
-					<div class="col-sm-1 btn btn-primary edit_categorie" id="<?= $categorie->id ?>"> <span id="edit_<?= $categorie->id ?>">Edit</span> </div>
-					<div class="col-sm-1 btn btn-danger delete_categorie" id="<?= $categorie->id ?>">Delete</div>
-				</div>
-			<?php
+		if ($categorie->categories_key == 'implementation' || $categorie->categories_key == 'test' || $categorie->categories_key == 'revue_de_code' || $categorie->categories_key == 'integration') {
+	?>
+			<div class="form-row pt-2">
+				<div class="col-sm-6"><input type="text" disabled value="<?= $categorie->categories_name ?>" class="form-control text-dark"></div>
+				<div class="col-sm-6"><input type="text" disabled value="<?= $categorie->categories_key ?>" class="form-control text-dark"></div>
+			</div>
+		<?php
+		} else {
+		?>
+			<div class="form-row pt-2">
+				<div class="col-sm-6"><input type="text" id="name<?= $categorie->id ?>" disabled value="<?= $categorie->categories_name ?>" class="form-control text-dark"></div>
+				<div class="col-sm-4"><input type="text" id="key<?= $categorie->id ?>" disabled value="<?= $categorie->categories_key ?>" class="form-control text-dark"></div>
+				<div class="col-sm-1 btn btn-primary edit_categorie" id="<?= $categorie->id ?>"> <span id="edit_<?= $categorie->id ?>">Edit</span> </div>
+				<div class="col-sm-1 btn btn-danger delete_categorie" id="<?= $categorie->id ?>">Delete</div>
+			</div>
+	<?php
 		}
 	}
 	?>
@@ -1058,24 +1097,26 @@ function worklog_tab()
 		else $active = false;
 	}
 ?>
-	<div class="card">
-		<h5 class="card-header">Enable Worklog</h5>
-		<div class="card-body">
-			<div class="custom-control custom-checkbox my-1 mr-sm-2 worklog_authorized">
-				<input type="checkbox" <?php if ($active) echo 'checked'; ?> class="custom-control-input" id="id_worklog_authorized">
-				<label class="custom-control-label <?php if ($active) echo 'text-success';
-													else echo 'text-danger'; ?>" for="id_worklog_authorized">Check to allow downloading of the worklog file</label>
-				<?php
-				if ($active) {
-				?>
-					<div class="text-success">Download permission accept</div>
-				<?php
-				} else {
-				?>
-					<div class="text-danger">Download permission denied</div>
-				<?php
-				}
-				?>
+	<div class="container-fluid pt-3">
+		<div class="card">
+			<h5 class="card-header">Enable Worklog</h5>
+			<div class="card-body">
+				<div class="custom-control custom-checkbox my-1 mr-sm-2 worklog_authorized">
+					<input type="checkbox" <?php if ($active) echo 'checked'; ?> class="custom-control-input" id="id_worklog_authorized">
+					<label class="custom-control-label <?php if ($active) echo 'text-success';
+														else echo 'text-danger'; ?>" for="id_worklog_authorized">Check to allow downloading of the worklog file</label>
+					<?php
+					if ($active) {
+					?>
+						<div class="text-success">Download permission accept</div>
+					<?php
+					} else {
+					?>
+						<div class="text-danger">Download permission denied</div>
+					<?php
+					}
+					?>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -1100,11 +1141,11 @@ function get_task_title()
 	return $title_array;
 }
 
-function get_email_task_tab( $id_template = null )
-{	
+function get_email_task_tab($id_template = null)
+{
 	$vrai = false;
-	if( $id_template != null ){
-		$template_email = get_all_email( $id_template )[0];
+	if ($id_template != null) {
+		$template_email = get_all_email($id_template)[0];
 		$vrai = true;
 	}
 ?>
@@ -1113,41 +1154,47 @@ function get_email_task_tab( $id_template = null )
 			<div class="form-group col-md-6">
 				<label for="tasktitle">Type Task</label>
 				<select id="task_name" name="task_name" class="form-control task_option">
-					<option value="developper" <?php if( $vrai ) { if( $template_email->type_task == 'developper' ) echo 'selected'; } ?> >Developper</option>
-					<option value="normal" <?php if( $vrai ) { if( $template_email->type_task == 'normal' ) echo 'selected'; } ?> >Normal</option>
+					<option value="developper" <?php if ($vrai) {
+													if ($template_email->type_task == 'developper') echo 'selected';
+												} ?>>Developper</option>
+					<option value="normal" <?php if ($vrai) {
+												if ($template_email->type_task == 'normal') echo 'selected';
+											} ?>>Normal</option>
 				</select>
 			</div>
 			<div class="form-group col-md-6">
 				<label for="subject_email">Subject</label>
-				<input type="text" class="form-control" id="subject_mail" value="<?php if( $vrai ) echo $template_email->subject; else echo 'Evaluation de developper';  ?>">
+				<input type="text" class="form-control" id="subject_mail" value="<?php if ($vrai) echo $template_email->subject;
+																					else echo 'Evaluation de developper';  ?>">
 			</div>
 		</div>
 		<div class="form-group">
 			<label for="content_mail">Email content</label>
-			<textarea class="form-control" id="content_mail" rows="4" placeholder="Content ..."><?php if( $vrai ) echo $template_email->content; ?></textarea>
+			<textarea class="form-control" id="content_mail" rows="4" placeholder="Content ..."><?php if ($vrai) echo $template_email->content; ?></textarea>
 			<small id="contentHelp">Click <br>
-				<span class="btn-link" id="project_name_msg">{{ project_name }}</span> to add the project name<br>  
+				<span class="btn-link" id="project_name_msg">{{ project_name }}</span> to add the project name<br>
 				<span class="btn-link" id="task_name_msg">{{ task_name }}</span> to add the task name <br>
 				<span class="btn-link" id="task_link_msg">{{ task_link }}</span> to add the link to the task <br>
 				<span class="btn-link" id="form_link_msg">{{ form_link }}</span> to add the link to the form <br>
 				to the content of the form
 			</small>
 		</div>
-		<?php 
-			if( $vrai ) echo '<input type="hidden" name="id_template" id="id_template" value="'. $id_template .'">';
+		<?php
+		if ($vrai) echo '<input type="hidden" name="id_template" id="id_template" value="' . $id_template . '">';
 		?>
-		<button type="submit" class="btn btn-outline-primary"><?php if( $vrai ) echo 'Update Mail Template'; else echo 'Save Mail Template'; ?></button> 
-		<div class="pt-2">
-			<form method="post" action="" id="test_send_mail">
-				<div class="input-group mb-3">
-					<input class="control-form" id="input_email" type="email">
-					<div class="input-group-prepend">
-						<input class="btn btn-outline-success" for="input_email" type="submit">
-					</div>
-				</div>
-			</form>
-		</div>
+		<button type="submit" class="btn btn-outline-primary"><?php if ($vrai) echo 'Update Mail Template';
+																else echo 'Save Mail Template'; ?></button>
 	</form>
+	<div class="pt-2">
+		<form method="post" action="" id="test_send_mail">
+			<div class="input-group mb-3">
+				<input class="control-form" id="input_email" type="email">
+				<div class="input-group-prepend">
+					<input class="btn btn-outline-success" for="input_email" type="submit">
+				</div>
+			</div>
+		</form>
+	</div>
 <?php
 }
 
@@ -1155,6 +1202,7 @@ function get_email_task_tab( $id_template = null )
 
 function evaluation_tab()
 {
+	//print_r(content_msg( 2, '', '' ));
 ?>
 	<div class="container-fluid pt-3">
 		<div class="row" id="accordion">
@@ -1165,6 +1213,7 @@ function evaluation_tab()
 							Evaluation Criterias
 						</button>
 					</h5>
+					<p class="mt-0 mb-0">Add the evaluation criteria</p>
 				</div>
 				<div class="card-header" id="headingEvaluation2">
 					<h5 class="mb-0">
@@ -1172,6 +1221,7 @@ function evaluation_tab()
 							Mail Template
 						</button>
 					</h5>
+					<p class="mt-0 mb-0">Create email submit form templates</p>
 				</div>
 			</div>
 			<div class="col-sm-8 card">
@@ -1214,7 +1264,7 @@ function create_task_criteria()
 		<div id="11111" class="row" style="display:block">
 			<h5>Developpment Criteria</h5>
 			<div>
-				<?php $u=1;
+				<?php $u = 1;
 				foreach ($criterias['developper'] as $criteria_dev) {
 				?>
 					<div id="rmu2<?= $u ?>">
@@ -1244,10 +1294,10 @@ function create_task_criteria()
 						</div>
 					</div>
 				<?php
-				$u++;
+					$u++;
 				}
 				?>
-			<input type="hidden" id="nbre1" name="nbre1" value="<?= $u ?>">
+				<input type="hidden" id="nbre1" name="nbre1" value="<?= $u ?>">
 			</div>
 			<div id="criteriaadd1" class="pb-3"></div>
 			<div class="form-group">
@@ -1257,7 +1307,7 @@ function create_task_criteria()
 		<div id="22222" class="row" style="display:none">
 			<h5>Normal Criteria</h5>
 			<div>
-				<?php $v=1;
+				<?php $v = 1;
 				foreach ($criterias['normal'] as $criteria_normal) {
 				?>
 					<div id="rmv2<?= $v ?>">
@@ -1289,7 +1339,7 @@ function create_task_criteria()
 				<?php $v++;
 				}
 				?>
-			<input type="hidden" id="nbre2" name="nbre2" value="<?= $v ?>">
+				<input type="hidden" id="nbre2" name="nbre2" value="<?= $v ?>">
 			</div>
 			<div id="criteriaadd2" class="pb-3"></div>
 			<div class="form-group">
@@ -1323,10 +1373,10 @@ function list_email_sending()
 			?>
 				<tr class="alert alert-primary">
 					<td><?= $k + 1 ?></td>
-					<td id="<?= $email->id ?>" ><span class="btn btn-link email_edit p-0 m-0" id="<?= $email->id ?>"><?= $email->subject ?></span></td>
+					<td id="<?= $email->id ?>"><span class="btn btn-link email_edit p-0 m-0" id="<?= $email->id ?>"><?= $email->subject ?></span></td>
 					<td><?= ucfirst($email->type_task) ?></td>
 					<td>
-					<span class="text-primary btn btn-link email_edit m-0 p-0" id="<?= $email->id ?>">Edit</span><span class="text-danger btn btn-link email_remove m-0 p-0" id="<?= $email->id ?>">Delete</span>
+						<span class="text-primary btn btn-link email_edit m-0 p-0" id="<?= $email->id ?>">Edit</span><span class="text-danger btn btn-link email_remove m-0 p-0" id="<?= $email->id ?>">Delete</span>
 					</td>
 				</tr>
 			<?php
@@ -1350,67 +1400,97 @@ function active_tab()
 {
 	$token = get_option('access_token');
 ?>
-	<div class="container pt-2">
-		<?php
-		if ($token != '') {
-			$submit = 'UPDATE';
-			$token = 'XXXX-XXXX-XXXX-XXX';
-			_e('ASANA ACTIVE', 'task');
-		} else {
-			$submit = 'SAVE';
-			_e('Activated ASANA <a href="https://app.asana.com/" target="_blank">https://app.asana.com/</a>', 'task');
-		}
-		?>
-	</div>
-	<div class='block-form container pt-2'>
-		<?php
-		$begin = array(
-			'type' => 'sectionbegin',
-			'id' => 'task-datasource-container',
-		);
-
-		$tokens = array(
-			'title' => __('ASANA access token', 'task'),
-			'name' => 'tokens',
-			'type' => 'text',
-			'default' => $token,
-		);
-
-		$btn = array(
-			'title' => __($submit, 'task'),
-			'type' => 'button',
-			'id'  => 'submit',
-			'default' => '',
-			'class' => ' btn btn-outline-primary'
-		);
-
-		$end = array('type' => 'sectionend');
-		$details = array(
-			$begin,
-			$tokens,
-			$btn,
-			$end,
-		);
-		?>
-		<form method="post" action="">
-			<?php
-			echo o_admin_fields($details);
-			?>
-		</form>
-	</div>
-	<div class="container pt-3 card">
-		<form id="synchronisation_asana" method="post" action="">
-			<label for="synchonisation">Synchronization frequency</label>
-			<div class="input-group mb-3">
-				<select class="custom-select" id="synchonisation">
-					<option value="1">1 time / day</option>
-					<option value="2">2 times / day</option>
-				</select>
-				<div class="input-group-append">
-					<label class="input-group-text btn btn-outline-primary" for="synchonisation">UPDATE</label>
+	<div class="container-fluid pt-3">
+		<div class="row" id="accordion">
+			<div class="col-sm-4 card bg-light">
+				<div class="card-header" id="headingEvaluation1">
+					<h5 class="mb-0">
+						<button class="btn btn-link" data-toggle="collapse" data-target="#collapseEvaluation1" aria-expanded="true" aria-controls="collapseEvaluation1">
+							ASANA access token
+						</button>
+					</h5>
+					<p class="mt-0 mb-0">Add asana access token</p>
+				</div>
+				<div class="card-header" id="headingEvaluation2">
+					<h5 class="mb-0">
+						<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseEvaluation2" aria-expanded="false" aria-controls="collapseEvaluation2">
+							Synchronization
+						</button>
+					</h5>
+					<p class="mt-0 mb-0">Set Task Sync Frequency</p>
 				</div>
 			</div>
-		</form>
+			<div class="col-sm-8 card">
+				<div id="collapseEvaluation1" class="collapse show" aria-labelledby="headingEvaluation1" data-parent="#accordion">
+					<div class="card-body">
+						<div class="container pt-2">
+							<?php
+							if ($token != '') {
+								$submit = 'UPDATE';
+								$token = 'XXXX-XXXX-XXXX-XXX';
+								_e('ASANA ACTIVE', 'task');
+							} else {
+								$submit = 'SAVE';
+								_e('Activated ASANA <a href="https://app.asana.com/" target="_blank">https://app.asana.com/</a>', 'task');
+							}
+							?>
+						</div>
+						<div class='block-form container pt-2'>
+							<?php
+							$begin = array(
+								'type' => 'sectionbegin',
+								'id' => 'task-datasource-container',
+							);
+
+							$tokens = array(
+								'title' => __('ASANA access token', 'task'),
+								'name' => 'tokens',
+								'type' => 'text',
+								'default' => $token,
+							);
+
+							$btn = array(
+								'title' => __($submit, 'task'),
+								'type' => 'button',
+								'id'  => 'submit',
+								'default' => '',
+								'class' => ' btn btn-outline-primary'
+							);
+
+							$end = array('type' => 'sectionend');
+							$details = array(
+								$begin,
+								$tokens,
+								$btn,
+								$end,
+							);
+							?>
+							<form method="post" action="">
+								<?php
+								echo o_admin_fields($details);
+								?>
+							</form>
+						</div>
+					</div>
+				</div>
+				<div id="collapseEvaluation2" class="collapse" aria-labelledby="headingEvaluation2" data-parent="#accordion">
+						<div class="card-body">
+							<form id="synchronisation_asana" method="post" action="">
+								<label for="synchonisation">Synchronization frequency</label>
+								<div class="input-group mb-3">
+									<select class="custom-select" id="synchonisation">
+										<option value="1">1 time / day</option>
+										<option value="2">2 times / day</option>
+									</select>
+									<div class="input-group-append">
+										<label class="input-group-text btn btn-outline-primary" for="synchonisation">UPDATE</label>
+									</div>
+								</div>
+							</form>
+						</div>
+				</div>
+			</div>
+		</div>
 	</div>
 <?php
 }
@@ -1434,10 +1514,11 @@ function get_dependancies($array)
 	$depend = array();
 }
 
-function get_categorie_format(){
+function get_categorie_format()
+{
 	$cats = get_all_categories();
 	$categorie = array();
-	foreach( $cats as $cat ){
+	foreach ($cats as $cat) {
 		$categorie += array($cat->categories_key => $cat->categories_name);
 	}
 	return $categorie;
@@ -1494,7 +1575,7 @@ function get_form(array $array, $istemplate)
 			<div class="col">
 				<label for="duedate">Categorie</label>
 				<select class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>categorie" name="<?php if ($istemplate) echo 'sub_'  ?>categorie">
-					<?= option_select( get_categorie_format() ) ?>
+					<?= option_select(get_categorie_format()) ?>
 				</select>
 			</div>
 		</div>
@@ -1503,7 +1584,7 @@ function get_form(array $array, $istemplate)
 	if (isset($array['parametre']['subtemplate'])) {
 		$tab = $array['parametre']['subtemplate'];
 		$j = 1;
-		
+
 		foreach ($tab as $subtemplate) {
 	?>
 			<div class="row pl-5 pr-5 pb-4">
@@ -1518,7 +1599,7 @@ function get_form(array $array, $istemplate)
 					<div class="col">
 						<label for="duedate">Categorie</label>
 						<select class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>categorie<?= $j ?>" name="<?php if ($istemplate) echo 'sub_'  ?>categorie<?= $j ?>">
-							<?= option_select( get_categorie_format() ) ?>
+							<?= option_select(get_categorie_format()) ?>
 						</select>
 					</div>
 					<div class="col">
@@ -1625,11 +1706,11 @@ function get_first_choose($type, $istemplate = false)
 					<input type="datetime-local" name="<?php if ($istemplate) echo 'manuel_' ?>duedate" class="form-control" id="<?php if ($istemplate) echo 'manuel_' ?>duedate" aria-describedby="duedate">
 				</div>
 				<div class="col">
-				<label for="duedate">Categorie</label>
-				<select class="form-control" id="<?php if ($istemplate) echo 'manuel_'  ?>categorie" name="<?php if ($istemplate) echo 'manuel_'  ?>categorie">
-					<?= option_select( get_categorie_format() ) ?>
-				</select>
-			</div>
+					<label for="duedate">Categorie</label>
+					<select class="form-control" id="<?php if ($istemplate) echo 'manuel_'  ?>categorie" name="<?php if ($istemplate) echo 'manuel_'  ?>categorie">
+						<?= option_select(get_categorie_format()) ?>
+					</select>
+				</div>
 			</div>
 		</div>
 <?php
@@ -1776,17 +1857,17 @@ function settings_function()
 		echo get_categories_();
 	}
 	if ($action == 'save_mail_form') {
-		$update = htmlentities( $_POST['update'] );
-		$id_template_email = htmlentities( $_POST['id_template'] );
-		$send = array_diff($_POST, array('action' => 'save_mail_form','update'=> $update, 'id_template'=>$id_template_email));
+		$update = htmlentities($_POST['update']);
+		$id_template_email = htmlentities($_POST['id_template']);
+		$send = array_diff($_POST, array('action' => 'save_mail_form', 'update' => $update, 'id_template' => $id_template_email));
 		$data = wp_unslash($send);
-		if( $update  === 'true' )
+		if ($update  === 'true')
 			$ok = save_new_mail_form($data, $id_template_email);
 		else
 			$ok = save_new_mail_form($data);
-		if( $ok )
+		if ($ok)
 			echo list_email_sending();
-		else 
+		else
 			echo 'false';
 	}
 	if ($action == 'get_email_card') {
@@ -1803,25 +1884,37 @@ function settings_function()
 		echo  create_task_criteria();
 	}
 	if ($action == 'edit_template_mail') {
-		$id_template_mail = htmlentities( $_POST['id_template_mail'] );
-		if( !empty( $id_template_mail ) )
-			echo get_email_task_tab( $id_template_mail );
+		$id_template_mail = htmlentities($_POST['id_template_mail']);
+		if (!empty($id_template_mail))
+			echo get_email_task_tab($id_template_mail);
 		else
 			echo get_email_task_tab();
 	}
 	if ($action == 'update_categorie_') {
-		$id_categorie = htmlentities( $_POST['id_categorie'] );
-		$valeur = htmlentities( $_POST['valeur'] );
+		$id_categorie = htmlentities($_POST['id_categorie']);
+		$valeur = htmlentities($_POST['valeur']);
 		save_new_categories($valeur, $id_categorie);
 		echo get_categories_();
 	}
 	if ($action == 'delete_categorie_') {
-		$id_categorie = htmlentities( $_POST['id_categorie'] );
+		$id_categorie = htmlentities($_POST['id_categorie']);
 		$retour = delete_categories_($id_categorie);
-		if( $retour )
+		if ($retour)
 			echo get_categories_();
 		else
 			echo 'error';
+	}
+	if ($action == 'send_mail_test') {
+
+		$type_task = htmlentities($_POST['type_task']);
+		$subject = htmlentities($_POST['subject']);
+		$content = htmlentities($_POST['content']);
+		$destinataire = htmlentities($_POST['email']);
+		$id_task = 1;
+		$msg = content_msg($id_task, $type_task, $content );
+
+		$retour = mail_sending_form( $destinataire, $subject, $msg );
+		echo $retour;
 	}
 	wp_die();
 }

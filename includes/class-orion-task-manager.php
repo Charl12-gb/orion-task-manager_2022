@@ -224,6 +224,9 @@ class Orion_Task_Manager {
 
 		add_action('wp_ajax_delete_categorie_', 'settings_function');
 		add_action('wp_ajax_nopriv_delete_categorie_', 'settings_function');
+
+		add_action('wp_ajax_send_mail_test', 'settings_function');
+		add_action('wp_ajax_nopriv_send_mail_test', 'settings_function');
 		
 		add_action('wp', 'login_redirect');
 		add_shortcode('orion_task', 'orion_task_shortcode');

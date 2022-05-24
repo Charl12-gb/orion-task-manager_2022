@@ -106,6 +106,7 @@ function my_plugin_create_db()
 			created_at datetime NOT NULL,
 			FOREIGN KEY  (author_id) REFERENCES $table_users(id),
 			FOREIGN KEY  (categorie) REFERENCES $table_categories(categories_key),
+			FOREIGN KEY  (assigne) REFERENCES $table_users(id),
 			FOREIGN KEY  (project_id) REFERENCES $table_project(id),
 			PRIMARY KEY  (id)
 		);

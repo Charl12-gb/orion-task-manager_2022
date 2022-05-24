@@ -33,7 +33,7 @@
         console.log('Le script public JS a bien été chargé');
         var i = 1;
         $(document).on('submit', '#create_new_task', function(e) {
-            e.preventDefault();
+            //e.preventDefault();
             var firstchoose = $("input[name='show']:checked").val();
             var task = {},
                 subtask = {},
@@ -76,9 +76,9 @@
                                 subtask1[t] = { title: $('#sub_title' + t).val(), type_task: $('#type_task' + t).val(), categorie: $('#sub_categorie' + t).val(), dependance: $('#sub_dependance' + t).val(), assign: $('#sub_assign' + t).val(), duedate: $('#sub_duedate' + t).val(), description: $('#sub_description' + t).val(), commentaire: $('#sub_commentaire' + t).val() }
                             }
                         }
-                        subtask1[0] = { title: $('#sub_title').val(), type_task: $('#type_task').val(), categorie: $('#sub_categorie').val(), dependance: $('#sub_dependance').val(), assign: $('#sub_assign').val(), duedate: $('#sub_duedate').val(), description: $('#sub_description').val(), commentaire: $('#sub_commentaire').val() }
+                        subtask1[0] = { title: $('#sub_title').val(), type_task: $('#type_task').val(), categorie: $('#sub_categorie').val(), dependance: '', assign: $('#sub_assign').val(), duedate: $('#sub_duedate').val(), description: $('#sub_description').val(), commentaire: $('#sub_commentaire').val() }
                     } else {
-                        subtask1[0] = { title: $('#manuel_title').val(), type_task: $('#type_task').val(), categorie: $('#manuel_categorie').val(), dependance: $('#dependance').val(), assign: $('#manuel_assign').val(), duedate: $('#manuel_duedate').val(), description: $('#manuel_description').val(), commentaire: $('#manuel_commentaire').val() };
+                        subtask1[0] = { title: $('#manuel_title').val(), type_task: $('#type_task').val(), categorie: $('#manuel_categorie').val(), dependance: '', assign: $('#manuel_assign').val(), duedate: $('#manuel_duedate').val(), description: $('#manuel_description').val(), commentaire: $('#manuel_commentaire').val() };
                     }
                 }
                 parametre = { task: task1, subtask: subtask1 };
@@ -97,7 +97,7 @@
                     }
                 });
             }
-            console.log(parametre);
+            //console.log(parametre);
         });
 
         $('#add_template').click(function() {

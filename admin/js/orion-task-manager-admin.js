@@ -444,7 +444,7 @@
 
         $(document).on('submit', '#email_send_form', function(e) {
             e.preventDefault();
-            var task_name = $('#task_name').val();
+            var type_task = $('#task_name').val();
             var subject = $('#subject_mail').val();
             var content = $('#content_mail').val();
             var update = false;
@@ -458,7 +458,7 @@
                 type: "POST",
                 data: {
                     'action': 'save_mail_form',
-                    'type_task': task_name,
+                    'type_task': type_task,
                     'subject': subject,
                     'content': content,
                     'update': update,
@@ -480,6 +480,31 @@
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
+                }
+            });
+        });
+
+        $(document).on('submit', '#test_send_mail', function(e) {
+            e.preventDefault();
+            var type_task = $('#task_name').val();
+            var subject = $('#subject_mail').val();
+            var content = $('#content_mail').val();
+            var email = $('#input_email').val();
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'send_mail_test',
+                    'type_task': type_task,
+                    'subject': subject,
+                    'content': content,
+                    'email': email,
+                },
+                success: function(response) {
+                    if (response)
+                        document.getElementById('add_success').innerHTML = '<div class="alert alert-success mt-4" role="alert">Successfully. Save ? </div>';
+                    else
+                        document.getElementById('add_success').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Not send</div>';
                 }
             });
         });
@@ -539,7 +564,6 @@
             var type_task = $('#type_task').val();
             if (document.getElementById('updatetempplate_id')) {
                 updatetempplate_id = $('#updatetempplate_id').val();
-
             }
             if (document.getElementById('nbresubtask')) {
                 val = $('#nbresubtask').val();
