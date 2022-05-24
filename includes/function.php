@@ -156,7 +156,7 @@ function delete_email($id_template)
 
 function new_project_asana()
 {
-	return 3;
+	return 1;
 }
 
 function save_new_project($data)
@@ -186,15 +186,22 @@ function save_new_categories($datas, $id = null)
 	return;
 }
 
+function delete_categories_( $id ){
+	global $wpdb;
+	$table = $wpdb->prefix . 'categories';
+	return $wpdb->delete($table, array('id'=>$id), array('%d'));
+}
+
 function save_new_mail_form(array $data, $id_template = null)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'mails';
 	$format = array('%s', '%s', '%s');
 	if( $id_template == null )
-		return $wpdb->insert($table, $data, $format);
+		$ok = $wpdb->insert($table, $data, $format);
 	else
-		return $wpdb->update($table, $data, array('id' => $id_template), $format);
+		$ok =  $wpdb->update($table, $data, array('id' => $id_template), $format);
+	return $ok;
 }
 function save_new_task(array $data)
 {
@@ -463,9 +470,19 @@ function page_task()
 						<h3>Calendar</h3>
 						<div class="form-group">
 							<label for="user_calendar">Filter calendar by name</label>
-							<select id="user_calendar" name="user_calendar" class="form-control user_calendar">
-								<option value="">All</option>
-								<?= option_select(get_all_users('name')) ?>
+							<select id="user_calendar" <?php if (is_project_manager() == null) echo 'disabled'; ?>  name="user_calendar" class="form-control user_calendar">
+								<?php if (is_project_manager() != null) {
+									?>
+									<option value="">Everyone</option>
+									<?= option_select(get_all_users('name')) ?>
+									<?php
+								}
+								else{
+									?>
+									<option selected><?= get_userdata( get_current_user_id() )->display_name ?></option>
+									<?php
+								}
+								?>
 							</select>
 						</div>
 						<div id="calendar_card">
@@ -945,7 +962,7 @@ function taches_tab()
 				<div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordion">
 					<div class="card-body">
 						<div>
-							<h3>New Projet</h3>
+							<h3>New Project</h3>
 							<div id="add_success1"></div>
 							<hr>
 							<form id="create_new_projet" name="create_new_projet" action="" method="post">
@@ -1108,12 +1125,28 @@ function get_email_task_tab( $id_template = null )
 		<div class="form-group">
 			<label for="content_mail">Email content</label>
 			<textarea class="form-control" id="content_mail" rows="4" placeholder="Content ..."><?php if( $vrai ) echo $template_email->content; ?></textarea>
-			<small id="contentHelp" class="form-text text-primary">Use {{ project_name }} or {{ task_link }} or {{ form_link }} or {{ task_name }} to define the variables that will be available in your form..</small>
+			<small id="contentHelp">Click <br>
+				<span class="btn-link" id="project_name_msg">{{ project_name }}</span> to add the project name<br>  
+				<span class="btn-link" id="task_name_msg">{{ task_name }}</span> to add the task name <br>
+				<span class="btn-link" id="task_link_msg">{{ task_link }}</span> to add the link to the task <br>
+				<span class="btn-link" id="form_link_msg">{{ form_link }}</span> to add the link to the form <br>
+				to the content of the form
+			</small>
 		</div>
 		<?php 
 			if( $vrai ) echo '<input type="hidden" name="id_template" id="id_template" value="'. $id_template .'">';
 		?>
-		<button type="submit" class="btn btn-outline-primary"><?php if( $vrai ) echo 'Update Mail Template'; else echo 'Save Mail Template'; ?></button>
+		<button type="submit" class="btn btn-outline-primary"><?php if( $vrai ) echo 'Update Mail Template'; else echo 'Save Mail Template'; ?></button> 
+		<div class="pt-2">
+			<form method="post" action="" id="test_send_mail">
+				<div class="input-group mb-3">
+					<input class="control-form" id="input_email" type="email">
+					<div class="input-group-prepend">
+						<input class="btn btn-outline-success" for="input_email" type="submit">
+					</div>
+				</div>
+			</form>
+		</div>
 	</form>
 <?php
 }
@@ -1136,7 +1169,7 @@ function evaluation_tab()
 				<div class="card-header" id="headingEvaluation2">
 					<h5 class="mb-0">
 						<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseEvaluation2" aria-expanded="false" aria-controls="collapseEvaluation2">
-							Mail Sending
+							Mail Template
 						</button>
 					</h5>
 				</div>
@@ -1149,7 +1182,8 @@ function evaluation_tab()
 				</div>
 				<div id="collapseEvaluation2" class="collapse" aria-labelledby="headingEvaluation2" data-parent="#accordion">
 					<div class="card-body">
-						<h5 class="card-header btn_evaluation_add" id="btn_evaluation_add">Mail Sending <span class="btn btn-outline-success btn_emails" id="new_email">New Email Template</span> </h5>
+						<h5 class="card-header btn_evaluation_add" id="btn_evaluation_add">Mail Template <span class="btn btn-outline-success btn_emails" id="new_email">New Email Template</span> </h5>
+						<span class="add_success" id="add_success"></span>
 						<div class="card-body" id="evaluator_tab">
 							<?= list_email_sending(); ?>
 						</div>
@@ -1170,14 +1204,15 @@ function create_task_criteria()
 	<span id="success_criteria_add"></span>
 	<form id="evaluation_criteria" action="" method="post">
 		<div class="row">
-			<div class="col-sm-6 alert alert-info btn-link" onclick="open_sub_templaye(11111)">
-				<h6><span id="change11111"> > </span>Developper</h6>
+			<div id="bg11111" style="background:white" class="col-sm-6 alert alert-info btn-link" onclick="open_sub_templaye(11111)">
+				<h6>Developpment</h6>
 			</div>
-			<div class="col-sm-6 alert alert-info btn-link" onclick="open_sub_templaye(22222)">
-				<h6><span id="change22222"> > </span>Normal</h6>
+			<div id="bg22222" style="background:" class="col-sm-6 alert alert-info btn-link" onclick="open_sub_templaye(22222)">
+				<h6>Normal</h6>
 			</div>
 		</div>
-		<div id="11111" class="row" style="display:none">
+		<div id="11111" class="row" style="display:block">
+			<h5>Developpment Criteria</h5>
 			<div>
 				<?php $u=1;
 				foreach ($criterias['developper'] as $criteria_dev) {
@@ -1220,6 +1255,7 @@ function create_task_criteria()
 			</div>
 		</div>
 		<div id="22222" class="row" style="display:none">
+			<h5>Normal Criteria</h5>
 			<div>
 				<?php $v=1;
 				foreach ($criterias['normal'] as $criteria_normal) {
@@ -1271,7 +1307,6 @@ function list_email_sending()
 {
 	$emails = get_all_email();
 ?>
-	<span class="add_success" id="add_success"></span>
 	<table class="table table-hover table-responsive-lg">
 		<thead>
 			<tr>
@@ -1746,10 +1781,13 @@ function settings_function()
 		$send = array_diff($_POST, array('action' => 'save_mail_form','update'=> $update, 'id_template'=>$id_template_email));
 		$data = wp_unslash($send);
 		if( $update  === 'true' )
-			save_new_mail_form($data, $id_template_email);
+			$ok = save_new_mail_form($data, $id_template_email);
 		else
-			save_new_mail_form($data);
-		echo list_email_sending();
+			$ok = save_new_mail_form($data);
+		if( $ok )
+			echo list_email_sending();
+		else 
+			echo 'false';
 	}
 	if ($action == 'get_email_card') {
 		$type = htmlentities($_POST['valeur']);
@@ -1776,6 +1814,14 @@ function settings_function()
 		$valeur = htmlentities( $_POST['valeur'] );
 		save_new_categories($valeur, $id_categorie);
 		echo get_categories_();
+	}
+	if ($action == 'delete_categorie_') {
+		$id_categorie = htmlentities( $_POST['id_categorie'] );
+		$retour = delete_categories_($id_categorie);
+		if( $retour )
+			echo get_categories_();
+		else
+			echo 'error';
 	}
 	wp_die();
 }

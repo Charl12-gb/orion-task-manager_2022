@@ -77,7 +77,7 @@ function my_plugin_create_db()
 
 	$sql = "CREATE TABLE $table_project(
 			id bigint NOT NULL,
-			title varchar(255) NOT NULL,
+			title varchar(255) UNIQUE NOT NULL,
 			slug varchar(255),
 			project_manager bigint UNSIGNED NOT NULL,
 			collaborator varchar(255),
@@ -88,7 +88,7 @@ function my_plugin_create_db()
 			id int AUTO_INCREMENT,
 			categories_key varchar(255) UNIQUE,
 			categories_name varchar(255) NOT NULL,
-			PRIMARY KEY  (categories_key)
+			PRIMARY KEY  (id)
 		);
 		CREATE TABLE $table_task (
 			id bigint NOT NULL,
@@ -127,7 +127,7 @@ function my_plugin_create_db()
 			id bigint AUTO_INCREMENT,
 			type_task varchar(255),
 			subject varchar(255),
-			content varchar(50),
+			content text,
 			PRIMARY KEY  (id)
 		)$charset_collate;";
 

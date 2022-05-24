@@ -147,10 +147,10 @@ class Orion_Task_Manager_Table_List extends WP_List_Table
     public function get_columns()
     {
         $columns = array(
-            'cb'        => '<input type="checkbox" />',
-            'title'       => 'Project Title',
-            'slug' => 'Slug',
-            'project_manager'        => 'Project Manager',
+            'cb'                => '<input type="checkbox" />',
+            'title'             => 'Project Title',
+            'project_manager'   => 'Project Manager',
+            'email'             => 'Email',
         );
 
         return $columns;
@@ -158,8 +158,8 @@ class Orion_Task_Manager_Table_List extends WP_List_Table
 
     public function column_title($item) {
         $actions = array(
-                  'edit'      => sprintf('<a href="?page=%s&action=%s&task=%s">Edit</a>',$_REQUEST['page'],'edit',$item['id']),
-                  'delete'    => sprintf('<a href="?page=%s&action=%s&task=%s">Delete</a>',$_REQUEST['page'],'delete',$item['id']),
+                  'edit'      => sprintf('<a href="?page=%s&action=%s&id=%s">Edit</a>',$_REQUEST['page'],'edit',$item['id']),
+                  'delete'    => sprintf('<a href="?page=%s&action=%s&id=%s">Delete</a>',$_REQUEST['page'],'delete',$item['id']),
               );
       
         return sprintf('%1$s %2$s', $item['title'], $this->row_actions($actions) );
@@ -225,8 +225,9 @@ class Orion_Task_Manager_Table_List extends WP_List_Table
         $data = array();
         foreach( get_all_project(  ) as $projects ){
             $data_format = (array) $projects;
-            $projec_manager = get_userdata( $data_format['project_manager'] )->user_email . ' ('.get_userdata( $data_format['project_manager'] )->display_name .')';
+            $projec_manager = get_userdata( $data_format['project_manager'] )->display_name;
             $project = array_replace( $data_format, array('project_manager' => $projec_manager) ) ;
+            $project += array('email' => get_userdata( $data_format['project_manager'] )->user_email);
             $data[] = (array) $project;
         }
         return $data;
@@ -244,40 +245,13 @@ class Orion_Task_Manager_Table_List extends WP_List_Table
     {
         switch( $column_name ) {
             case 'title':
-            case 'slug':
             case 'project_manager':
+            case 'email':
                 return $item[ $column_name ];
 
             default:
                 return print_r( $item, true ) ;
         }
     }
-
-    public static function get_user_role_(){
-	$action = htmlspecialchars($_POST['action']);
-	if ($action == 'get_user_role') {
-		$user_id = htmlspecialchars($_POST['id_user']);
-		if (empty($user_id)) {
-			echo '';
-		} else {
-			$user_info = get_userdata($user_id);
-			$user_role = implode(', ', $user_info->roles);
-			echo ucfirst($user_role);
-		}
-	}
-	if ($action == 'update_user_role') {
-		$user_id = htmlspecialchars($_POST['id_user']);
-		$user_new_role = htmlspecialchars($_POST['select_role']);
-		$user_id = wp_update_user(array('id' => $user_id, 'role' => $user_new_role));
-		echo 'ok';
-	}
-	if ($action == 'create_template') {
-		echo 'template';
-	}
-	if ($action == 'create_new_projet') {
-		echo 'Project';
-	}
-	wp_die();
-}
 
 }

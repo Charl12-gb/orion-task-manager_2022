@@ -122,6 +122,14 @@
             var criteria, note, description;
             var total1 = 0,
                 total2 = 0;
+            var val1 = $('#nbre1').val();
+            if (u < val1) {
+                u = val1;
+            }
+            var val2 = $('#nbre2').val();
+            if (v < val2) {
+                v = val2;
+            }
             for (var r = 1; r <= u; r++) {
                 if (($('#critere1_' + r).val() != undefined) && (($('#critere1_' + r).val() != ''))) {
                     criteria = $('#critere1_' + r).val();
@@ -326,13 +334,24 @@
                 $(this).attr('update' + id_categorie, 'update' + id_categorie);
                 document.getElementById("edit_" + id_categorie).innerHTML = 'Update';
             }
-
-
         });
 
         $(document).on('click', '.delete_categorie', function() {
             var id_categorie = $(this).attr('id');
-            console.log(id_categorie);
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'delete_categorie_',
+                    'id_categorie': id_categorie
+                },
+                success: function(response) {
+                    document.getElementById("categories_card").innerHTML = response;
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
         });
 
         $(document).on('click', '.email_edit', function() {
@@ -410,6 +429,19 @@
             document.getElementById('subject_mail').value = "Evaluation de " + select;
         });
 
+        $(document).on('click', '#project_name_msg', function() {
+            $('#content_mail').val($("#content_mail").val() + " {{ project_name }} ");
+        });
+        $(document).on('click', '#task_name_msg', function() {
+            $('#content_mail').val($("#content_mail").val() + " {{ task_name }} ");
+        });
+        $(document).on('click', '#task_link_msg', function() {
+            $('#content_mail').val($("#content_mail").val() + " {{ task_link }} ");
+        });
+        $(document).on('click', '#form_link_msg', function() {
+            $('#content_mail').val($("#content_mail").val() + " {{ form_link }} ");
+        });
+
         $(document).on('submit', '#email_send_form', function(e) {
             e.preventDefault();
             var task_name = $('#task_name').val();
@@ -433,14 +465,18 @@
                     'id_template': id_template
                 },
                 beforeSend: function() {
-                    document.getElementById('evaluator_tab').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
+                    document.getElementById('add_success').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
                 },
                 success: function(response) {
-                    document.getElementById('evaluator_tab').innerHTML = response;
-                    document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">Save successfully</div>';
+                    if (response == 'false')
+                        document.getElementById('add_success').innerHTML = '<div class="alert alert-danger" role="alert">Error while saving</div>';
+                    else {
+                        document.getElementById('evaluator_tab').innerHTML = response;
+                        document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">Save successfully</div>';
+                        document.getElementById('list_email').innerHTML = 'New Email Template';
+                        $('#list_email').attr('id', 'new_email');
+                    }
                     setTimeout(function() { $('#add_success').hide(); }, 1500);
-                    document.getElementById('list_email').innerHTML = 'New Email Template';
-                    $('#list_email').attr('id', 'new_email');
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -549,7 +585,7 @@
             });
         });
 
-        $('#create_new_projet').submit(function(e) {
+        $(document).on('submit', '#create_new_projet', function(e) {
             e.preventDefault();
             console.log('Le clic sur le bouton a été pris en compte');
             var multi_choix = $('#multichoix option:selected').toArray().map(item => item.value);
@@ -586,10 +622,15 @@
 function open_sub_templaye(template) {
     var div = document.getElementById(template);
     if (div.style.display === "none") {
+        if (template === 11111) {
+            document.getElementById(22222).style.display = "none";
+            document.getElementById('bg' + 22222).style.background = "";
+        } else {
+            document.getElementById(11111).style.display = "none";
+            document.getElementById('bg' + 11111).style.background = "";
+
+        }
         div.style.display = "block";
-        document.getElementById("change" + template).innerHTML = ' - ';
-    } else {
-        div.style.display = "none";
-        document.getElementById("change" + template).innerHTML = ' > ';
+        document.getElementById('bg' + template).style.background = "white";
     }
 }
