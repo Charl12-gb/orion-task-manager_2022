@@ -123,8 +123,8 @@ function sync_tasks(){
 						$section_id = $task_info->memberships[0]->section->gid;
 						$data = array(
 							'id' => $task_as->gid, 
-							'author_id' => get_current_user_id(), 
-							'project_id' => get_user_asana_id( $task_info1->created_by->gid ), 
+							'author_id' => get_user_asana_id( $task_info1->created_by->gid ), 
+							'project_id' => $project_asana->gid, 
 							'section_id' => $section_id, 
 							'title' =>$task_as->name, 
 							'permalink_url' => $task_info->permalink_url, 
