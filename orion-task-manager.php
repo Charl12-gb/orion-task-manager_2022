@@ -68,6 +68,7 @@ function my_plugin_create_db()
 	global $wpdb;
 	$charset_collate = $wpdb->get_charset_collate();
 	$table_project = $wpdb->prefix . 'project';
+	$table_section = $wpdb->prefix . 'sections';
 	$table_task = $wpdb->prefix . 'task';
 	$table_subtask = $wpdb->prefix . 'subtask';
 	$table_categories = $wpdb->prefix . 'categories';
@@ -79,9 +80,16 @@ function my_plugin_create_db()
 			id bigint NOT NULL,
 			title varchar(255) UNIQUE NOT NULL,
 			slug varchar(255),
-			project_manager bigint UNSIGNED NOT NULL,
+			project_manager bigint UNSIGNED NULL,
 			collaborator varchar(255),
 			FOREIGN KEY  (project_manager) REFERENCES $table_users(id),
+			PRIMARY KEY  (id)
+		);
+		CREATE TABLE $table_section(
+			id bigint NOT NULL,
+			project_id bigint NOT NULL,
+			name varchar(255) NOT NULL,
+			FOREIGN KEY  (project_id) REFERENCES $table_project(id),
 			PRIMARY KEY  (id)
 		);
 		CREATE TABLE $table_categories(
@@ -94,18 +102,19 @@ function my_plugin_create_db()
 			id bigint NOT NULL,
 			author_id bigint UNSIGNED NOT NULL,
 			project_id bigint NOT NULL,
+			section_id bigint NOT NULL,
 			title varchar(255) NOT NULL,
+			permalink_url text NOT NULL,
 			type_task varchar(50) NOT NULL,
-			categorie varchar(50) NOT NULL,
+			categorie varchar(50),
 			dependancies int,
 			description text,
-			commentaire text,
 			assigne bigint NOT NULL,
 			duedate datetime NOT NULL,
-			etat varchar(50),
 			created_at datetime NOT NULL,
 			FOREIGN KEY  (author_id) REFERENCES $table_users(id),
 			FOREIGN KEY  (categorie) REFERENCES $table_categories(categories_key),
+			FOREIGN KEY  (section_id) REFERENCES $table_section(id),
 			FOREIGN KEY  (assigne) REFERENCES $table_users(id),
 			FOREIGN KEY  (project_id) REFERENCES $table_project(id),
 			PRIMARY KEY  (id)

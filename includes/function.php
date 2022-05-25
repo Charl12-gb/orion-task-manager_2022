@@ -49,51 +49,127 @@ function connect_asana()
 	return $asana;
 }
 
-function get_asana_projet()
+/**
+ * Sync des projects et sections
+ */
+function sync_projets()
 {
 	// See class comments and Asana API for full info
+	$projects = get_all_project();
+	$sections_all = get_all_sections();
 	$asana = connect_asana();
-
 	$asana->getProjects();
-	$arrayProjet = array();
 	if ($asana->getData() != null) {
-		foreach ($asana->getData() as $project) {
-			$arrayProjet = $arrayProjet + array($project->gid => $project->name);
-		}
-	}
-	return $arrayProjet;
-}
-
-function getWorkspace_asana()
-{
-	// See class comments and Asana API for full info
-	$asana = connect_asana();
-
-	// Get all workspaces
-	$asana->getWorkspaces();
-	$arryWorkspaces = array();
-	foreach ($asana->getData() as $workspace) {
-		$arryWorkspaces = $arryWorkspaces + array($workspace->gid);
-	}
-	return $arryWorkspaces;
-}
-
-function get_user_for_asana()
-{
-	// See class comments and Asana API for full info
-	$asana = connect_asana();
-	$users = array();
-	foreach (getWorkspace_asana() as $workspace) {
-		if ($workspace != null) {
-			$asana->getUsersInWorkspace($workspace);
-			foreach ($asana->getData() as $user) {
-				$users = $users + array($user->gid => $user->name);
+		foreach ($asana->getData() as $project_asana) {
+			$Exist = true;
+			foreach( $projects as $project ){ if( $project_asana->gid == $project->id ){ $Exist = false; } }
+			if( $Exist ){
+				$data1 = array(
+					'id' => $project_asana->gid,
+					'title' => $project_asana->name,
+					'slug' => str_replace(" ", ",", strtolower($project_asana->name)),
+					'project_manager' => NULL,
+					'collaborator' => NULL
+				);
+				// Sauvegarde des projets inexistant dans la bdd
+				save_new_project( $data1 );
+			}
+			
+			$sections_asana = $asana->getProjectSections($project_asana->gid);
+			if ($asana->getData() != null){
+				foreach ($asana->getData() as $sections){
+					$SectionExist = true;
+					foreach( $sections_all as $section ){
+						if( $sections->gid == $section->id ){
+							$SectionExist = false;
+						}
+					}
+					if( $SectionExist ){
+						$data2 = array(
+							'id' 		=> $sections->gid,
+							'project_id'=> $project_asana->gid,
+							'name'		=> $sections->name
+						);
+						// Sauvegarde des sections inexistante dans la bdd
+						save_new_sections( $data2 );
+					}
+				}
 			}
 		}
 	}
-	return $users;
 }
 
+function sync_tasks(){
+	$task_all = get_all_task();
+	$asana = connect_asana();
+	$asana->getProjects();
+	if ($asana->getData() != null){
+		foreach ($asana->getData() as $project_asana){
+			$asana->getProjectTasks($project_asana->gid);
+			$task_asana = $asana->getData();
+			if( $task_asana != null ){
+				foreach( $task_asana as $task_as ){
+					$TaskExist = true;
+					foreach( $task_all as $task ){
+						if( $task_as->gid == $task->id ){ $TaskExist = false; }
+					}
+					//si la task n'est pas dans la bdd, on recupère ces information
+					if( $TaskExist ){
+						$asana->getTask($task_as->gid);
+						$task_info = $asana->getData();						
+						$asana->getTaskStories($task_as->gid);
+						$task_info1 = $asana->getData()[0];
+						$assigne = get_user_asana_id( $task_info->assignee->gid );
+						$section_id = $task_info->memberships[0]->section->gid;
+						$data = array(
+							'id' => $task_as->gid, 
+							'author_id' => get_current_user_id(), 
+							'project_id' => get_user_asana_id( $task_info1->created_by->gid ), 
+							'section_id' => $section_id, 
+							'title' =>$task_as->name, 
+							'permalink_url' => $task_info->permalink_url, 
+							'type_task' => 'developper', 
+							'categorie' => NULL, 
+							'dependancies' => NULL, 
+							'description' => $task_info->notes, 
+							'assigne' => $assigne, 
+							'duedate' => $task_info->due_on, 
+							'created_at' => $task_info1->created_at
+						);
+						
+						$dataworklog = array(
+							'id_task' => $task_as->gid,
+							'finaly_date' => $task_info->completed_at,
+							'status' => $task_info->completed,
+							'evaluation' => NULL
+						);
+					}
+					save_new_task( $data, $dataworklog );
+				}
+			}
+		}
+	}
+}
+
+function get_user_asana_id( $id_asana ){
+	$asana = connect_asana();
+	$asana->getUserInfo( $id_asana );
+	if(  ! isset( $asana->getData()->email ) ) return null;
+	$user_email = $asana->getData()->email;
+	$user = get_user_by( 'email', $user_email );
+	if( $user ) return $user->ID;
+	else {
+		$userdata = array(
+			'user_login' 	=> $asana->getData()->name,
+			'user_nicename'	=> strtolower( $asana->getData()->name ),  
+			'user_email'  	=> $asana->getData()->email,   
+			'display_name'	=> $asana->getData()->name,
+			'user_pass'  	=>  NULL
+		);
+		$user_id = wp_insert_user( $userdata ) ;
+		return $user_id;
+	}
+}
 
 function option_select($array)
 {
@@ -102,18 +178,6 @@ function option_select($array)
 		$option .= "<option value='$key'>$value</option>";
 	}
 	return $option;
-}
-
-function get_user_asana_name($number)
-{
-	$user_name = get_user_for_asana();
-	return $user_name[$number];
-}
-
-function get_projet_name($number)
-{
-	$projet = get_asana_projet();
-	return $projet[$number];
 }
 
 /**
@@ -167,6 +231,14 @@ function save_new_project($data)
 	return $wpdb->insert($table, $data, $format);
 }
 
+function save_new_sections($data)
+{
+	global $wpdb;
+	$table = $wpdb->prefix . 'sections';
+	$format = array('%d', '%d', '%s');
+	return $wpdb->insert($table, $data, $format);
+}
+
 function save_new_categories($datas, $id = null)
 {
 	global $wpdb;
@@ -204,36 +276,18 @@ function save_new_mail_form(array $data, $id_template = null)
 		$ok =  $wpdb->update($table, $data, array('id' => $id_template), $format);
 	return $ok;
 }
-function save_new_task(array $data)
+function save_new_task(array $data, array $worklog)
 {
 	global $wpdb;
-	$array = $data['parametre']['task'];
-	$project = $array['project'];
 	$tabletask = $wpdb->prefix . 'task';
-	$formattask = array('%d', '%d', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%s');
-	$tablesubtask = $wpdb->prefix . 'subtask';
-	$formatsubtask = array('%d', '%d');
 	$tableworklog = $wpdb->prefix . 'worklog';
-	$formatworklog = array('%d', '%s', '%s', '%d');
-	$task_id = 3; // A récupérer depuis asana api
-	$task = array('id' => $task_id, 'author_id' => get_current_user_id(), 'project_id' => $project, 'title' => $array['title'], 'type_task' => $array['type_task'], 'categorie' => $array['categorie'], 'dependancies' => $array['dependance'], 'description' => $array['description'], 'commentaire' => $array['commentaire'], 'assigne' => $array['assign'], 'duedate' => $array['duedate'], 'etat' => '', 'created_at' => date('Y-m-d H:i:s',  strtotime('+1 hours')));
-	$ok = $wpdb->insert($tabletask, $task, $formattask);
-	$worklog = array('id_task' => $task_id, 'finaly_date' => null, 'status' => null, 'evaluation' => null);
+
+	$formatworklog = array('%d', '%s', '%s', '%s');
+	$formattask = array('%d', '%d', '%d', '%d','%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%s');
+
+	$ok = $wpdb->insert($tabletask, $data, $formattask);
 	$wpdb->insert($tableworklog, $worklog, $formatworklog);
-
-	if (isset($data['parametre']['subtask'])) {
-		$id_subtask = 4; //Récupérer depuis asana
-		foreach ($data['parametre']['subtask'] as $key => $value) {
-			$task = array('id' => $id_subtask, 'author_id' => get_current_user_id(), 'project_id' => $project, 'title' => $value['title'], 'type_task' => $array['type_task'], 'categorie' => $array['categorie'], 'dependancies' => $array['dependance'], 'description' => $array['description'], 'commentaire' => $array['commentaire'], 'assigne' => $value['assign'], 'duedate' => $value['duedate'], 'etat' => '', 'created_at' => date('Y-m-d H:i:s',  strtotime('+1 hours')));
-			$wpdb->insert($tabletask, $task, $formattask);
-			$subtask = array('id' => $id_subtask, 'id_task_parent' => $task_id);
-			$wpdb->insert($tablesubtask, $subtask, $formatsubtask);
-			$worklog = array('id_task' => $id_subtask, 'finaly_date' => null, 'status' => null, 'evaluation' => null);
-			$wpdb->insert($tableworklog, $worklog, $formatworklog);
-			$id_subtask++;
-		}
-	}
-
+	
 	return $ok;
 }
 
@@ -272,6 +326,14 @@ function get_all_project()
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'project';
+	$sql = "SELECT * FROM $table";
+	return $wpdb->get_results($sql);
+}
+
+function get_all_sections()
+{
+	global $wpdb;
+	$table = $wpdb->prefix . 'sections';
 	$sql = "SELECT * FROM $table";
 	return $wpdb->get_results($sql);
 }
@@ -863,6 +925,7 @@ function orion_task_shortcode()
 }
 function taches_tab()
 {
+	print_r(sync_tasks());
 	?>
 	<div class="container-fluid pt-3">
 		<div class="row" id="accordion">
@@ -1809,7 +1872,7 @@ function settings_function()
 	if ($action == 'create_new_task') {
 		$send = array_diff($_POST, array('action' => 'create_new_task'));
 		$data = wp_unslash($send);
-		echo (save_new_task($data));
+		//echo (save_new_task($data));
 	}
 	if ($action == 'get_template_card') {
 		if ($_POST['valeur'] == 'template_btn_list')
