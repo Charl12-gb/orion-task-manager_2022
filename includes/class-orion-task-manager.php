@@ -227,9 +227,13 @@ class Orion_Task_Manager {
 
 		add_action('wp_ajax_send_mail_test', 'settings_function');
 		add_action('wp_ajax_nopriv_send_mail_test', 'settings_function');
+
+		add_action('wp_ajax_get_option_section', 'settings_function');
+		add_action('wp_ajax_nopriv_get_option_section', 'settings_function');
 		
 		add_action('wp', 'login_redirect');
 		add_shortcode('orion_task', 'orion_task_shortcode');
+		add_shortcode('task_evaluation', 'orion_task_evaluation_shortcode');
 	}
 
 	/**

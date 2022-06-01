@@ -46,7 +46,17 @@
                     i = val;
                 }
             }
-            $('#champadd').append('<div id="rm2' + i + '"><div class="form-row pt-2"><div class="col-sm-11"><input type="text" name="tasktitle' + i + '" id="tasktitle' + i + '" class="form-control" placeholder="Task Title"></div><div class="col-sm-1"><span name="remove" id="' + i + '" class="btn btn-outline-danger btn_remove_template">X</span></div></div></div>');
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'save_categories',
+                    'get_categorie': ''
+                },
+                success: function(response) {
+                    $('#champadd').append('<div id="rm2' + i + '"><div class="form-row pt-2"><div class="col"><input type="text" name="tasktitle' + i + '" id="tasktitle' + i + '" class="form-control" placeholder="Task Title"></div><div class="col"><select id="categorie' + i + '" name="categorie' + i + '" class="form-control">' + response + '</select></div><div class="col-sm-1"><span name="remove" id="' + i + '" class="btn btn-outline-danger btn_remove_template">X</span></div></div></div>');
+                }
+            });
         });
 
         $(document).on('click', '#addcriteria1', function() {
@@ -430,16 +440,16 @@
         });
 
         $(document).on('click', '#project_name_msg', function() {
-            $('#content_mail').val($("#content_mail").val() + " {{ project_name }} ");
+            $('#content_mail').val($("#content_mail").val() + " {{project_name}} ");
         });
         $(document).on('click', '#task_name_msg', function() {
-            $('#content_mail').val($("#content_mail").val() + " {{ task_name }} ");
+            $('#content_mail').val($("#content_mail").val() + " {{task_name}} ");
         });
         $(document).on('click', '#task_link_msg', function() {
-            $('#content_mail').val($("#content_mail").val() + " {{ task_link }} ");
+            $('#content_mail').val($("#content_mail").val() + " {{task_link}} ");
         });
         $(document).on('click', '#form_link_msg', function() {
-            $('#content_mail').val($("#content_mail").val() + " {{ form_link }} ");
+            $('#content_mail').val($("#content_mail").val() + " {{form_link}} ");
         });
 
         $(document).on('submit', '#email_send_form', function(e) {
@@ -529,7 +539,58 @@
             });
         });
 
-        $('#user_role_asana').submit(function(e) {
+        $(document).on('submit', '#add_short_name', function(e) {
+            e.preventDefault();
+            var shortcode_name = $('#shortcode').val();
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'get_user_role',
+                    'shortcode_name': shortcode_name,
+                },
+                success: function(response) {
+                    console.log(shortcode_name + " => " + response);
+                    if (response) {
+                        document.getElementById('add_success_short').innerHTML = '<div class="alert alert-success" role="alert">Successfully</div>';
+                    } else {
+                        document.getElementById('add_success_short').innerHTML = '<div class="alert alert-danger" role="alert">Error</div>';
+                    }
+                    setTimeout(function() { $('#add_success_short').hide(); }, 3000);
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
+
+        $(document).on('submit', '#add_sender_info', function(e) {
+            e.preventDefault();
+            var sender_name = $('#sender_name').val();
+            var sender_email = $('#sender_email').val();
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'get_user_role',
+                    'sender_email': sender_email,
+                    'sender_name': sender_name,
+                },
+                success: function(response) {
+                    if (response) {
+                        document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">Successfully</div>';
+                    } else {
+                        document.getElementById('add_success').innerHTML = '<div class="alert alert-danger" role="alert">Error</div>';
+                    }
+                    setTimeout(function() { $('#add_success').hide(); }, 3000);
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
+
+        $(document).on('submit', '#user_role_asana', function(e) {
             e.preventDefault();
             var select_user = document.getElementById('userasana').value;
             var select_role = document.getElementById('role_user').value;
@@ -551,13 +612,13 @@
             });
         });
 
-        $('#create_template').submit(function(e) {
+        $(document).on('submit', '#create_template', function(e) {
             e.preventDefault();
-            console.log('Le clic sur le bouton a été pris en compte');
             var template = {};
             var subtemplate = {};
             var parametre = {};
             var subtitle = "";
+            var categorie = "";
             var updatetempplate_id = "";
             var templatetitle = $('#templatetitle').val();
             var tasktitle = $('#tasktitle').val();
@@ -574,12 +635,13 @@
             template = { templatetitle: templatetitle, tasktitle: tasktitle, type_task: type_task };
             if (i != 0) {
                 for (var y = 1; y <= i; y++) {
-                    subtitle = $('#tasktitle' + y).val();;
-                    subtemplate[y] = { subtitle };
+                    subtitle = $('#tasktitle' + y).val();
+                    categorie = $('#categorie' + y).val();
+                    subtemplate[y] = { subtitle, categorie };
                 }
             }
             parametre = { template: template, subtemplate: subtemplate };
-            //console.log(parametre);
+            console.log(parametre);
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
@@ -616,6 +678,7 @@
             var projectmanager = document.getElementById('projectmanager').value;
             var title = $('#titleproject').val();
             var slug = $('#slug').val();
+            var description = $('#description').val();
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
@@ -623,11 +686,12 @@
                     'action': 'create_new_projet',
                     'title': title,
                     'slug': slug,
+                    'description': description,
                     'project_manager': projectmanager,
                     'collaborator': multi_choix,
                 },
                 success: function(response) {
-                    console.log(response);
+                    //console.log(response);
                     if (response)
                         document.getElementById('add_success1').innerHTML = '<div class="alert alert-success" role="alert">New project created successfully</div>';
                     else

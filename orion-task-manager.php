@@ -78,8 +78,10 @@ function my_plugin_create_db()
 
 	$sql = "CREATE TABLE $table_project(
 			id bigint NOT NULL,
-			title varchar(255) UNIQUE NOT NULL,
+			title varchar(255) NOT NULL,
+			description text,
 			slug varchar(255),
+			permalink text NOT NULL,
 			project_manager bigint UNSIGNED NULL,
 			collaborator varchar(255),
 			FOREIGN KEY  (project_manager) REFERENCES $table_users(id),

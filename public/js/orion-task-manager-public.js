@@ -30,8 +30,28 @@
      */
 
     $(document).ready(function() {
-        console.log('Le script public JS a bien été chargé');
-        var i = 1;
+        var y = 0,
+            i = 1;
+        $(document).on('click', '#addobject', function() {
+            y++;
+            if (document.getElementById('nbreobject')) {
+                val = $('#nbreobject').val();
+                if (y < val) {
+                    y = val;
+                    document.getElementById('nbre').value = y;
+                }
+            }
+            $('#addojectives').append('<div id="rm2' + y + '"><div class="form-row pt-2"><div class="col"><input type="text" name="objective' + y + '" id="objective' + y + '" class="form-control" placeholder="Enter Objective"></div><div class="col-sm-1"><span name="remove" id="' + y + '" class="btn btn-outline-danger btn_remove_objective">X</span></div></div></div>');
+            document.getElementById('nbre').value = y;
+        });
+
+        $(document).on('click', '.btn_remove_objective', function() {
+            var button_id = $(this).attr("id");
+            $('#rm2' + button_id + '').remove();
+            y = y - 1
+            document.getElementById('nbre').value = y;
+        });
+
         $(document).on('submit', '#create_new_task', function(e) {
             //e.preventDefault();
             var firstchoose = $("input[name='show']:checked").val();
@@ -43,10 +63,10 @@
                 if ($('#nbrechamp').val() != undefined) {
                     var nbrechamps = $('#nbrechamp').val() - 1;
                     for (var t = 1; t <= nbrechamps; t++) {
-                        subtask[t] = { title: $('#title' + t).val(), type_task: $('#type_task').val(), categorie: $('#categorie' + t).val(), dependance: $('#dependance' + t).val(), assign: $('#assign' + t).val(), duedate: $('#duedate' + t).val(), description: $('#description' + t).val(), commentaire: $('#commentaire' + t).val() }
+                        subtask[t] = { title: $('#title' + t).val(), section_project: $('#project_section').val(), type_task: $('#type_task').val(), categorie: $('#categorie' + t).val(), dependance: $('#dependance' + t).val(), project: $('#project').val(), assign: $('#assign' + t).val(), duedate: $('#duedate' + t).val(), description: $('#description' + t).val() }
                     }
                 }
-                task = { title: $('#title').val(), type_task: $('#type_task').val(), categorie: $('#categorie').val(), dependance: '', project: $('#project').val(), assign: $('#assign').val(), duedate: $('#duedate').val(), description: $('#description').val(), commentaire: $('#commentaire').val() };
+                task = { title: $('#title').val(), section_project: $('#project_section').val(), type_task: $('#type_task').val(), categorie: $('#categorie').val(), dependance: '', project: $('#project').val(), assign: $('#assign').val(), duedate: $('#duedate').val(), description: $('#description').val() };
                 parametre = { task: task, subtask: subtask };
                 $.ajax({
                     url: task_manager.ajaxurl,
@@ -67,18 +87,18 @@
                 var task1 = {},
                     subtask1 = {},
                     parametre = {};
-                task1 = { title: $('#title').val(), type_task: $('#type_task').val(), categorie: $('#categorie').val(), dependance: '', project: $('#project').val(), assign: $('#assign').val(), duedate: $('#duedate').val(), description: $('#description').val(), commentaire: $('#commentaire').val() };
+                task1 = { title: $('#title').val(), section_project: $('#project_section').val(), type_task: $('#type_task').val(), categorie: $('#categorie').val(), dependance: '', project: $('#project').val(), assign: $('#assign').val(), duedate: $('#duedate').val(), description: $('#description').val() };
                 if ($('#AddSubtask').is(":checked")) {
                     if (secondchoose == 'userTemplate1') {
                         if ($('#nbrechamp').val() != undefined) {
                             var subnbrechamps = $('#nbrechamp').val() - 1;
                             for (var t = 1; t <= subnbrechamps; t++) {
-                                subtask1[t] = { title: $('#sub_title' + t).val(), type_task: $('#type_task' + t).val(), categorie: $('#sub_categorie' + t).val(), dependance: $('#sub_dependance' + t).val(), assign: $('#sub_assign' + t).val(), duedate: $('#sub_duedate' + t).val(), description: $('#sub_description' + t).val(), commentaire: $('#sub_commentaire' + t).val() }
+                                subtask1[t] = { title: $('#sub_title' + t).val(), section_project: $('#project_section').val(), type_task: $('#type_task' + t).val(), categorie: $('#sub_categorie' + t).val(), dependance: $('#sub_dependance' + t).val(), project: $('#project').val(), assign: $('#sub_assign' + t).val(), duedate: $('#sub_duedate' + t).val(), description: $('#sub_description' + t).val() }
                             }
                         }
-                        subtask1[0] = { title: $('#sub_title').val(), type_task: $('#type_task').val(), categorie: $('#sub_categorie').val(), dependance: '', assign: $('#sub_assign').val(), duedate: $('#sub_duedate').val(), description: $('#sub_description').val(), commentaire: $('#sub_commentaire').val() }
+                        subtask1[0] = { title: $('#sub_title').val(), section_project: $('#project_section').val(), type_task: $('#type_task').val(), categorie: $('#sub_categorie').val(), dependance: '', project: $('#project').val(), assign: $('#sub_assign').val(), duedate: $('#sub_duedate').val(), description: $('#sub_description').val() }
                     } else {
-                        subtask1[0] = { title: $('#manuel_title').val(), type_task: $('#type_task').val(), categorie: $('#manuel_categorie').val(), dependance: '', assign: $('#manuel_assign').val(), duedate: $('#manuel_duedate').val(), description: $('#manuel_description').val(), commentaire: $('#manuel_commentaire').val() };
+                        subtask1[0] = { title: $('#manuel_title').val(), section_project: $('#project_section').val(), type_task: $('#type_task').val(), categorie: $('#manuel_categorie').val(), dependance: '', project: $('#project').val(), assign: $('#manuel_assign').val(), duedate: $('#manuel_duedate').val(), description: $('#manuel_description').val() };
                     }
                 }
                 parametre = { task: task1, subtask: subtask1 };
@@ -144,6 +164,24 @@
             });
         });
 
+        $(document).on('change', '.projectSection', function() {
+            var project_id = document.getElementById('project').value;
+            $.ajax({
+                url: task_manager.ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'get_option_section',
+                    'project_id': project_id
+                },
+                success: function(response) {
+                    document.getElementById('project_section').innerHTML = response;
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
+
         $(document).on('change', '.project', function() {
             var project_id = document.getElementById('project').value;
             $.ajax({
@@ -203,7 +241,8 @@
                 },
                 success: function(response) {
                     document.getElementById('template_select').innerHTML = response;
-                    var project_id = document.getElementById('project').value;
+                    if (document.getElementById('project'))
+                        var project_id = document.getElementById('project').value;
                     $.ajax({
                         url: task_manager.ajaxurl,
                         type: "POST",
@@ -326,5 +365,19 @@ function open_sub_templaye(template) {
     } else {
         div.style.display = "none";
         document.getElementById("change" + template).innerHTML = ' + ';
+    }
+}
+
+function block_(template) {
+    var div = document.getElementById(template);
+    if (div.style.display === "none") {
+        div.style.display = "block";
+    }
+}
+
+function hide_(template) {
+    var div = document.getElementById(template);
+    if (div.style.display === "block") {
+        div.style.display = "none";
     }
 }

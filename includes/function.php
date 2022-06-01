@@ -1,174 +1,9 @@
 <?php
-
+require_once('class-asana-orion-task.php');
+require_once('class-evaluation-orion-task.php');
 if (isset($_POST['tokens']) && !empty($_POST['tokens'])) {
 	$data_post   = wp_unslash($_POST['tokens']);
 	update_option('access_token', $data_post);
-}
-
-function download_worklog($user_id)
-{
-	$alldata = "";
-	$tasks = get_all_task('assigne', $user_id);
-	$m = 1;
-	foreach ($tasks as $task) {
-		$project_manager = get_userdata($task->author_id)->display_name;
-		$project_title = get_project_title($task->project_id);
-		$duedate = strtotime($task->duedate);
-		if ($task->status == null) {
-			$finaly_date = strtotime(date('Y-m-d H:i:s',  strtotime('+1 hours')));
-			if ($duedate < $finaly_date) {
-				$status = 'Not returned';
-			} elseif ($duedate == $finaly_date) {
-				$status = 'Today deadline';
-			} else {
-				$status = 'Progess';
-			}
-		} else {
-			$finaly_date = strtotime($task->finaly_date);
-			if ($duedate >= $finaly_date) {
-				$status = 'Render';
-			} else {
-				$status = 'Returned late';
-			}
-		}
-		$alldata .= "$m,$task->title,$project_title,$project_manager,$task->duedate,$status,$task->evaluation\n";
-
-		$m++;
-	}
-	$response = "data:text/csv;charset=utf-8,N°,Task Title,Project Title,Responsable,Due Date,Status,Note\n";
-	return $response .= $alldata;
-}
-
-function connect_asana()
-{
-	// See class comments and Asana API for full info
-	$token_asana  = get_option('access_token');
-	$asana = new Asana(array('personalAccessToken' => $token_asana));
-	// Create a personal access token in Asana or use OAuth
-
-	return $asana;
-}
-
-/**
- * Sync des projects et sections
- */
-function sync_projets()
-{
-	// See class comments and Asana API for full info
-	$projects = get_all_project();
-	$sections_all = get_all_sections();
-	$asana = connect_asana();
-	$asana->getProjects();
-	if ($asana->getData() != null) {
-		foreach ($asana->getData() as $project_asana) {
-			$Exist = true;
-			foreach( $projects as $project ){ if( $project_asana->gid == $project->id ){ $Exist = false; } }
-			if( $Exist ){
-				$data1 = array(
-					'id' => $project_asana->gid,
-					'title' => $project_asana->name,
-					'slug' => str_replace(" ", ",", strtolower($project_asana->name)),
-					'project_manager' => NULL,
-					'collaborator' => NULL
-				);
-				// Sauvegarde des projets inexistant dans la bdd
-				save_new_project( $data1 );
-			}
-			
-			$sections_asana = $asana->getProjectSections($project_asana->gid);
-			if ($asana->getData() != null){
-				foreach ($asana->getData() as $sections){
-					$SectionExist = true;
-					foreach( $sections_all as $section ){
-						if( $sections->gid == $section->id ){
-							$SectionExist = false;
-						}
-					}
-					if( $SectionExist ){
-						$data2 = array(
-							'id' 		=> $sections->gid,
-							'project_id'=> $project_asana->gid,
-							'name'		=> $sections->name
-						);
-						// Sauvegarde des sections inexistante dans la bdd
-						save_new_sections( $data2 );
-					}
-				}
-			}
-		}
-	}
-}
-
-function sync_tasks(){
-	$task_all = get_all_task();
-	$asana = connect_asana();
-	$asana->getProjects();
-	if ($asana->getData() != null){
-		foreach ($asana->getData() as $project_asana){
-			$asana->getProjectTasks($project_asana->gid);
-			$task_asana = $asana->getData();
-			if( $task_asana != null ){
-				foreach( $task_asana as $task_as ){
-					$TaskExist = true;
-					foreach( $task_all as $task ){
-						if( $task_as->gid == $task->id ){ $TaskExist = false; }
-					}
-					//si la task n'est pas dans la bdd, on recupère ces information
-					if( $TaskExist ){
-						$asana->getTask($task_as->gid);
-						$task_info = $asana->getData();						
-						$asana->getTaskStories($task_as->gid);
-						$task_info1 = $asana->getData()[0];
-						$assigne = get_user_asana_id( $task_info->assignee->gid );
-						$section_id = $task_info->memberships[0]->section->gid;
-						$data = array(
-							'id' => $task_as->gid, 
-							'author_id' => get_user_asana_id( $task_info1->created_by->gid ), 
-							'project_id' => $project_asana->gid, 
-							'section_id' => $section_id, 
-							'title' =>$task_as->name, 
-							'permalink_url' => $task_info->permalink_url, 
-							'type_task' => 'developper', 
-							'categorie' => NULL, 
-							'dependancies' => NULL, 
-							'description' => $task_info->notes, 
-							'assigne' => $assigne, 
-							'duedate' => $task_info->due_on, 
-							'created_at' => $task_info1->created_at
-						);
-						
-						$dataworklog = array(
-							'id_task' => $task_as->gid,
-							'finaly_date' => $task_info->completed_at,
-							'status' => $task_info->completed,
-							'evaluation' => NULL
-						);
-					}
-					save_new_task( $data, $dataworklog );
-				}
-			}
-		}
-	}
-}
-
-function get_user_asana_id( $id_asana ){
-	$asana = connect_asana();
-	$asana->getUserInfo( $id_asana );
-	if(  ! isset( $asana->getData()->email ) ) return null;
-	$user_email = $asana->getData()->email;
-	$user = get_user_by( 'email', $user_email );
-	if( $user ) return $user->ID;
-	else {
-		$userdata = array(
-			'user_login' 	=> $asana->getData()->name,
-			'user_nicename'	=> strtolower( $asana->getData()->name ),  
-			'user_email'  	=> $asana->getData()->email,   
-			'display_name'	=> $asana->getData()->name,
-			'user_pass'  	=>  NULL
-		);
-		$user_id = wp_insert_user( $userdata ) ;
-		return $user_id;
-	}
 }
 
 function option_select($array)
@@ -186,7 +21,47 @@ function option_select($array)
 function get_the_last_options_id()
 {
 	global $wpdb;
-	return $wpdb->get_var("SELECT MAX( option_id ) FROM $wpdb->options");
+	$val = $wpdb->get_var("SELECT MAX( option_id ) FROM $wpdb->options");
+	$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+	$charactersLength = strlen($characters);
+	$key = '';
+	for ($i = 0; $i < 5; $i++) {
+		$key .= $characters[rand(0, $charactersLength - 1)];
+	}
+	return $val . $key;
+}
+
+/**
+ * Récupération des informations d'évaluation
+ * 
+ * @param int $task_id
+ * 
+ */
+function get_evaluation_info($task_id)
+{
+	global $wpdb;
+	$table = $wpdb->prefix . 'worklog';
+	$sql = "SELECT evaluation FROM $table WHERE id_task=$task_id";
+	return $wpdb->get_row($sql);
+}
+
+/**
+ * Fonction permettant la sauvegarde des notes d'évaluation
+ * 
+ * @param array $array
+ * 
+ * @return bool|int
+ */
+function save_evaluation_info($array, $task_id): bool
+{
+	global $wpdb;
+	if (get_evaluation_info($task_id)->evaluation == null) {
+		$table = $wpdb->prefix . 'worklog';
+		$format = array('%s');
+		return $wpdb->update($table, array('evaluation' => serialize($array)), array('id_task' => $task_id), $format);
+	} else {
+		return false;
+	}
 }
 
 function save_new_templates($template_id = '', array $data)
@@ -218,16 +93,11 @@ function delete_email($id_template)
 	return $ok;
 }
 
-function new_project_asana()
-{
-	return 1;
-}
-
-function save_new_project($data)
+function save_project($data)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'project';
-	$format = array('%d', '%s', '%s', '%d', '%s');
+	$format = array('%d', '%s', '%s', '%s', '%s', '%d', '%s');
 	return $wpdb->insert($table, $data, $format);
 }
 
@@ -251,8 +121,8 @@ function save_new_categories($datas, $id = null)
 			$wpdb->insert($table, $data_format, $format);
 		}
 	} else {
-		$data1 = str_replace(" ", "_", strtolower($datas));
-		$d_format = array('categories_key' => $data1, 'categories_name' => $datas);
+		$format = array('%s');
+		$d_format = array('categories_name' => $datas);
 		$wpdb->update($table, $d_format, array('id' => $id), $format);
 	}
 	return;
@@ -276,50 +146,25 @@ function save_new_mail_form(array $data, $id_template = null)
 		$ok =  $wpdb->update($table, $data, array('id' => $id_template), $format);
 	return $ok;
 }
-function save_new_task(array $data, array $worklog)
+function save_new_task(array $data, array $worklog, $subarray = null)
 {
 	global $wpdb;
 	$tabletask = $wpdb->prefix . 'task';
 	$tableworklog = $wpdb->prefix . 'worklog';
 
 	$formatworklog = array('%d', '%s', '%s', '%s');
-	$formattask = array('%d', '%d', '%d', '%d','%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%s');
+	$formattask = array('%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%s');
 
 	$ok = $wpdb->insert($tabletask, $data, $formattask);
 	$wpdb->insert($tableworklog, $worklog, $formatworklog);
-	
+
+	if ($subarray != null) {
+		$tablesubtask = $wpdb->prefix . 'subtask';
+		$formatsubtask = array('%d', '%d');
+		$wpdb->insert($tablesubtask, $subarray, $formatsubtask);
+	}
+
 	return $ok;
-}
-
-function  mail_sending_form( $destinataire, $subject, $message)
-{
-	// Pour les champs $expediteur / $copie / $destinataire, séparer par une virgule s'il y a plusieurs adresses
-	$expediteur = 'oriontestorion@gmail.com';
-	$copie = 'oriontestorion@gmail.com';
-	$copie_cachee = 'oriontestorion@gmail.com';
-	$headers  = 'MIME-Version: 1.0' . "\n"; // Version MIME
-	$headers .= 'Content-type: text/html; charset=ISO-8859-1' . "\n"; // l'en-tete Content-type pour le format HTML
-	$headers .= 'Reply-To: ' . $expediteur . "\n"; // Mail de reponse
-	$headers .= 'From: "ORION ORIGIN"<' . $expediteur . '>' . "\n"; // Expediteur
-	$headers .= 'Delivered-to: ' . $destinataire . "\n"; // Destinataire
-	$headers .= 'Cc: ' . $copie . "\n"; // Copie Cc
-	$headers .= 'Bcc: ' . $copie_cachee . "\n\n"; // Copie cachée Bcc        
-	$message = '<div style="width: 100%;text-align: center;color:black"><h3 style="text-align: center; font-weight: bold;">' . $subject . '</h3><p>' . $message . '</p></div>';
-
-	return (wp_mail($destinataire, $subject, $message, $headers));
-}
-
-function content_msg($id_task, $type_task, $content ){
-	$task = get_all_task( 'id', $id_task, 'yes' )[0];
-	$content_format_name_task = str_replace( "{{ task_name }}", "<strong style='color:blue'>".$task->title."</strong>", $content );
-	$content_format_name_project = str_replace( "{{ project_name }}", "<strong style='color:blue'>".get_project_title($task->project_id)."</strong>", $content_format_name_task );
-
-	$task_link = "<a class='btn-link' href='https://app.asana.com/0/". $task->project_id ."/".$task->id."'>https://app.asana.com/0/". $task->project_id ."/".$task->id."</a>";
-	$content_format_task_link = str_replace( "{{ task_link }}", $task_link, $content_format_name_project );
-	
-	$form_link = "<a class='btn-outline-primary' href='".get_site_url()."/evaluation_form?task_id=".$id_task."/&type_task=".$type_task."'><button>".get_site_url()."/evaluation_form</button></a>";
-	$content_format = str_replace( "{{ form_link }}", $form_link, $content_format_task_link );
-	return $content_format;
 }
 
 function get_all_project()
@@ -330,11 +175,22 @@ function get_all_project()
 	return $wpdb->get_results($sql);
 }
 
-function get_all_sections()
+function get_all_worklog()
+{
+	global $wpdb;
+	$table = $wpdb->prefix . 'worklog';
+	$sql = "SELECT * FROM $table";
+	return $wpdb->get_results($sql);
+}
+
+function get_all_sections($id_project = null)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'sections';
-	$sql = "SELECT * FROM $table";
+	if ($id_project == null)
+		$sql = "SELECT * FROM $table";
+	else
+		$sql = "SELECT * FROM $table WHERE project_id = $id_project";
 	return $wpdb->get_results($sql);
 }
 
@@ -349,7 +205,7 @@ function get_all_email($id_email = null)
 	return $wpdb->get_results($sql);
 }
 
-function get_all_task($specification = null, $value = null, $project = null)
+function get_task_($specification = null, $value = null, $project = null)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'task';
@@ -367,7 +223,7 @@ function get_all_task($specification = null, $value = null, $project = null)
 	return $wpdb->get_results($sql);
 }
 
-function get_all_subtask($task_id)
+function get_subtask($task_id)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'subtask';
@@ -381,9 +237,11 @@ function get_user_current_project($id_user)
 	if ($id_user == null) $id_user = get_current_user_id();
 	$j = 0;
 	foreach (get_all_project() as $value) {
-		if (in_array($id_user, unserialize($value->collaborator))) {
-			$user_projects_id += array($j => array('id' => $value->id, 'title' => $value->title));
-			$j++;
+		if( $value->collaborator != null ){
+			if (in_array($id_user, unserialize($value->collaborator))) {
+				$user_projects_id += array($j => array('id' => $value->id, 'title' => $value->title));
+				$j++;
+			}
 		}
 	}
 	return $user_projects_id;
@@ -477,12 +335,12 @@ function get_project_title($id_project)
 
 function get_task_status($task_id)
 {
-	$task = get_all_task('id', $task_id)[0];
+	$task = get_task_('id', $task_id)[0];
 	$duedate = strtotime($task->duedate);
 	if ($task->status == null) {
 		$finaly_date = strtotime(date('Y-m-d H:i:s',  strtotime('+1 hours')));
 		if ($duedate < $finaly_date) {
-			return 'Not returned';
+			return 'Not Completed';
 		} elseif ($duedate == $finaly_date) {
 			return 'Today deadline';
 		} else {
@@ -493,15 +351,223 @@ function get_task_status($task_id)
 		if ($duedate >= $finaly_date) {
 			return 'Render';
 		} else {
-			return 'Returned late';
+			return 'Completed Before Date';
 		}
 	}
+}
+
+function save_objective_project( $project ){
+	$asana = connect_asana();
+	$data = array(
+		"workspace" => get_workspace(),
+		"name" => $project['title'],
+	);
+	$asana->createProject( $data );
+	$result = $asana->getData();
+	if (isset($result->gid)){
+		$array = array(
+			'id' => $result->gid,
+			'title' => $project['title'],
+			'description' => '',
+			'slug' => $project['type_task'],
+			'permalink'=> $result->permalink_url,
+			'project_manager' => get_current_user_id(),
+			'collaborator' => ''
+		);
+		save_project( $array );
+		return $result->gid;
+	}else return null;
+}
+
+function save_objective_task( $project_id, $array ){
+	$asana = connect_asana();
+	$string = 'last friday of '. date('F', mktime(0, 0, 0, $array['mois'], 10)) .' this year';
+	$dat = gmdate('Y-m-d', strtotime($string));
+	$result = $asana->createTask(array(
+		'workspace'=> get_workspace(),
+		'name' =>	$array['title'],
+		'due_on' => $dat,
+	));
+	$taskId = $asana->getData()->gid;
+	$asana->addProjectToTask("$taskId", "$project_id");
+	if (!empty( $asana->getData()->gid )) {
+		return false;
+	} else{
+		$task_asana = json_decode($result)->data;
+		$data_add = array(
+			'id' => $taskId,
+			'author_id' => get_current_user_id(),
+			'project_id' => $project_id,
+			'section_id' => '',
+			'title' => $array['title'],
+			'permalink_url' => $task_asana->permalink_url,
+			'type_task' => 'objective',
+			'categorie' => null,
+			'dependancies' => null,
+			'description' => null,
+			'assigne' => get_current_user_id(),
+			'duedate' => $dat,
+			'created_at' => $task_asana->created_at
+		);
+		$dataworklog = array(
+			'id_task' => $taskId,
+			'finaly_date' => $task_asana->completed_at,
+			'status' => $task_asana->completed,
+			'evaluation' => NULL
+		);
+		return save_new_task($data_add, $dataworklog);
+	}
+}
+
+function traite_form_public( $array ){
+	if( $array['type_task'] == 'objective' ){
+		$nbre = htmlentities( $array['nbre'] );
+		$mois = htmlentities( $array['mois'] );
+		$title = htmlentities( $array['title'] ) . " ( " . date('F', mktime(0, 0, 0, $array['mois'], 10)) . " ) ";
+		$project = array( 'type_task' => 'objective', 'title' => $title, 'mois' => $mois );
+		$project_id = save_objective_project( $project );
+		if( $project_id != null ){
+			for( $k=1; $k<=$nbre; $k++ ){
+				$key = 'objective' . $k;
+				$sortir = save_objective_task( $project_id, array( 'title' => htmlentities( $array[$key] ), 'mois' => $mois ) );
+				if( ! $sortir ) return false;
+			}
+			return true;
+		}else return false;
+	}
+	if ($array['type_task'] == 'normal' || $array['type_task'] == 'developper') {
+		if ($array['show'] == 'userTemplate') {
+			$subtask = array();
+			$task = array(
+				'title' => htmlentities($array['title']),
+				'section_project' => htmlentities($array['project_section']),
+				'type_task' => htmlentities($array['type_task']),
+				'categorie' => htmlentities($array['categorie']),
+				'dependance' => '',
+				'project' => htmlentities($array['project']),
+				'assign' => htmlentities($array['assign']),
+				'duedate' => htmlentities($array['duedate']),
+				'description' => htmlentities($array['description'])
+			);
+			if (isset($array['nbrechamp'])) {
+				$nbrechamp = htmlentities($array['nbrechamp']) -1 ;
+				for ($l = 1; $l <= $nbrechamp; $l++) {
+					$titre = 'title' .$l;
+					$categorie = 'categorie'.$l;
+					$assign = 'assign'.$l;
+					$duedate = 'duedate'.$l;
+					$description = 'description'.$l;
+					$subtask += array( $l => array(
+						'title' => htmlentities( $array[$titre] ),
+						'section_project' => htmlentities($array['project_section']),
+						'type_task' => htmlentities($array['type_task']),
+						'categorie' => htmlentities($array[$categorie]),
+						'dependance' => '',
+						'project' => htmlentities($array['project']),
+						'assign' => htmlentities($array[$assign]),
+						'duedate' => htmlentities($array[$duedate]),
+						'description' => htmlentities($array[$description])
+					));
+				}
+			}
+			$parametre = array( 'parametre' => array( 'task' => $task, 'subtask' => $subtask ) );
+			return traite_task_and_save( $parametre );
+		}
+		if( $array['show'] == 'manuelTemplate' ){
+			$subtask = array();
+			$task = array(
+				'title' => htmlentities($array['title']),
+				'section_project' => htmlentities($array['project_section']),
+				'type_task' => htmlentities($array['type_task']),
+				'categorie' => htmlentities($array['categorie']),
+				'dependance' => '',
+				'project' => htmlentities($array['project']),
+				'assign' => htmlentities($array['assign']),
+				'duedate' => htmlentities($array['duedate']),
+				'description' => htmlentities($array['description'])
+			);
+			if (isset($array['show1'])) {
+				if ($array['show1'] == 'userTemplate1') {
+					if (!isset($array['nbrechamp'])) {
+						$subtask = array(
+							0 => array(
+								'title' => htmlentities($array['sub_title']),
+								'section_project' => htmlentities($array['project_section']),
+								'type_task' => htmlentities($array['type_task']),
+								'categorie' => htmlentities($array['sub_categorie']),
+								'dependance' => '',
+								'project' => htmlentities($array['project']),
+								'assign' => htmlentities($array['sub_assign']),
+								'duedate' => htmlentities($array['sub_duedate']),
+								'description' => htmlentities($array['sub_description'])
+							)
+						);
+					} else {
+						$nbrechamp = htmlentities($array['nbrechamp']) - 1;
+						for ($l = 1; $l <= $nbrechamp; $l++) {
+							$titre = 'sub_title' . $l;
+							$categorie = 'sub_categorie' . $l;
+							$assign = 'sub_assign' . $l;
+							$duedate = 'sub_duedate' . $l;
+							$description = 'sub_description' . $l;
+							$subtask += array($l => array(
+								'title' => htmlentities($array[$titre]),
+								'section_project' => htmlentities($array['project_section']),
+								'type_task' => htmlentities($array['type_task']),
+								'categorie' => htmlentities($array[$categorie]),
+								'dependance' => '',
+								'project' => htmlentities($array['project']),
+								'assign' => htmlentities($array[$assign]),
+								'duedate' => htmlentities($array[$duedate]),
+								'description' => htmlentities($array[$description])
+							));
+						}
+					}
+				}
+				if ($array['show1'] == 'manuelTemplate1') {
+					$subtask = array(
+						0 => array(
+							'title' => htmlentities($array['manuel_title']),
+							'section_project' => htmlentities($array['project_section']),
+							'type_task' => htmlentities($array['type_task']),
+							'categorie' => htmlentities($array['manuel_categorie']),
+							'dependance' => '',
+							'project' => htmlentities($array['project']),
+							'assign' => htmlentities($array['manuel_assign']),
+							'duedate' => htmlentities($array['manuel_duedate']),
+							'description' => htmlentities($array['manuel_description'])
+						)
+					);
+				}
+				$parametre = array( 'parametre' => array( 'task' => $task, 'subtask' => $subtask ) );
+				return traite_task_and_save( $parametre );
+			}
+		}else return false;
+	}else return false;
 }
 
 function page_task()
 {
 	$post_author = get_current_user_id();
 	$download_worklog = get_option('_worklog_authorized');
+	if( isset( $_POST['type_task'] ) ){
+		if( ! isset( $_POST['verifier_new_task_form'] ) || ! wp_verify_nonce( $_POST['verifier_new_task_form'], 'create_new_task' ) ){
+			?>
+			<div class="alert alert-danger" role="alert">
+				Error !
+			</div>
+			<?php
+		}else{
+			//var_dump( $_POST );
+			$retour =  traite_form_public( $_POST );
+			echo '<pre>';
+			var_dump( $retour );
+			echo '</pre>';
+			if( $retour ){
+				 ?> <div class="alert alert-success" role="alert">Successfuly ! </div> <?php }
+			else{ ?> <div class="alert alert-danger" role="alert">Error ! </div> <?php }
+		}
+	}
 	if ($post_author != 0) {
 ?>
 		<div class="container card">
@@ -524,13 +590,6 @@ function page_task()
 							<div class="col-sm-6" style="text-align:left;">
 								<h3>
 									Task Lists
-									<?php if (is_project_manager() != null) {
-									?>
-										<button class="btn btn-outline-primary text-dark" data-toggle="collapse" data-target="#collapse3" aria-expanded="false" aria-controls="collapse3" href="" class="nav-tab">
-											<?php _e('Create a Task', 'task'); ?></button>
-									<?php
-									}
-									?>
 								</h3>
 								<p>List of projects on which you collaborate. <br> Click on one of the projects, you see your tasks</p>
 							</div>
@@ -539,7 +598,13 @@ function page_task()
 											echo '<a class="btn btn-outline-success" href="' . download_worklog(get_current_user_id()) . '" download="' . get_userdata(get_current_user_id())->user_nicename . '.csv">Download Worklog</a>';
 										} ?></span>
 								<span>
-									<button class="btn btn-outline-warning">Refresh</button>
+									<?php if (is_project_manager() != null) {
+									?>
+										<button class="btn btn-outline-primary text-dark" data-toggle="collapse" data-target="#collapse3" aria-expanded="false" aria-controls="collapse3" href="" class="nav-tab">
+											<?php _e('Create a Task', 'task'); ?></button>
+									<?php
+									}
+									?>
 								</span>
 							</div>
 						</div>
@@ -578,11 +643,11 @@ function page_task()
 							</select>
 						</div>
 						<div id="calendar_card">
-							<?php 
+							<?php
 							if (is_project_manager() != null)
-								get_task_calendar(); 
+								get_task_calendar();
 							else
-								get_task_calendar( get_current_user_id() );
+								get_task_calendar(get_current_user_id());
 							?>
 						</div>
 					</div>
@@ -596,11 +661,8 @@ function page_task()
 
 function get_task_calendar($id_user = null)
 {
-	if ($id_user == null) $tasks = get_all_task();
-	else $tasks = get_all_task($id_user);
-
-	//print_r( $tasks );
-
+	if ($id_user == null) $tasks = get_task_();
+	else $tasks = get_task_($id_user);
 	?>
 	<div id='jumbotron'>
 		<div id='calendar_task'>
@@ -609,6 +671,8 @@ function get_task_calendar($id_user = null)
 			$current_day = date('d');
 			$week_day_first = date('N', mktime(0, 0, 0, date('m'), 1, date('Y')));
 			$monthName = date('F', mktime(0, 0, 0, date('m'), 10));
+			$month = date('m');
+			$year = date('Y');
 			?>
 			<h3><?= $monthName ?></h3>
 			<table class="table table-responsive-lg">
@@ -628,24 +692,52 @@ function get_task_calendar($id_user = null)
 							<td style="<?php if ($counter > 4) : ?>color: red;<?php endif; ?><?php if ($current_day == $d) : ?>color:blue;font-weight:bold;<?php endif; ?>">
 								<?php echo ($d > 0 ? ($d > $days_count ? '' : $d) : '') ?>
 								<?php
+								$exist_Task = false;
 								foreach ($tasks as $task) {
-									if (date('d', strtotime($task->duedate)) == $d) {
-								?>
-										<span class="event_btn" id="<?= $task->id ?>">
-											<div class="alert alert-primary p-0 m-0 mt-1" role="alert">
-												<?= $task->title; ?> <br> ( <?= get_userdata($task->assigne)->display_name ?> )
-											</div>
-										</span>
-								<?php
+									if ((date('m', strtotime($task->duedate)) == $month) && (date('Y', strtotime($task->duedate)) == $year)) {
+										if (date('d', strtotime($task->duedate)) == $d) {
+											$exist_Task = true;
+										}
 									}
+								}
+								if ($exist_Task) {
+								?>
+									<button class="btn btn-link alert alert-info p-0 m-0 get_list_event" data-toggle="modal" data-target=".<?= $year . '-' . $month . '-' . $d ?>" id="<?= $year . '-' . $month . '-' . $d ?>">Task List</button>
+								<?php
 								}
 								?>
 							</td>
-							<?php $counter++; ?>
+							<?php
+							modal_event_calendar($year . '-' . $month . '-' . $d);
+							$counter++; ?>
 						<?php endfor; ?>
 					</tr>
 				<?php endfor; ?>
 			</table>
+		</div>
+	</div>
+<?php
+}
+
+function modal_event_calendar($date_event)
+{
+?>
+	<div class="modal fade <?= $date_event ?>" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="exampleModalLabel">Task ( <?= $date_event ?> )</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+				</div>
+			</div>
 		</div>
 	</div>
 	<?php
@@ -654,7 +746,7 @@ function get_task_calendar($id_user = null)
 function get_form_template($id_template = null)
 {
 	if ($id_template != null) {
-		$templates = get_templates_($id_template)[0]->option_value; // unserialize(  );
+		$templates = get_templates_($id_template)[0]->option_value;
 		$template = unserialize($templates)['parametre'];
 	?>
 		<div class="form-group">
@@ -685,8 +777,14 @@ function get_form_template($id_template = null)
 			?>
 				<div id="rm2<?= $n ?>">
 					<div class="form-row pt-2">
-						<div class="col-sm-11">
+						<div class="col">
 							<input type="text" name="tasktitle<?= $n ?>" id="tasktitle<?= $n ?>" class="form-control" value="<?= $subtemplate['subtitle'] ?>">
+						</div>
+						<div class="col">
+							<select id="categorie<?= $n ?>" name="categorie<?= $n ?>" class="form-control">
+								<option value="<?= $subtemplate['categorie'] ?>"><?= ucfirst(str_replace("_", " ", $subtemplate['categorie'])) ?></option>
+								<?= option_select(get_categorie_format()) ?>
+							</select>
 						</div>
 						<div class="col-sm-1">
 							<span name="remove" id="<?= $n ?>" class="btn btn-outline-danger btn_remove_template">X</span>
@@ -724,6 +822,7 @@ function get_form_template($id_template = null)
 					<select id="type_task" name="type_task" class="form-control">
 						<option value="developper">Developper</option>
 						<option value="normal">Normal</option>
+						<option value="objective">Objective</option>
 					</select>
 				</div>
 			</div>
@@ -793,16 +892,15 @@ function login_redirect()
 	//Current Page
 	global $pagenow;
 
-	//Check to see if user in not logged in and not on the login page
-	if (!is_user_logged_in() && $pagenow != 'wp-login.php')
-		//If user is, Redirect to Login form.
+	if (!is_user_logged_in() && (is_page('orion-task') || is_page('task-evaluation') ))
 		auth_redirect();
 }
 
 function add_task_form()
 {
 ?>
-	<form method="post" action="" id="create_new_task">
+	<form method="post" action="<?= get_site_url() . "/orion-task" ?>" id="">
+		<?php wp_nonce_field('create_new_task', 'verifier_new_task_form'); ?>
 		<div id="">
 			<div class="row text-center card-header">
 				<div class="col-sm-6">
@@ -815,6 +913,7 @@ function add_task_form()
 				</div>
 			</div>
 			<span id="task_success"></span>
+			<input type="hidden" name="nbre" id="nbre" value="0">
 			<span id="first_choix"></span>
 		</div>
 		<div id="manuel_get" style="display:none ;">
@@ -873,7 +972,7 @@ function get_user_task()
 								<tbody>
 									<?php
 									$k = 0;
-									foreach (get_all_task() as $task) {
+									foreach (get_task_() as $task) {
 										if ($project['id'] == $task->project_id && $task->assigne == get_current_user_id()) {
 											$status = get_task_status($task->id);
 									?>
@@ -881,7 +980,7 @@ function get_user_task()
 												<td><?= $k + 1 ?></td>
 												<td><?= $task->title ?></td>
 												<td class="alert alert-primary"><?= $task->duedate ?></td>
-												<td class="<?php if ($status == 'Not returned' || $status == 'Returned late') echo 'text-danger';
+												<td class="<?php if ($status == 'Not Completed' || $status == 'Completed Before Date') echo 'text-danger';
 															elseif ($status == 'Progess' || $status == 'Render') echo 'text-success';
 															else echo 'text-warning';  ?>"><?= $status ?></td>
 											</tr>
@@ -917,15 +1016,29 @@ function get_user_task()
 	}
 }
 
-// Add Shortcode
+/**
+ * Short code de la page public
+ * 
+ * @return void
+ */
 function orion_task_shortcode()
 {
 	$var = wp_nonce_field('orion_task_manager', 'task_manager');
 	return page_task();
 }
+
+/**
+ * Short code de la page public
+ * 
+ * @return void
+ */
+function orion_task_evaluation_shortcode()
+{
+	$var = wp_nonce_field('orion_task_manager', 'task_manager');
+	return evaluator_page();
+}
 function taches_tab()
 {
-	print_r(sync_tasks());
 	?>
 	<div class="container-fluid pt-3">
 		<div class="row" id="accordion">
@@ -1071,6 +1184,9 @@ function taches_tab()
 								<div class="form-group">
 									<label for="InputTitle">Project Name </label>
 									<input type="text" name="titleproject" id="titleproject" class="form-control" placeholder="Project Name">
+								</div>
+								<div class="form-group">
+									<textarea class="form-control" id="description" name="description" rows="3" placeholder="Description ..."></textarea>
 								</div>
 								<div class="form-group">
 									<div class="form-row">
@@ -1235,10 +1351,10 @@ function get_email_task_tab($id_template = null)
 			<label for="content_mail">Email content</label>
 			<textarea class="form-control" id="content_mail" rows="4" placeholder="Content ..."><?php if ($vrai) echo $template_email->content; ?></textarea>
 			<small id="contentHelp">Click <br>
-				<span class="btn-link" id="project_name_msg">{{ project_name }}</span> to add the project name<br>
-				<span class="btn-link" id="task_name_msg">{{ task_name }}</span> to add the task name <br>
-				<span class="btn-link" id="task_link_msg">{{ task_link }}</span> to add the link to the task <br>
-				<span class="btn-link" id="form_link_msg">{{ form_link }}</span> to add the link to the form <br>
+				<span class="btn-link" id="project_name_msg">{{project_name}}</span> to add the project name<br>
+				<span class="btn-link" id="task_name_msg">{{task_name}}</span> to add the task name <br>
+				<span class="btn-link" id="task_link_msg">{{task_link }}</span> to add the link to the task <br>
+				<span class="btn-link" id="form_link_msg">{{form_link}}</span> to add the link to the form <br>
 				to the content of the form
 			</small>
 		</div>
@@ -1253,7 +1369,7 @@ function get_email_task_tab($id_template = null)
 			<div class="input-group mb-3">
 				<input class="control-form" id="input_email" type="email">
 				<div class="input-group-prepend">
-					<input class="btn btn-outline-success" for="input_email" type="submit">
+					<input class="btn btn-outline-success" for="input_email" type="submit" value="Test">
 				</div>
 			</div>
 		</form>
@@ -1265,7 +1381,7 @@ function get_email_task_tab($id_template = null)
 
 function evaluation_tab()
 {
-	//print_r(content_msg( 2, '', '' ));
+	$sender_info = unserialize(get_option('_sender_mail_info'));
 ?>
 	<div class="container-fluid pt-3">
 		<div class="row" id="accordion">
@@ -1286,6 +1402,9 @@ function evaluation_tab()
 					</h5>
 					<p class="mt-0 mb-0">Create email submit form templates</p>
 				</div>
+				<div class="card-header" id="headingEvaluation3">
+					<p class="mt-0 mb-0">Create an evaluation page to add the following short code: [task_evaluation]</p>
+				</div>
 			</div>
 			<div class="col-sm-8 card">
 				<div id="collapseEvaluation1" class="collapse show" aria-labelledby="headingEvaluation1" data-parent="#accordion">
@@ -1295,8 +1414,24 @@ function evaluation_tab()
 				</div>
 				<div id="collapseEvaluation2" class="collapse" aria-labelledby="headingEvaluation2" data-parent="#accordion">
 					<div class="card-body">
+						<div class="mb-3">
+							<span class="add_success" id="add_success"></span>
+							<div class="container row">
+								<h5 class="pb-2 pl-3">Email Sending Information</h5>
+								<form class="form-inline" id="add_sender_info" method="POST" action="">
+									<div class="form-group mx-sm-3 mb-2">
+										<label for="inputPassword2" class="sr-only">Name Sender</label>
+										<input class="form-control" type="text" id="sender_name" value="<?= $sender_info['sender_name'] ?>">
+									</div>
+									<div class="form-group mb-2">
+										<label for="staticEmail2" class="sr-only">Email Sender</label>
+										<input class="form-control-plaintext" type="text" id="sender_email" value="<?= $sender_info['sender_email'] ?>">
+									</div>
+									<button type="submit" class="btn btn-outline-primary mb-2">UPDATE</button>
+								</form>
+							</div>
+						</div>
 						<h5 class="card-header btn_evaluation_add" id="btn_evaluation_add">Mail Template <span class="btn btn-outline-success btn_emails" id="new_email">New Email Template</span> </h5>
-						<span class="add_success" id="add_success"></span>
 						<div class="card-body" id="evaluator_tab">
 							<?= list_email_sending(); ?>
 						</div>
@@ -1466,17 +1601,17 @@ function active_tab()
 	<div class="container-fluid pt-3">
 		<div class="row" id="accordion">
 			<div class="col-sm-4 card bg-light">
-				<div class="card-header" id="headingEvaluation1">
+				<div class="card-header" id="headingInter1">
 					<h5 class="mb-0">
-						<button class="btn btn-link" data-toggle="collapse" data-target="#collapseEvaluation1" aria-expanded="true" aria-controls="collapseEvaluation1">
+						<button class="btn btn-link" data-toggle="collapse" data-target="#collapseInter1" aria-expanded="true" aria-controls="collapseInter1">
 							ASANA access token
 						</button>
 					</h5>
 					<p class="mt-0 mb-0">Add asana access token</p>
 				</div>
-				<div class="card-header" id="headingEvaluation2">
+				<div class="card-header" id="headingInter2">
 					<h5 class="mb-0">
-						<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseEvaluation2" aria-expanded="false" aria-controls="collapseEvaluation2">
+						<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseInter2" aria-expanded="false" aria-controls="collapseInter2">
 							Synchronization
 						</button>
 					</h5>
@@ -1484,7 +1619,7 @@ function active_tab()
 				</div>
 			</div>
 			<div class="col-sm-8 card">
-				<div id="collapseEvaluation1" class="collapse show" aria-labelledby="headingEvaluation1" data-parent="#accordion">
+				<div id="collapseInter1" class="collapse show" aria-labelledby="headingInter1" data-parent="#accordion">
 					<div class="card-body">
 						<div class="container pt-2">
 							<?php
@@ -1536,26 +1671,26 @@ function active_tab()
 						</div>
 					</div>
 				</div>
-				<div id="collapseEvaluation2" class="collapse" aria-labelledby="headingEvaluation2" data-parent="#accordion">
-						<div class="card-body">
-							<form id="synchronisation_asana" method="post" action="">
-								<label for="synchonisation">Synchronization frequency</label>
-								<div class="input-group mb-3">
-									<select class="custom-select" id="synchonisation">
-										<option value="1">1 time / day</option>
-										<option value="2">2 times / day</option>
-									</select>
-									<div class="input-group-append">
-										<label class="input-group-text btn btn-outline-primary" for="synchonisation">UPDATE</label>
-									</div>
+				<div id="collapseInter2" class="collapse" aria-labelledby="headingInter2" data-parent="#accordion">
+					<div class="card-body">
+						<form id="synchronisation_asana" method="post" action="">
+							<label for="synchonisation">Synchronization frequency</label>
+							<div class="input-group mb-3">
+								<select class="custom-select" id="synchonisation">
+									<option value="1">1 time / day</option>
+									<option value="2">2 times / day</option>
+								</select>
+								<div class="input-group-append">
+									<label class="input-group-text btn btn-outline-primary" for="synchonisation">UPDATE</label>
 								</div>
-							</form>
-						</div>
+							</div>
+						</form>
+					</div>
 				</div>
 			</div>
 		</div>
 	</div>
-<?php
+	<?php
 }
 
 function get_project_collaborator(int $id_project)
@@ -1570,6 +1705,15 @@ function get_project_collaborator(int $id_project)
 		}
 	}
 	return $collaborators;
+}
+
+function get_project_section(int $id_project)
+{
+	$sections = array();
+	foreach (get_all_sections($id_project) as $section) {
+		$sections += array($section->id => $section->name);
+	}
+	return $sections;
 }
 function get_dependancies($array)
 {
@@ -1590,122 +1734,143 @@ function get_categorie_format()
 function get_form(array $array, $istemplate)
 {
 	$template = $array['parametre']['template'];
-?>
-	<div class="pb-3">
-		<?php
-		if ($istemplate) {
-		?>
-			<div class="form-group">
-				<label for="title">Titre</label>
-				<input type="text" class="form-control" disabled name="sub_title" id="sub_title" value="<?= $template['tasktitle']  ?>">
-			</div>
-		<?php
-		} else {
-		?>
+	if ($template['type_task'] == 'objective') {
+	?>
+		<div class="pb-3">
 			<div class="row">
 				<div class="col">
 					<label for="title">Titre</label>
 					<input type="text" class="form-control" name="title" id="title" value="<?= $template['tasktitle']  ?>">
-					<input type="hidden" class="form-control" name="type_task" id="type_task" value="<?= $template['type_task']  ?>">
+					<input type="hidden" class="form-control" name="type_task" required id="type_task" value="<?= $template['type_task']  ?>">
 				</div>
 				<div class="col">
-					<label for="proectlabel" id="label1" style="color:red">Select Project : </label>
-					<select class="form-control project" id="project" name="project">
-						<?= option_select(array('' => 'Choose project ...') + get_project_manger_project()) ?>
+					<label for="proectlabel">Select Month : </label>
+					<select class="form-control" id="mois" name="mois">
+						<option value="1" <?php if( date('m') == 1 ) echo 'selected'; ?> >January</option>
+						<option value="2" <?php if( date('m') == 2 ) echo 'selected'; ?> >February</option>
+						<option value="3" <?php if( date('m') == 3 ) echo 'selected'; ?> >March</option>
+						<option value="4" <?php if( date('m') == 4 ) echo 'selected'; ?> >April</option>
+						<option value="5" <?php if( date('m') == 5 ) echo 'selected'; ?> >May</option>
+						<option value="6" <?php if( date('m') == 6 ) echo 'selected'; ?> >June</option>
+						<option value="7" <?php if( date('m') == 7 ) echo 'selected'; ?> >July</option>
+						<option value="8" <?php if( date('m') == 8 ) echo 'selected'; ?> >August</option>
+						<option value="9" <?php if( date('m') == 9 ) echo 'selected'; ?> >September</option>
+						<option value="10" <?php if( date('m') == 10 ) echo 'selected'; ?> >October</option>
+						<option value="11" <?php if( date('m') == 11 ) echo 'selected'; ?> >November</option>
+						<option value="12" <?php if( date('m') == 12 ) echo 'selected'; ?> >December</option>
 					</select>
 				</div>
 			</div>
-		<?php
-		}
-		?>
-		<div class="form-group">
-			<label for="exampleFormControlTextarea1">Description</label>
-			<textarea class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>description" name="<?php if ($istemplate) echo 'sub_'  ?>description" placeholder="Description..." rows="3"></textarea>
-		</div>
-		<div class="form-group">
-			<label for="exampleFormControlTextarea1">Commentaire</label>
-			<textarea class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>commentaire" name="<?php if ($istemplate) echo 'sub_'  ?>commentaire" placeholder="Commentaire..." rows="3"></textarea>
-		</div>
-		<div class="row">
-			<div class="col">
-				<label for="assigne">Assigne : </label>
-				<select class="form-control assign_option" id="<?php if ($istemplate) echo 'sub_'  ?>assign" name="<?php if ($istemplate) echo 'sub_'  ?>assign"></select>
-			</div>
-			<div class="col">
-				<label for="duedate">Due Date</label>
-				<input type="datetime-local" name="<?php if ($istemplate) echo 'sub_'  ?>duedate" class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>duedate" aria-describedby="duedate">
-			</div>
-			<div class="col">
-				<label for="duedate">Categorie</label>
-				<select class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>categorie" name="<?php if ($istemplate) echo 'sub_'  ?>categorie">
-					<?= option_select(get_categorie_format()) ?>
-				</select>
+			<div id="addojectives" class="pb-3"></div>
+			<div class="form-group">
+				<span id="addobject" name="addobject" class="btn btn-outline-success">+ Add Objectives</span>
 			</div>
 		</div>
-	</div>
 	<?php
-	if (isset($array['parametre']['subtemplate'])) {
-		$tab = $array['parametre']['subtemplate'];
-		$j = 1;
-
-		foreach ($tab as $subtemplate) {
+	} else {
 	?>
-			<div class="row pl-5 pr-5 pb-4">
-				<span onclick="open_sub_templaye(<?= $j ?>)" class="btn btn-outline-primary"><span id="change<?= $j ?>"> + </span> <?= $subtemplate['subtitle']  ?> </span>
-			</div>
-			<div id="<?= $j ?>" style="display:none;" class="pl-5 pr-5 pb-3">
+		<div class="pb-3">
+			<?php
+			if ($istemplate) {
+			?>
+				<div class="form-group">
+					<label for="title">Titre</label>
+					<input type="text" class="form-control" disabled name="sub_title" id="sub_title" value="<?= $template['tasktitle']  ?>">
+				</div>
+			<?php
+			} else {
+			?>
 				<div class="row">
 					<div class="col">
 						<label for="title">Titre</label>
-						<input type="text" class="form-control" disabled name="<?php if ($istemplate) echo 'sub_'  ?>title<?= $j ?>" id="<?php if ($istemplate) echo 'sub_'  ?>title<?= $j ?>" value="<?= $subtemplate['subtitle']  ?>">
+						<input type="text" class="form-control" name="title" id="title" value="<?= $template['tasktitle']  ?>">
+						<input type="hidden" class="form-control" name="type_task" id="type_task" value="<?= $template['type_task']  ?>">
 					</div>
 					<div class="col">
-						<label for="duedate">Categorie</label>
-						<select class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>categorie<?= $j ?>" name="<?php if ($istemplate) echo 'sub_'  ?>categorie<?= $j ?>">
-							<?= option_select(get_categorie_format()) ?>
+						<label for="proectlabel" id="label1" style="color:red">Select Project : </label>
+						<select class="form-control project projectSection" id="project" name="project">
+							<?= option_select(array('' => 'Choose project ...') + get_project_manger_project()) ?>
 						</select>
 					</div>
 					<div class="col">
-						<label for="duedate">Dependancie</label>
-						<select class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>dependance<?= $j ?>" name="<?php if ($istemplate) echo 'sub_'  ?>dependance<?= $j ?>">
-							<option value="">No</option>
-							<option value="developper">Developper</option>
-							<option value="normal">Normal</option>
+						<label for="proectlabel">Select Section : </label>
+						<select class="form-control assign_option" id="project_section" name="project_section">
+							<option value="" selected></option>
 						</select>
 					</div>
 				</div>
-				<div class="form-group">
-					<label for="exampleFormControlTextarea1">Description</label>
-					<textarea class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>description<?= $j ?>" name="<?php if ($istemplate) echo 'sub_'  ?>description" placeholder="Description..." rows="3"></textarea>
+			<?php
+			}
+			?>
+			<div class="form-group">
+				<label for="exampleFormControlTextarea1">Description</label>
+				<textarea class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>description" name="<?php if ($istemplate) echo 'sub_'  ?>description" placeholder="Description..." rows="3"></textarea>
+			</div>
+			<div class="row">
+				<div class="col">
+					<label for="duedate">Due Date</label>
+					<input type="date" name="<?php if ($istemplate) echo 'sub_'  ?>duedate" class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>duedate" aria-describedby="duedate">
 				</div>
-				<div class="form-group">
-					<label for="exampleFormControlTextarea1">Commentaire</label>
-					<textarea class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>commentaire<?= $j ?>" name="<?php if ($istemplate) echo 'sub_'  ?>commentaire" placeholder="Commentaire..." rows="3"></textarea>
+				<div class="col">
+					<label for="categorie">Categorie</label>
+					<select class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>categorie" name="<?php if ($istemplate) echo 'sub_'  ?>categorie">
+						<?= option_select(get_categorie_format()) ?>
+					</select>
 				</div>
-				<div class="row">
-					<div class="col">
-						<label for="assigne">Assigne : </label>
-						<select class="form-control assign_option" id="<?php if ($istemplate) echo 'sub_'  ?>assign<?= $j ?>" name="<?php if ($istemplate) echo 'sub_'  ?>assign<?= $j ?>"></select>
-					</div>
-					<div class="col">
-						<label for="duedate">Due Date</label>
-						<input type="datetime-local" name="<?php if ($istemplate) echo 'sub_'  ?>duedate<?= $j ?>" class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>duedate<?= $j ?>" aria-describedby="duedate">
-					</div>
+				<div class="col">
+					<label for="assigne">Assigne : </label>
+					<select class="form-control assign_option" id="<?php if ($istemplate) echo 'sub_'  ?>assign" name="<?php if ($istemplate) echo 'sub_'  ?>assign"><option value="" selected></option></select>
 				</div>
 			</div>
+		</div>
 		<?php
-			$j++;
-		}
+		if (isset($array['parametre']['subtemplate'])) {
+			$tab = $array['parametre']['subtemplate'];
+			$j = 1;
+
+			foreach ($tab as $subtemplate) {
 		?>
-		<input type="hidden" name="nbrechamp" class="form-control" id="nbrechamp" value="<?= $j ?>">
-	<?php
+				<div class="row pl-5 pr-5 pb-4">
+					<span onclick="open_sub_templaye(<?= $j ?>)" class="btn btn-outline-primary"><span id="change<?= $j ?>"> + </span> <?= $subtemplate['subtitle']  ?> </span>
+				</div>
+				<div id="<?= $j ?>" style="display:none;" class="pl-5 pr-5 pb-3">
+					<div class="row">
+						<div class="col">
+							<label for="title">Titre</label>
+							<input type="text" class="form-control" readonly name="<?php if ($istemplate) echo 'sub_'  ?>title<?= $j ?>" id="<?php if ($istemplate) echo 'sub_'  ?>title<?= $j ?>" value="<?= $subtemplate['subtitle']  ?>">
+							<input type="hidden" class="form-control" readonly name="<?php if ($istemplate) echo 'sub_'  ?>categorie<?= $j ?>" id="<?php if ($istemplate) echo 'sub_'  ?>categorie<?= $j ?>" value="<?= $subtemplate['categorie']  ?>">
+						</div>
+					</div>
+					<div class="form-group">
+						<label for="exampleFormControlTextarea1">Description</label>
+						<textarea class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>description<?= $j ?>" name="<?php if ($istemplate) echo 'sub_'  ?>description<?= $j ?>" placeholder="Description..." rows="3"></textarea>
+					</div>
+					<div class="row">
+						<div class="col">
+							<label for="assigne">Assigne : </label>
+							<select class="form-control assign_option" id="<?php if ($istemplate) echo 'sub_'  ?>assign<?= $j ?>" name="<?php if ($istemplate) echo 'sub_'  ?>assign<?= $j ?>"><option value="" selected></option></select>
+						</div>
+						<div class="col">
+							<label for="duedate">Due Date</label>
+							<input type="date" name="<?php if ($istemplate) echo 'sub_'  ?>duedate<?= $j ?>" class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>duedate<?= $j ?>" aria-describedby="duedate">
+						</div>
+					</div>
+				</div>
+			<?php
+				$j++;
+			}
+			?>
+			<input type="hidden" name="nbrechamp" class="form-control" id="nbrechamp" value="<?= $j ?>">
+		<?php
+
+		}
 	}
 }
 
 function get_first_choose($type, $istemplate = false)
 {
 	if ($type == 'usertemplate') {
-	?>
+		?>
 		<div class="form-group col-md-10 pt-3">
 			<select name="selectTemplate" id="selectTemplate" class="form-control">
 				<option value="">Choose Template ...</option>
@@ -1724,7 +1889,7 @@ function get_first_choose($type, $istemplate = false)
 			?>
 				<div class="form-group">
 					<label for="title">Titre</label>
-					<input type="text" class="form-control" name="manuel_title" id="manuel_title">
+					<input type="text" class="form-control" name="manuel_title" required id="manuel_title">
 				</div>
 			<?php
 			} else {
@@ -1732,19 +1897,27 @@ function get_first_choose($type, $istemplate = false)
 				<div class="row">
 					<div class="col">
 						<label for="title">Titre</label>
-						<input type="text" class="form-control" name="title" id="title">
-					</div>
-					<div class="col">
-						<label for="proectlabel" id="label1" style="color:red">Select Project : </label>
-						<select class="form-control project" id="project" name="project">
-							<?= option_select(array('' => 'Choose project ...') + get_project_manger_project()) ?>
-						</select>
+						<input type="text" class="form-control" required name="title" id="title">
 					</div>
 					<div class="col">
 						<label for="type_task">Type Task : </label>
 						<select class="form-control" id="type_task" name="type_task">
-							<option value="deveopper">Developper</option>
+							<option value="developper">Developper</option>
 							<option value="normal">Normal</option>
+						</select>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col">
+						<label for="proectlabel" id="label1" style="color:red">Select Project : </label>
+						<select class="form-control project projectSection" id="project" name="project">
+							<?= option_select(array('' => 'Choose project ...') + get_project_manger_project()) ?>
+						</select>
+					</div>
+					<div class="col">
+						<label for="proectlabel">Select Section : </label>
+						<select class="form-control assign_option" id="project_section" name="project_section">
+						<option value="" selected></option>
 						</select>
 					</div>
 				</div>
@@ -1755,21 +1928,17 @@ function get_first_choose($type, $istemplate = false)
 				<label for="exampleFormControlTextarea1">Description</label>
 				<textarea class="form-control" id="<?php if ($istemplate) echo 'manuel_' ?>description" name="<?php if ($istemplate) echo 'manuel_' ?>description" placeholder="Description..." rows="3"></textarea>
 			</div>
-			<div class="form-group">
-				<label for="exampleFormControlTextarea1">Commentaire</label>
-				<textarea class="form-control" id="<?php if ($istemplate) echo 'manuel_' ?>commentaire" name="<?php if ($istemplate) echo 'manuel_' ?>commentaire" placeholder="Commentaire..." rows="3"></textarea>
-			</div>
 			<div class="row">
 				<div class="col">
 					<label for="assigne">Assigne : </label>
-					<select class="form-control assign_option" id="<?php if ($istemplate) echo 'manuel_' ?>assign" name="<?php if ($istemplate) echo 'manuel_' ?>assign"></select>
+					<select class="form-control assign_option" id="<?php if ($istemplate) echo 'manuel_' ?>assign" name="<?php if ($istemplate) echo 'manuel_' ?>assign"><option value="" selected></option></select>
 				</div>
 				<div class="col">
 					<label for="duedate">Due Date</label>
 					<input type="datetime-local" name="<?php if ($istemplate) echo 'manuel_' ?>duedate" class="form-control" id="<?php if ($istemplate) echo 'manuel_' ?>duedate" aria-describedby="duedate">
 				</div>
 				<div class="col">
-					<label for="duedate">Categorie</label>
+					<label for="categorie">Categorie</label>
 					<select class="form-control" id="<?php if ($istemplate) echo 'manuel_'  ?>categorie" name="<?php if ($istemplate) echo 'manuel_'  ?>categorie">
 						<?= option_select(get_categorie_format()) ?>
 					</select>
@@ -1798,14 +1967,22 @@ function settings_function()
 {
 	$action = htmlspecialchars($_POST['action']);
 	if ($action == 'get_user_role') {
-		$user_id = htmlspecialchars($_POST['id_user']);
-		if (empty($user_id)) {
-			echo '';
+		if (isset($_POST['sender_name'])) {
+			$sender_name = htmlentities($_POST['sender_name']);
+			$sender_email = htmlentities($_POST['sender_email']);
+			$variable = serialize(array('sender_name' => $sender_name, 'sender_email' => $sender_email));
+			return update_option('_sender_mail_info', $variable);
 		} else {
-			$user_info = get_userdata($user_id);
-			$user_role = implode(', ', $user_info->roles);
-			echo ucfirst($user_role);
+			$user_id = htmlspecialchars($_POST['id_user']);
+			if (empty($user_id)) {
+				echo '';
+			} else {
+				$user_info = get_userdata($user_id);
+				$user_role = implode(', ', $user_info->roles);
+				echo ucfirst($user_role);
+			}
 		}
+		print_r($_POST);
 	}
 	if ($action == 'update_user_role') {
 		$user_id = htmlspecialchars($_POST['id_user']);
@@ -1820,15 +1997,7 @@ function settings_function()
 	}
 	if ($action == 'create_new_projet') {
 		$post = wp_unslash($_POST);
-		$id_project = new_project_asana();
-		$data = array(
-			'id' => $id_project,
-			'title' => $post['title'],
-			'slug' => $post['slug'],
-			'project_manager' => $post['project_manager'],
-			'collaborator' => serialize($post['collaborator'])
-		);
-		echo save_new_project($data);
+		echo sync_new_project($post);
 	}
 	if ($action == 'create_template') {
 		if (isset($_POST['updatetempplate_id']) && !empty($_POST['updatetempplate_id'])) {
@@ -1851,6 +2020,13 @@ function settings_function()
 		else
 			echo option_select(array('' => 'Choose ...') + get_project_collaborator($id_project));
 	}
+	if ($action == 'get_option_section') {
+		$id_project = htmlentities($_POST['project_id']);
+		if (empty($id_project))
+			echo '';
+		else
+			echo option_select(get_project_section($id_project));
+	}
 	if ($action == 'get_template_choose') {
 		$id_template = htmlentities($_POST['template_id']);
 		$istemplate = htmlentities($_POST['istemplate']);
@@ -1872,6 +2048,7 @@ function settings_function()
 	if ($action == 'create_new_task') {
 		$send = array_diff($_POST, array('action' => 'create_new_task'));
 		$data = wp_unslash($send);
+		traite_task_and_save($data);
 		//echo (save_new_task($data));
 	}
 	if ($action == 'get_template_card') {
@@ -1914,10 +2091,14 @@ function settings_function()
 		echo get_form_template($id_template);
 	}
 	if ($action == 'save_categories') {
-		$send = array_diff($_POST, array('action' => 'save_categories'));
-		$data = wp_unslash($send);
-		save_new_categories($data);
-		echo get_categories_();
+		if (isset($_POST['get_categorie'])) {
+			echo option_select(get_categorie_format());
+		} else {
+			$send = array_diff($_POST, array('action' => 'save_categories'));
+			$data = wp_unslash($send);
+			save_new_categories($data);
+			echo get_categories_();
+		}
 	}
 	if ($action == 'save_mail_form') {
 		$update = htmlentities($_POST['update']);
@@ -1973,10 +2154,10 @@ function settings_function()
 		$subject = htmlentities($_POST['subject']);
 		$content = htmlentities($_POST['content']);
 		$destinataire = htmlentities($_POST['email']);
-		$id_task = 1;
-		$msg = content_msg($id_task, $type_task, $content );
+		$id_task = 1202081187468663;
+		$msg = content_msg($id_task, $type_task, $content);
 
-		$retour = mail_sending_form( $destinataire, $subject, $msg );
+		$retour = mail_sending_form($destinataire, $subject, $msg);
 		echo $retour;
 	}
 	wp_die();
