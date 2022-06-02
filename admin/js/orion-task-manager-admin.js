@@ -388,6 +388,75 @@
             })
         });
 
+        $(document).on('submit', '#synchronisation_asana', function(e) {
+            e.preventDefault();
+            var sync_time = document.getElementById('synchonisation_time').value;
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'synchronisation_time',
+                    'sync_time': sync_time
+                },
+                beforeSend: function() {
+                    document.getElementById('add_success_time').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
+                },
+                success: function(response) {
+                    if (response)
+                        document.getElementById('add_success_time').innerHTML = '<div class="alert alert-success mt-4" role="alert"> Successfully ! </div>';
+                    else
+                        document.getElementById('add_success_time').innerHTML = '<div class="alert alert-danger mt-4" role="alert"> Error ! </div>';
+                    setTimeout(function() { $('#add_success_time').hide(); }, 1500);
+                }
+            });
+        });
+
+        $(document).on('submit', '#project_manager_id', function(e) {
+            e.preventDefault();
+            var id_project_manager = document.getElementById('id_project_manager').value;
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'synchronisation_time',
+                    'id_project_manager': id_project_manager
+                },
+                beforeSend: function() {
+                    document.getElementById('add_success_id').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
+                },
+                success: function(response) {
+                    if (response)
+                        document.getElementById('add_success_id').innerHTML = '<div class="alert alert-success mt-4" role="alert"> Successfully ! </div>';
+                    else
+                        document.getElementById('add_success_id').innerHTML = '<div class="alert alert-danger mt-4" role="alert"> Error ! </div>';
+                    setTimeout(function() { $('#add_success_id').hide(); }, 2000);
+                }
+            });
+        });
+
+        $(document).on('submit', '#add_project_manager', function(e) {
+            e.preventDefault();
+            var projectmanager = document.getElementById('projectmanager').value;
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'synchronisation_time',
+                    'projectmanager': projectmanager
+                },
+                beforeSend: function() {
+                    document.getElementById('add_success_id').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
+                },
+                success: function(response) {
+                    if (response)
+                        document.getElementById('add_success_id').innerHTML = '<div class="alert alert-success mt-4" role="alert"> Successfully ! </div>';
+                    else
+                        document.getElementById('add_success_id').innerHTML = '<div class="alert alert-danger mt-4" role="alert"> Error ! </div>';
+                    setTimeout(function() { $('#add_success_id').hide(); }, 2000);
+                }
+            });
+        });
+
         $(document).on('click', '.template_edit', function() {
             var id_template = $(this).attr('id');
             document.getElementById('template_label').innerHTML = 'Edit Template';
@@ -515,26 +584,7 @@
                         document.getElementById('add_success').innerHTML = '<div class="alert alert-success mt-4" role="alert">Successfully. Save ? </div>';
                     else
                         document.getElementById('add_success').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Not send</div>';
-                }
-            });
-        });
-
-        console.log('Le script JS a bien été chargé');
-        $('#userasana').change(function() {
-            var select = document.getElementById('userasana').value;
-
-            $.ajax({
-                url: ajaxurl,
-                type: "POST",
-                data: {
-                    'action': 'get_user_role',
-                    'id_user': select,
-                },
-                success: function(response) {
-                    document.getElementById('roledisabled').innerHTML = response;
-                },
-                error: function(errorThrown) {
-                    console.log(errorThrown);
+                    setTimeout(function() { $('#add_success').hide(); }, 1500);
                 }
             });
         });
@@ -604,7 +654,7 @@
                     'select_role': select_role,
                 },
                 success: function(response) {
-                    document.getElementById('roledisabled').innerHTML = response;
+
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);

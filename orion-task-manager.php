@@ -72,6 +72,7 @@ function my_plugin_create_db()
 	$table_task = $wpdb->prefix . 'task';
 	$table_subtask = $wpdb->prefix . 'subtask';
 	$table_categories = $wpdb->prefix . 'categories';
+	$table_objectives = $wpdb->prefix . 'objectives';
 	$table_worklog = $wpdb->prefix . 'worklog';
 	$table_mail = $wpdb->prefix . 'mails';
 	$table_users = $wpdb->prefix . 'users';
@@ -90,7 +91,7 @@ function my_plugin_create_db()
 		CREATE TABLE $table_section(
 			id bigint NOT NULL,
 			project_id bigint NOT NULL,
-			name varchar(255) NOT NULL,
+			section_name varchar(255) NOT NULL,
 			FOREIGN KEY  (project_id) REFERENCES $table_project(id),
 			PRIMARY KEY  (id)
 		);
@@ -99,6 +100,21 @@ function my_plugin_create_db()
 			categories_key varchar(255) UNIQUE,
 			categories_name varchar(255) NOT NULL,
 			PRIMARY KEY  (id)
+		);
+		CREATE TABLE $table_objectives(
+			id_objective bigint NOT NULL,
+			id_user bigint UNSIGNED NOT NULL,
+			id_section bigint NOT NULL,
+			id_project bigint NOT NULL,
+			month_section varchar(255) NOT NULL,
+			year_section varchar(255) NOT NULL,
+			duedate_section datetime NOT NULL,
+			objective_section text NOT NULL,
+			section_permalink text,
+			FOREIGN KEY  (id_user) REFERENCES $table_users(id),
+			FOREIGN KEY  (id_section) REFERENCES $table_section(id),
+			FOREIGN KEY  (id_project) REFERENCES $table_project(id),
+			PRIMARY KEY  (id_objective,id_user,id_section,id_project,month_section,year_section)
 		);
 		CREATE TABLE $table_task (
 			id bigint NOT NULL,

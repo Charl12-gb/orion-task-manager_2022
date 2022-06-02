@@ -60,6 +60,8 @@ class Task_Manager_Builder
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o_task_manager_setting' ? 'nav-tab-active' : ''; ?>"><?php _e( 'TASK', 'task' ); ?></a>
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-worklog' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-worklog' ? 'nav-tab-active' : ''; ?>"><?php _e( 'WORKLOG', 'task' ); ?></a>
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-evaluation' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-evaluation' ? 'nav-tab-active' : ''; ?>"><?php _e( 'EVALUATION', 'task' ); ?></a>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-rapport' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-rapport' ? 'nav-tab-active' : ''; ?>"><?php _e( 'RAPPORT', 'task' ); ?></a>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-performance' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-performance' ? 'nav-tab-active' : ''; ?>"><?php _e( 'PERFORMANCE', 'task' ); ?></a>
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-active' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-active' ? 'nav-tab-active' : ''; ?>"><?php _e( 'INTEGRATION', 'task' ); ?></a>
             </nav>
             <div class="o_task_manager_setting addons-featured">
@@ -79,6 +81,12 @@ class Task_Manager_Builder
         }
         if ( $active_tableau == 'o-active' ) {
             active_tab();
+        }
+        if ( $active_tableau == 'o-rapport' ) {
+            
+        }
+        if ( $active_tableau == 'o-performance' ) {
+            
         }
     }
 

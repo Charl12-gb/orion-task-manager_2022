@@ -8,6 +8,30 @@ function connect_asana()
 	$asana = new Asana(array('personalAccessToken' => $token_asana));
 	return $asana;
 }
+//******************************************************************************************* */
+//Ajouter ces propres heure de modification
+// add_filter( 'cron_schedules', 'moose_add_cron_interval' );
+// function moose_add_cron_interval( $schedules ) { 
+//     $schedules['ten_seconds'] = array(
+//         'interval' => 10,
+//         'display'  => esc_html__( 'Every Ten Seconds' ), );
+//     return $schedules;
+// }
+
+
+add_action('task_cron_hook', 'task_cron_sync');
+function task_cron_sync(){
+	sync_projets();
+	sync_tasks();
+	sync_duedate_task();
+}
+
+if( ! wp_next_scheduled( 'task_cron_hook' ) ){
+	$time_def = get_option( '_synchronisation_time' );
+	wp_schedule_event( time(), $time_def, 'task_cron_hook' );
+}
+
+//***************************************************************************************** */
 
 /**
  * Obtenir l'espace de travail depuis asana
@@ -118,7 +142,7 @@ function sync_projets()
 						$data2 = array(
 							'id' 		=> $sections->gid,
 							'project_id' => $project_asana->gid,
-							'name'		=> $sections->name
+							'section_name'		=> $sections->name
 						);
 						// Sauvegarde des sections inexistante dans la bdd
 						save_new_sections($data2);
@@ -292,6 +316,36 @@ function traite_task_and_save($data)
 }
 
 /**
+ * Fonction permettant de créer une nouvelle section d'un project manager en utilisant son nom 
+ * 
+ * @param int $projectmanager
+ * 
+ * @return bool
+ */
+function save_objective_section( $projectmanager_id ){
+	$section_name =  get_userdata($projectmanager_id)->display_name;
+	$project = get_option('_project_manager_id');
+	$sectionExist = section_exist( $section_name, $project  );
+	if( $sectionExist ) return false;
+	else {
+		$asana = connect_asana();
+		$asana->createSection(
+			$project,
+			array("name" => $section_name )
+		);
+		$asana_output = $asana->getData();
+		if( isset( $asana_output->gid ) ){
+			$data2 = array(
+				'id' 		=> $asana_output->gid,
+				'project_id' => $project,
+				'section_name'		=> $asana_output->name
+			);
+		}else return false;
+		return save_new_sections($data2);
+	}
+}
+
+/**
  * Save subtask in Asana and bdd
  * 
  * @param array $data
@@ -301,46 +355,48 @@ function save_new_subtask($data, $parent_id)
 {
 	$asana = connect_asana();
 	foreach ($data as $array) {
-		$result = $asana->createTask(array(
-			'workspace'			=> get_workspace(),
-			'name' 				=>	$array['title'],
-			'assignee_section' 	=> $array['section_project'],
-			'notes' 			=> $array['description'],
-			'parent'			=> NULL,
-			'assignee' 			=> get_userdata($array['assign'])->user_email,
-			'due_on' 			=> $array['duedate']
-		));
-		$taskId = $asana->getData()->gid;
-		$asana->addProjectToTask($taskId, $array['project']);
-		if ($asana->hasError()) {
-			return false;
-		} else {
-			$task_asana = json_decode($result)->data;
-			$data_add = array(
-				'id' => $taskId,
-				'author_id' => get_current_user_id(),
-				'project_id' => $array['project'],
-				'section_id' => $array['section_project'],
-				'title' => $array['title'],
-				'permalink_url' => $task_asana->permalink_url,
-				'type_task' => $array['type_task'],
-				'categorie' => $array['categorie'],
-				'dependancies' => $array['dependance'],
-				'description' => $array['description'],
-				'assigne' => $array['assign'],
-				'duedate' => $task_asana->due_on,
-				'created_at' => $task_asana->created_at
-			);
-
-			$dataworklog = array(
-				'id_task' => $taskId,
-				'finaly_date' => $task_asana->completed_at,
-				'status' => $task_asana->completed,
-				'evaluation' => NULL
-			);
-			$subarray = array('id' => $taskId, 'id_task_parent' => $parent_id);
-			$sortir = save_new_task($data_add, $dataworklog, $subarray);
-			if( ! $sortir ) return false;
+		if( !empty( $array['assign'] ) && !empty( $array['duedate'] ) ){
+			$result = $asana->createTask(array(
+				'workspace'			=> get_workspace(),
+				'name' 				=>	$array['title'],
+				'assignee_section' 	=> $array['section_project'],
+				'notes' 			=> $array['description'],
+				'parent'			=> NULL,
+				'assignee' 			=> get_userdata($array['assign'])->user_email,
+				'due_on' 			=> $array['duedate']
+			));
+			$taskId = $asana->getData()->gid;
+			$asana->addProjectToTask($taskId, $array['project']);
+			if ($asana->hasError()) {
+				return false;
+			} else {
+				$task_asana = json_decode($result)->data;
+				$data_add = array(
+					'id' => $taskId,
+					'author_id' => get_current_user_id(),
+					'project_id' => $array['project'],
+					'section_id' => $array['section_project'],
+					'title' => $array['title'],
+					'permalink_url' => $task_asana->permalink_url,
+					'type_task' => $array['type_task'],
+					'categorie' => $array['categorie'],
+					'dependancies' => $array['dependance'],
+					'description' => $array['description'],
+					'assigne' => $array['assign'],
+					'duedate' => $task_asana->due_on,
+					'created_at' => $task_asana->created_at
+				);
+	
+				$dataworklog = array(
+					'id_task' => $taskId,
+					'finaly_date' => $task_asana->completed_at,
+					'status' => $task_asana->completed,
+					'evaluation' => NULL
+				);
+				$subarray = array('id' => $taskId, 'id_task_parent' => $parent_id);
+				$sortir = save_new_task($data_add, $dataworklog, $subarray);
+				if( ! $sortir ) return false;
+			}
 		}
 	}
 	return true;
