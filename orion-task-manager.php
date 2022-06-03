@@ -105,7 +105,6 @@ function my_plugin_create_db()
 			id_objective bigint NOT NULL,
 			id_user bigint UNSIGNED NOT NULL,
 			id_section bigint NOT NULL,
-			id_project bigint NOT NULL,
 			month_section varchar(255) NOT NULL,
 			year_section varchar(255) NOT NULL,
 			duedate_section datetime NOT NULL,
@@ -113,8 +112,7 @@ function my_plugin_create_db()
 			section_permalink text,
 			FOREIGN KEY  (id_user) REFERENCES $table_users(id),
 			FOREIGN KEY  (id_section) REFERENCES $table_section(id),
-			FOREIGN KEY  (id_project) REFERENCES $table_project(id),
-			PRIMARY KEY  (id_objective,id_user,id_section,id_project,month_section,year_section)
+			PRIMARY KEY  (id_objective,id_user,id_section,month_section,year_section)
 		);
 		CREATE TABLE $table_task (
 			id bigint NOT NULL,
@@ -123,12 +121,12 @@ function my_plugin_create_db()
 			section_id bigint NOT NULL,
 			title varchar(255) NOT NULL,
 			permalink_url text NOT NULL,
-			type_task varchar(50) NOT NULL,
+			type_task varchar(50) NULL,
 			categorie varchar(50),
-			dependancies int,
+			dependancies bigint,
 			description text,
-			assigne bigint NOT NULL,
-			duedate datetime NOT NULL,
+			assigne bigint,
+			duedate datetime,
 			created_at datetime NOT NULL,
 			FOREIGN KEY  (author_id) REFERENCES $table_users(id),
 			FOREIGN KEY  (categorie) REFERENCES $table_categories(categories_key),

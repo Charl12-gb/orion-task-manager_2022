@@ -41,15 +41,15 @@
                     document.getElementById('nbre').value = y;
                 }
             }
-            $('#addojectives').append('<div id="rm2' + y + '"><div class="form-row pt-2"><div class="col"><input type="text" name="objective' + y + '" id="objective' + y + '" class="form-control" placeholder="Enter Objective"></div><div class="col-sm-1"><span name="remove" id="' + y + '" class="btn btn-outline-danger btn_remove_objective">X</span></div></div></div>');
-            document.getElementById('nbre').value = y;
+            $('#addojectives').append('<div id="rm2' + y + '"><div class="form-row pt-2"><div class="col"><input type="text" name="objective' + y + '" id="objective' + y + '" class="form-control" placeholder="Enter Goal"></div><div class="col-sm-1"><span name="remove" id="' + y + '" class="btn btn-outline-danger btn_remove_objective">X</span></div></div></div>');
+            document.getElementById('nbreobj').value = y;
         });
 
         $(document).on('click', '.btn_remove_objective', function() {
             var button_id = $(this).attr("id");
             $('#rm2' + button_id + '').remove();
             y = y - 1
-            document.getElementById('nbre').value = y;
+            document.getElementById('nbreobj').value = y;
         });
 
         $('#add_template').click(function() {
@@ -293,10 +293,19 @@ function open_sub_templaye(template) {
     var div = document.getElementById(template);
     if (div.style.display === "none") {
         div.style.display = "block";
-        document.getElementById("change" + template).innerHTML = ' - ';
+        if (template == 98795) {
+            document.getElementById("change" + template).innerHTML = ' - Close Goal Form';
+        } else {
+            document.getElementById("change" + template).innerHTML = ' - ';
+        }
     } else {
         div.style.display = "none";
-        document.getElementById("change" + template).innerHTML = ' + ';
+        if (template == 98795) {
+            document.getElementById("change" + template).innerHTML = ' + Add Goals';
+        } else {
+            document.getElementById("change" + template).innerHTML = ' + ';
+        }
+
     }
 }
 

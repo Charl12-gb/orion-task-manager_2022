@@ -21,9 +21,9 @@ function connect_asana()
 
 add_action('task_cron_hook', 'task_cron_sync');
 function task_cron_sync(){
-	sync_projets();
-	sync_tasks();
-	sync_duedate_task();
+	// sync_projets();
+	// sync_tasks();
+	// sync_duedate_task();
 }
 
 if( ! wp_next_scheduled( 'task_cron_hook' ) ){
@@ -105,9 +105,10 @@ function sync_projets()
 	if ($asana->getData() != null) {
 		foreach ($asana->getData() as $project_asana) {
 			$Exist = true;
-			foreach ($projects as $project) {
-				if ($project_asana->gid == $project->id) {
-					$Exist = false;
+			if( $project_asana == null ) $Exist = true;
+			else{
+				foreach ($projects as $project) {
+					if ($project_asana->gid == $project->id) { $Exist = false; }
 				}
 			}
 			if ($Exist) {
@@ -115,7 +116,8 @@ function sync_projets()
 				$created = $asana->getData()[0]->created_by->gid;
 				$asana->getProject($project_asana->gid);
 				$project_asana_info = $asana->getData();
-				$project_manager = get_user_asana_id($created);
+				if( $project_asana->gid == get_option( '_project_manager_id' ) ) $project_manager = NULL;
+				else $project_manager = get_user_asana_id($created);
 				$data1 = array(
 					'id' => $project_asana->gid,
 					'title' => $project_asana->name,
@@ -182,47 +184,140 @@ function sync_tasks()
 	$asana->getProjects();
 	if ($asana->getData() != null) {
 		foreach ($asana->getData() as $project_asana) {
-			$asana->getProjectTasks($project_asana->gid);
-			$task_asana = $asana->getData();
-			if ($task_asana != null) {
-				foreach ($task_asana as $task_as) {
-					$TaskExist = true;
-					foreach ($task_all as $task) {
-						if ($task_as->gid == $task->id) {
-							$TaskExist = false;
+			if (($project_asana->gid) != (get_option('_project_manager_id'))) {
+				$asana->getProjectTasks($project_asana->gid);
+				$task_asana = $asana->getData();
+				if ($task_asana != null) {
+					foreach ($task_asana as $task_as) {
+						$TaskExist = true;
+						if ($task_all == null) $TaskExist = true;
+						else {
+							foreach ($task_all as $task) {
+								if ($task_as->gid == $task->id) {
+									$TaskExist = false;
+								}
+							}
 						}
-					}
-					//si la task n'est pas dans la bdd, on recupère ces information
-					if ($TaskExist) {
-						$asana->getTask($task_as->gid);
-						$task_info = $asana->getData();
-						$asana->getTaskStories($task_as->gid);
-						$task_info1 = $asana->getData()[0];
-						$assigne = get_user_asana_id($task_info->assignee->gid);
-						$section_id = $task_info->memberships[0]->section->gid;
-						$data = array(
-							'id' => $task_as->gid,
-							'author_id' => get_user_asana_id($task_info1->created_by->gid),
-							'project_id' => $project_asana->gid,
-							'section_id' => $section_id,
-							'title' => $task_as->name,
-							'permalink_url' => $task_info->permalink_url,
-							'type_task' => 'developper',
-							'categorie' => NULL,
-							'dependancies' => $task_info->parent,
-							'description' => $task_info->notes,
-							'assigne' => $assigne,
-							'duedate' => $task_info->due_on,
-							'created_at' => $task_info1->created_at
-						);
+						//si la task n'est pas dans la bdd, on recupère ces information
+						if ($TaskExist) {
+							$asana->getTask($task_as->gid);
+							$task_info = $asana->getData();
+							if ($task_info->parent == NULL) {
+								$asana->getTaskStories($task_as->gid);
+								$task_info1 = $asana->getData()[0];
+								$assigne = get_user_asana_id($task_info->assignee->gid);
+								$section_id = $task_info->memberships[0]->section->gid;
 
-						$dataworklog = array(
-							'id_task' => $task_as->gid,
-							'finaly_date' => $task_info->completed_at,
-							'status' => $task_info->completed,
-							'evaluation' => NULL
-						);
-						save_new_task($data, $dataworklog);
+								//Partons à la recherche de ces enfants
+								$enfant = 0;
+								$asana->getSubTasks($task_as->gid);
+								$subtask_info = $asana->getData();
+								if ($subtask_info != null) {
+									$id_implementation = NULL;
+									$id_revue = NULL;
+									$id_test = NULL;
+									$id_integration = NULL;
+									$array_tab_sub = array();
+
+									//savegarde de la tache principale + update de table save
+									$array_tab_sub += array($task_as->gid);
+									$data = array(
+										'id' => $task_as->gid,
+										'author_id' => get_user_asana_id($task_info1->created_by->gid),
+										'project_id' => $project_asana->gid,
+										'section_id' => $section_id,
+										'title' => $task_as->name,
+										'permalink_url' => $task_info->permalink_url,
+										'type_task' => NULL,
+										'categorie' => NULL,
+										'dependancies' => NULL,
+										'description' => $task_info->notes,
+										'assigne' => $assigne,
+										'duedate' => $task_info->due_on,
+										'created_at' => $task_info1->created_at
+									);
+
+									$dataworklog = array(
+										'id_task' => $task_as->gid,
+										'finaly_date' => $task_info->completed_at,
+										'status' => $task_info->completed,
+										'evaluation' => NULL
+									);
+									save_new_task($data, $dataworklog);
+
+									//Recherche des enfants de la tâche
+									foreach ($subtask_info as $sub_task) {
+										$array_tab_sub += array($sub_task->gid);
+										$asana->getTask($sub_task->gid);
+										$info_subtask = $asana->getData();
+										$sub_assigne = get_user_asana_id($info_subtask->assignee->gid);
+										if (isset($info_subtask->tags[0]->gid)) {
+											$sub_categorie = $info_subtask->tags[0]->name;
+											if ($info_subtask->tags[0]->gid == "1202382197625653") {
+												$sub_categorie == "implementation";
+												$id_implementation = $sub_task->gid;
+											}
+											if ($info_subtask->tags[0]->gid == "1202382197625652") {
+												$sub_categorie == "revue";
+												$id_revue = $sub_task->gid;
+											}
+											if ($info_subtask->tags[0]->gid == "1202388626016633") {
+												$sub_categorie == "test";
+												$id_test = $sub_task->gid;
+											}
+											if ($info_subtask->tags[0]->gid == "1202388626016635") {
+												$sub_categorie == "integration";
+												$id_integration = $sub_task->gid;
+											}
+										}
+										$asana->getTaskStories($sub_task->gid);
+										$sub_task_info1 = $asana->getData()[0];
+										$sub_data = array(
+											'id' => $sub_task->gid,
+											'author_id' => get_user_asana_id($sub_task_info1->created_by->gid),
+											'project_id' => $project_asana->gid,
+											'section_id' => $section_id,
+											'title' => $info_subtask->name,
+											'permalink_url' => $info_subtask->permalink_url,
+											'type_task' => NULL,
+											'categorie' => $sub_categorie,
+											'dependancies' => NULL,
+											'description' => $info_subtask->notes,
+											'assigne' => $sub_assigne,
+											'duedate' => $info_subtask->due_on,
+											'created_at' => $sub_task_info1->created_at
+										);
+
+										$sub_dataworklog = array(
+											'id_task' => $sub_task->gid,
+											'finaly_date' => $info_subtask->completed_at,
+											'status' => $info_subtask->completed,
+											'evaluation' => NULL
+										);
+										$subarray = array('id' => $sub_task->gid, 'id_task_parent' => $task_as->gid);
+										save_new_task($sub_data, $sub_dataworklog, $subarray);
+									}
+								}
+
+								if ($id_implementation != NULL) {
+									if ($id_revue != NULL) {
+										update_task_dependance($id_implementation, $id_revue);
+										$enfant = $enfant + 1;
+									}
+									if ($id_test != NULL) {
+										update_task_dependance($id_implementation, $id_test);
+										$enfant = $enfant + 1;
+									}
+									if ($id_integration != NULL) {
+										update_task_dependance($id_implementation, $id_integration);
+										$enfant = $enfant + 1;
+									}
+								}
+								if ($enfant == 3) $type_task = 'developper';
+								else $type_task = 'normal';
+								update_type_task($array_tab_sub, $type_task);
+							}
+						}
 					}
 				}
 			}
@@ -275,9 +370,8 @@ function traite_task_and_save($data)
 		'name' 				=>	$array['title'],
 		'assignee_section' 	=> $array['section_project'],
 		'notes' 			=> $array['description'],
-		'parent'			=> NULL,
 		'assignee' 			=> get_userdata($array['assign'])->user_email,
-		'due_on' 			=> $array['duedate']
+		'due_on' 			=> $array['duedate'],
 	));
 	$taskId = $asana->getData()->gid;
 	$asana->addProjectToTask($taskId, $array['project']);
@@ -293,8 +387,8 @@ function traite_task_and_save($data)
 			'title' => $array['title'],
 			'permalink_url' => $task_asana->permalink_url,
 			'type_task' => $array['type_task'],
-			'categorie' => $array['categorie'],
-			'dependancies' => $array['dependance'],
+			'categorie' => NULL,
+			'dependancies' => NULL,
 			'description' => $array['description'],
 			'assigne' => $array['assign'],
 			'duedate' => $task_asana->due_on,
@@ -307,12 +401,12 @@ function traite_task_and_save($data)
 			'status' => $task_asana->completed,
 			'evaluation' => NULL
 		);
-		save_new_task($data_add, $dataworklog);
+		$output = save_new_task($data_add, $dataworklog);
+		if( !$output ) return false;
 	}
 	if (isset($data['parametre']['subtask'])) {
 		return save_new_subtask($data['parametre']['subtask'], $taskId);
-	}
-	return true;
+	}else return true;
 }
 
 /**
@@ -354,50 +448,83 @@ function save_objective_section( $projectmanager_id ){
 function save_new_subtask($data, $parent_id)
 {
 	$asana = connect_asana();
+	$id_implementation = NULL;
+	$id_revue = NULL;
+	$id_test = NULL;
+	$id_integration = NULL;
 	foreach ($data as $array) {
-		if( !empty( $array['assign'] ) && !empty( $array['duedate'] ) ){
-			$result = $asana->createTask(array(
-				'workspace'			=> get_workspace(),
+		if ($array['categorie'] == 'implementation') {
+			$tags = "1202382197625653";
+		}
+		if ($array['categorie'] == 'revue') {
+			$tags = "1202382197625652";
+		}
+		if ($array['categorie'] == 'test') {
+			$tags = "1202388626016633";
+		}
+		if ($array['categorie'] == 'integration') {
+			$tags = "1202388626016635";
+		}
+		$result = $asana->createSubTask(
+			$parent_id,
+			array(
 				'name' 				=>	$array['title'],
 				'assignee_section' 	=> $array['section_project'],
 				'notes' 			=> $array['description'],
-				'parent'			=> NULL,
 				'assignee' 			=> get_userdata($array['assign'])->user_email,
-				'due_on' 			=> $array['duedate']
-			));
-			$taskId = $asana->getData()->gid;
-			$asana->addProjectToTask($taskId, $array['project']);
-			if ($asana->hasError()) {
-				return false;
-			} else {
-				$task_asana = json_decode($result)->data;
-				$data_add = array(
-					'id' => $taskId,
-					'author_id' => get_current_user_id(),
-					'project_id' => $array['project'],
-					'section_id' => $array['section_project'],
-					'title' => $array['title'],
-					'permalink_url' => $task_asana->permalink_url,
-					'type_task' => $array['type_task'],
-					'categorie' => $array['categorie'],
-					'dependancies' => $array['dependance'],
-					'description' => $array['description'],
-					'assigne' => $array['assign'],
-					'duedate' => $task_asana->due_on,
-					'created_at' => $task_asana->created_at
-				);
-	
-				$dataworklog = array(
-					'id_task' => $taskId,
-					'finaly_date' => $task_asana->completed_at,
-					'status' => $task_asana->completed,
-					'evaluation' => NULL
-				);
-				$subarray = array('id' => $taskId, 'id_task_parent' => $parent_id);
-				$sortir = save_new_task($data_add, $dataworklog, $subarray);
-				if( ! $sortir ) return false;
+				'due_on' 			=> $array['duedate'],
+				'tags'				=> [$tags]
+			)
+		);
+		$output = $asana->getData();
+		if (isset($output->gid)) {
+			$taskId = $output->gid;
+			if ($array['categorie'] == 'implementation') {
+				$id_implementation = $taskId;
 			}
+			if ($array['categorie'] == 'revue') {
+				$id_revue = $taskId;
+			}
+			if ($array['categorie'] == 'test') {
+				$id_test = $taskId;
+			}
+			if ($array['categorie'] == 'integration') {
+				$id_integration = $taskId;
+			}
+
+			$data_add = array(
+				'id' => $taskId,
+				'author_id' => get_current_user_id(),
+				'project_id' => $array['project'],
+				'section_id' => $array['section_project'],
+				'title' => $array['title'],
+				'permalink_url' => $output->permalink_url,
+				'type_task' => $array['type_task'],
+				'categorie' => $array['categorie'],
+				'dependancies' => NULL,
+				'description' => $array['description'],
+				'assigne' => $array['assign'],
+				'duedate' => $output->due_on,
+				'created_at' => $output->created_at
+			);
+
+			$dataworklog = array(
+				'id_task' => $taskId,
+				'finaly_date' => $output->completed_at,
+				'status' => $output->completed,
+				'evaluation' => NULL
+			);
+			$subarray = array('id' => $taskId, 'id_task_parent' => $parent_id);
+			$sortir = save_new_task($data_add, $dataworklog, $subarray);
+			if (!$sortir) return false;
+		} else {
+			return 'noadd';
 		}
 	}
-	return true;
+	if ($id_implementation != NULL) {
+		if ($id_revue != NULL) update_task_dependance($id_implementation, $id_revue);
+		if ($id_test != NULL) update_task_dependance($id_implementation, $id_test);
+		if ($id_integration != NULL) update_task_dependance($id_implementation, $id_integration);
+	}
+	return 'success';
 }

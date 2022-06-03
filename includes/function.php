@@ -143,6 +143,38 @@ function save_new_categories($datas, $id = null)
 	return;
 }
 
+/**
+ * Mettre à jour la dépendance des tâches après leur sync avec asana
+ * 
+ * @param int $id_parent
+ * @param int $dependant
+ * 
+ * @return bool
+ */
+function update_task_dependance( $id_parent, $dependant ){
+	global $wpdb;
+	$table = $wpdb->prefix . 'task';
+	$format = array('%d');
+	$data = array( 'dependancies' => $id_parent );
+	return $wpdb->update($table, $data, array( 'id' => $dependant ), $format);
+}
+
+/**
+ * Mettre à jour le type des tâches lors de la synchonisation
+ * 
+ * @param array $datas
+ * @param string $type_task
+ */
+function update_type_task( $datas, $type_task ){
+	global $wpdb;
+	$table = $wpdb->prefix . 'task';
+	$format = array('%s');
+	foreach( $datas as $data ){
+		$data = array( 'type_task' => $type_task );
+		$wpdb->update($table, $data, array( 'id' => $data ), $format);
+	}
+}
+
 function delete_categories_($id)
 {
 	global $wpdb;
@@ -185,7 +217,7 @@ function save_new_task(array $data, array $worklog, $subarray = null)
 function save_objective( $data ){
 	global $wpdb;
 	$table = $wpdb->prefix . 'objectives';
-	$format = array( '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s');
+	$format = array( '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s');
 	return $wpdb->insert($table, $data, $format);
 }
 
@@ -219,10 +251,10 @@ function section_exist( $section_name, $project_id = null ){
 }
 
 
-function objective_exist( $project, $mois, $annee ){
+function objective_exist( $id_user, $mois, $annee ){
 	global $wpdb;
 	$table = $wpdb->prefix . 'objectives';
-	$sql = "SELECT * FROM $table WHERE id_project=$project AND month_section=$mois AND year_section=$annee";
+	$sql = "SELECT * FROM $table WHERE id_user=$id_user AND month_section=$mois AND year_section=$annee";
 	$outputs = $wpdb->get_row( $sql );
 	if( $outputs != null ) return true;
 	else return false;
@@ -316,14 +348,14 @@ function get_templates_($template_id = null)
  * @param int $id_user
  * @param string $month
  * 
- * @return array
+ * @return object|array
  */
-function get_objective_of_month( $id_user, $month ){
+function get_objective_of_month( $id_user, $month, $year=null ){
 	global $wpdb;
-	$table = $wpdb->prefix . 'task';
-	$table1 = $wpdb->prefix . 'project';
-	$sql = "SELECT *, $table.id as id_task FROM $table, $table1 WHERE $table.project_id=$table1.id AND slug='objective' AND project_manager = $id_user AND $table1.description = $month AND type_task='objective'";
-	return $wpdb->get_results($sql);
+	$table = $wpdb->prefix . 'objectives';
+	if( $year == null ) $year = date('Y');
+	$sql = "SELECT * FROM $table WHERE id_user=$id_user AND month_section=$month AND year_section=$year";
+	return $wpdb->get_row($sql);
 }
 
 function get_template_titles()
@@ -459,94 +491,81 @@ function save_objective_project( $project ){
 	}else return null;
 }
 
-
-function traite_form_public( $array ){
-	if( $array['type_task'] == 'objective' ){
-		$nbre = htmlentities( $array['nbre'] );
-		$mois = htmlentities( $array['mois'] );
-		$annee = date('Y');
-		$project = htmlentities( $array['project_select'] );
-		if( empty( $project )) return false;
-		else{
-			if( objective_exist( $project, $mois, $annee ) ) return false;
-			else{
-				if( $nbre == 0 ) return false;
-				else{
-					$id_section = section_exist( get_current_user_id() );
-					if( $id_section == null ) return false;
-					else{
-						//Savegarde du mois comme une tâche
-						$month = date('F', mktime(0, 0, 0, $mois, 10)) . " ( $annee ) ";
-						$string = 'last friday of '. date('F', mktime(0, 0, 0, $mois, 10)) .' this year';
-						$duedate = gmdate('Y-m-d', strtotime($string));
-						$asana = connect_asana();
-						$result = $asana->createTask(array(
-							'workspace' => get_workspace(),
-							'name' => $month,
-							'notes' => "Objectives of the month ( $month )",
-							'assignee_section' 	=> $id_section,
-							'assignee' 			=> get_userdata( get_current_user_id() )->user_email,
-							'due_on' 			=> $duedate,
-						));
-						$objective_id = $asana->getData()->gid;
-						$asana->addProjectToTask($objective_id, get_option('_project_manager_id'));
-						if ($asana->hasError()) {
-							return false;
-						}else{
-							$task_asana = json_decode($result)->data;
-							$permalink_objective = $task_asana->permalink_url;
-							$objective_array = array();
-							for ($k = 1; $k <= $nbre; $k++){
-								$ob = 'objective' .$k;
-								$objective = htmlentities( $array[$ob] );
-								$resulat = $asana->createSubTask($objective_id, array(
-									'name' => $objective,
-									'assignee' 			=> get_userdata( get_current_user_id() )->user_email,
-									'due_on' 			=> $duedate,
-								) );
-								$taskid = $asana->getData()->gid;
-								$objective_array += array( $taskid => array( 'objective' => $objective, 'status' => '' ) );
-							}
-							$objective_tab_save = array(
-								'id_objective' 			=> $objective_id,
-								'id_user' 				=> get_current_user_id(),
-								'id_section'			=> $id_section,
-								'id_project'			=> $project,
-								'month_section' 		=> $mois,
-								'year_section'			=> $annee,
-								'duedate_section'		=> $duedate,
-								'objective_section'		=> serialize( $objective_array ),
-								'section_permalink'		=> $permalink_objective
-							);
-							return save_objective( $objective_tab_save );
-						}					
-					}
-				}
-			}
-		}
-	}
-	if (($array['type_task'] == 'normal') || ($array['type_task'] == 'developper')) {
-		if ($array['show'] == 'userTemplate') {
-			$subtask = array();
-			$task = array(
-				'title' => htmlentities($array['title']),
+function useTemplate_save( $array ){
+	$subtask = array();
+	$task = array(
+		'title' => htmlentities($array['title']),
+		'section_project' => htmlentities($array['project_section']),
+		'type_task' => htmlentities($array['type_task']),
+		'categorie' => NULL,
+		'dependance' => NULL,
+		'project' => htmlentities($array['project']),
+		'assign' => htmlentities($array['assign']),
+		'duedate' => htmlentities($array['duedate']),
+		'description' => htmlentities($array['description'])
+	);
+	if (isset($array['nbrechamp'])) {
+		$nbrechamp = htmlentities($array['nbrechamp']) -1 ;
+		for ($l = 1; $l <= $nbrechamp; $l++) {
+			$titre = 'title' .$l;
+			$categorie = 'categorie'.$l;
+			$assign = 'assign'.$l;
+			$duedate = 'duedate'.$l;
+			$description = 'description'.$l;
+			$subtask += array($l => array(
+				'title' => htmlentities($array[$titre]),
 				'section_project' => htmlentities($array['project_section']),
 				'type_task' => htmlentities($array['type_task']),
-				'categorie' => htmlentities($array['categorie']),
+				'categorie' => htmlentities($array[$categorie]),
 				'dependance' => '',
 				'project' => htmlentities($array['project']),
-				'assign' => htmlentities($array['assign']),
-				'duedate' => htmlentities($array['duedate']),
-				'description' => htmlentities($array['description'])
+				'assign' => htmlentities($array[$assign]),
+				'duedate' => htmlentities($array[$duedate]),
+				'description' => htmlentities($array[$description])
+			));
+		}
+	}
+	$parametre = array( 'parametre' => array( 'task' => $task, 'subtask' => $subtask ) );
+	return traite_task_and_save( $parametre );
+}
+
+function manuel_save($array)
+{
+	$subtask = array();
+	$task = array(
+		'title' => htmlentities($array['title']),
+		'section_project' => htmlentities($array['project_section']),
+		'type_task' => htmlentities($array['type_task']),
+		'categorie' => htmlentities( $array['categorie'] ),
+		'dependance' => NULL,
+		'project' => htmlentities($array['project']),
+		'assign' => htmlentities($array['assign']),
+		'duedate' => htmlentities($array['duedate']),
+		'description' => htmlentities($array['description'])
+	);
+	if (isset($array['show1'])) {
+		if ($array['show1'] == 'userTemplate1') {
+			$subtask += array(
+				0 => array(
+					'title' => htmlentities($array['sub_title']),
+					'section_project' => htmlentities($array['project_section']),
+					'type_task' => htmlentities($array['type_task']),
+					'categorie' => htmlentities($array['sub_categorie']),
+					'dependance' => '',
+					'project' => htmlentities($array['project']),
+					'assign' => htmlentities($array['sub_assign']),
+					'duedate' => htmlentities($array['sub_duedate']),
+					'description' => htmlentities($array['sub_description'])
+				)
 			);
 			if (isset($array['nbrechamp'])) {
-				$nbrechamp = htmlentities($array['nbrechamp']) -1 ;
+				$nbrechamp = htmlentities($array['nbrechamp']) - 1;
 				for ($l = 1; $l <= $nbrechamp; $l++) {
-					$titre = 'title' .$l;
-					$categorie = 'categorie'.$l;
-					$assign = 'assign'.$l;
-					$duedate = 'duedate'.$l;
-					$description = 'description'.$l;
+					$titre = 'sub_title' . $l;
+					$categorie = 'sub_categorie' . $l;
+					$assign = 'sub_assign' . $l;
+					$duedate = 'sub_duedate' . $l;
+					$description = 'sub_description' . $l;
 					$subtask += array($l => array(
 						'title' => htmlentities($array[$titre]),
 						'section_project' => htmlentities($array['project_section']),
@@ -560,80 +579,105 @@ function traite_form_public( $array ){
 					));
 				}
 			}
-			$parametre = array( 'parametre' => array( 'task' => $task, 'subtask' => $subtask ) );
-			return traite_task_and_save( $parametre );
 		}
-		if( $array['show'] == 'manuelTemplate' ){
-			$subtask = array();
-			$task = array(
-				'title' => htmlentities($array['title']),
-				'section_project' => htmlentities($array['project_section']),
-				'type_task' => htmlentities($array['type_task']),
-				'categorie' => htmlentities($array['categorie']),
-				'dependance' => '',
-				'project' => htmlentities($array['project']),
-				'assign' => htmlentities($array['assign']),
-				'duedate' => htmlentities($array['duedate']),
-				'description' => htmlentities($array['description'])
+		if ($array['show1'] == 'manuelTemplate1') {
+			$subtask += array(
+				0 => array(
+					'title' => htmlentities($array['manuel_title']),
+					'section_project' => htmlentities($array['project_section']),
+					'type_task' => htmlentities($array['type_task']),
+					'categorie' => htmlentities($array['manuel_categorie']),
+					'dependance' => '',
+					'project' => htmlentities($array['project']),
+					'assign' => htmlentities($array['manuel_assign']),
+					'duedate' => htmlentities($array['manuel_duedate']),
+					'description' => htmlentities($array['manuel_description'])
+				)
 			);
-			if (isset($array['show1'])) {
-				if ($array['show1'] == 'userTemplate1') {
-					if (!isset($array['nbrechamp'])) {
-						$subtask += array(
-							0 => array(
-								'title' => htmlentities($array['sub_title']),
-								'section_project' => htmlentities($array['project_section']),
-								'type_task' => htmlentities($array['type_task']),
-								'categorie' => htmlentities($array['sub_categorie']),
-								'dependance' => '',
-								'project' => htmlentities($array['project']),
-								'assign' => htmlentities($array['sub_assign']),
-								'duedate' => htmlentities($array['sub_duedate']),
-								'description' => htmlentities($array['sub_description'])
-							)
-						);
+		}
+	}
+	$parametre = array('parametre' => array('task' => $task, 'subtask' => $subtask));
+	return traite_task_and_save($parametre);
+}
+
+function save_dev_normal_task( $array ){
+	if ($array['show'] == 'userTemplate') {
+		return useTemplate_save( $array );
+	}
+	if( $array['show'] == 'manuelTemplate' ){
+		return manuel_save( $array );
+	}else return false;
+}
+
+
+function traite_form_public($array)
+{
+	if (
+		$array['type_task'] == 'objective'
+	) {
+		$nbre = htmlentities($array['nbreobj']);
+		$mois = htmlentities($array['mois']);
+		$annee = date('Y');
+		$project = htmlentities($array['project_select']);
+		if (objective_exist(get_current_user_id(), $mois, $annee)) return false;
+		else {
+			if ($nbre == 0) return false;
+			else {
+				$id_section = section_exist(get_current_user_id());
+				if ($id_section == null) return false;
+				else {
+					//Savegarde du mois comme une tâche
+					$month = date('F', mktime(0, 0, 0, $mois, 10)) . " ( $annee ) ";
+					$project_name = get_project_title($project);
+					$string = 'last friday of ' . date('F', mktime(0, 0, 0, $mois, 10)) . ' this year';
+					$duedate = gmdate('Y-m-d', strtotime($string)) . ' 23:59:00';
+					$asana = connect_asana();
+					$result = $asana->createTask(array(
+						'workspace' => get_workspace(),
+						'name' => $month,
+						'notes' => "Objectives of the month ( $month )",
+						'assignee_section' 	=> $id_section,
+						'assignee' 			=> get_userdata(get_current_user_id())->user_email,
+						'due_on' 			=> $duedate,
+					));
+					$objective_id = $asana->getData()->gid;
+					$asana->addProjectToTask($objective_id, get_option('_project_manager_id'));
+					if ($asana->hasError()) {
+						return false;
 					} else {
-						$nbrechamp = htmlentities($array['nbrechamp']) - 1;
-						for ($l = 1; $l <= $nbrechamp; $l++) {
-							$titre = 'sub_title' . $l;
-							$categorie = 'sub_categorie' . $l;
-							$assign = 'sub_assign' . $l;
-							$duedate = 'sub_duedate' . $l;
-							$description = 'sub_description' . $l;
-							$subtask += array($l => array(
-								'title' => htmlentities($array[$titre]),
-								'section_project' => htmlentities($array['project_section']),
-								'type_task' => htmlentities($array['type_task']),
-								'categorie' => htmlentities($array[$categorie]),
-								'dependance' => '',
-								'project' => htmlentities($array['project']),
-								'assign' => htmlentities($array[$assign]),
-								'duedate' => htmlentities($array[$duedate]),
-								'description' => htmlentities($array[$description])
+						$task_asana = json_decode($result)->data;
+						$permalink_objective = $task_asana->permalink_url;
+						$objective_array = array();
+						for ($k = 1; $k <= $nbre; $k++) {
+							$ob = 'objective' . $k;
+							$objective = htmlentities($array[$ob]);
+							$resulat = $asana->createSubTask($objective_id, array(
+								'name' => $objective,
+								'assignee' 			=> get_userdata(get_current_user_id())->user_email,
+								'due_on' 			=> $duedate,
 							));
+							$taskid = $asana->getData()->gid;
+							$objective_array += array($taskid => array('objective' => $objective, 'status' => ''));
 						}
+						$objective_tab_save = array(
+							'id_objective' 			=> $objective_id,
+							'id_user' 				=> get_current_user_id(),
+							'id_section'			=> $id_section,
+							'month_section' 		=> $mois,
+							'year_section'			=> $annee,
+							'duedate_section'		=> $duedate,
+							'objective_section'		=> serialize($objective_array),
+							'section_permalink'		=> $permalink_objective
+						);
+						return save_objective($objective_tab_save);
 					}
 				}
-				if ($array['show1'] == 'manuelTemplate1') {
-					$subtask += array(
-						0 => array(
-							'title' => htmlentities($array['manuel_title']),
-							'section_project' => htmlentities($array['project_section']),
-							'type_task' => htmlentities($array['type_task']),
-							'categorie' => htmlentities($array['manuel_categorie']),
-							'dependance' => '',
-							'project' => htmlentities($array['project']),
-							'assign' => htmlentities($array['manuel_assign']),
-							'duedate' => htmlentities($array['manuel_duedate']),
-							'description' => htmlentities($array['manuel_description'])
-						)
-					);
-				}
 			}
-			$parametre = array( 'parametre' => array( 'task' => $task, 'subtask' => $subtask ) );
-			return traite_task_and_save( $parametre );
-		}else return false;
-	}else return false;
+		}
+	}
+	if (($array['type_task'] == 'normal') || ($array['type_task'] == 'developper')) {
+		return save_dev_normal_task($array);
+	} else return false;
 }
 
 function page_task()
@@ -649,16 +693,26 @@ function page_task()
 ?>
 		<div class="container card">
 			<div class="row text-center card-header">
-				<div class="col-sm-6"><a class="button text-dark" data-toggle="collapse" data-target="#collapse5" aria-expanded="false" aria-controls="collapse5" href="" class="nav-tab">
+				<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse5" aria-expanded="false" aria-controls="collapse5" href="" class="nav-tab">
 						<h5><?php _e('Calendar', 'task'); ?>
 						</h5>
 					</a>
 				</div>
-				<div class="col-sm-6">
+				<div class="col-sm-4">
 					<a class="button text-dark" data-toggle="collapse" data-target="#collapse1" aria-expanded="true" aria-controls="collapse1" href="" class="nav-tab">
 						<h5><?php _e('Task Lists', 'task'); ?> </h5>
 					</a>
 				</div>
+				<?php if (is_project_manager() != null) {
+					?>
+					<div class="col-sm-4">
+						<a class="button text-dark" data-toggle="collapse" data-target="#collapseOb" aria-expanded="true" aria-controls="collapseOb" href="" class="nav-tab">
+							<h5><?php _e('Goals', 'task'); ?> </h5>
+						</a>
+					</div>
+					<?php
+				}
+				?>
 			</div>
 			<div id="accordion" class="card-body">
 				<div id="collapse1" class="collapse" aria-labelledby="heading1" data-parent="#accordion">
@@ -715,19 +769,10 @@ function page_task()
 							<div class="col-sm-6" style="text-align:left;">
 								<h3>Calendar</h3>
 							</div>
-							<div class="col-sm-6" style="text-align:right;">
-								<?php if (is_project_manager() != null) {
-									?>
-										<button class="btn btn-outline-primary text-dark" data-toggle="collapse" data-target="#collapseOb" aria-expanded="false" aria-controls="collapseOb" href="" class="nav-tab">
-											<?php _e('Objectives of the month', 'task'); ?></button>
-									<?php
-									}
-									?>
-							</div>
 						</div>
 						<div class="form-group">
 							<label for="user_calendar">Filter calendar by name</label>
-							<select id="user_calendar" <?php if (is_project_manager() == null) echo 'disabled'; ?> name="user_calendar" class="form-control user_calendar">
+							<select id="user_calendar" <?php if (is_project_manager() == null) echo 'readonly'; ?> name="user_calendar" class="form-control user_calendar">
 								<?php if (is_project_manager() != null) {
 								?>
 									<option value="">Everyone</option>
@@ -908,7 +953,7 @@ function get_form_template($id_template = null)
 	?>
 		<div class="form-group">
 			<div class="form-row">
-				<label for="InputTitle">Titre Template</label>
+				<label for="InputTitle">Title Template</label>
 				<input type="text" name="templatetitle" id="templatetitle" class="form-control" placeholder="Titre Template">
 			</div>
 			<div class="form-row">
@@ -921,7 +966,6 @@ function get_form_template($id_template = null)
 					<select id="type_task" name="type_task" class="form-control">
 						<option value="developper">Developper</option>
 						<option value="normal">Normal</option>
-						<option value="objective">Objective</option>
 					</select>
 				</div>
 			</div>
@@ -1051,45 +1095,78 @@ function objective_tab( $id_user = null, $month = null ){
 	if( $id_user == null ) $id_user = get_current_user_id();
 	if( $month == null ) $month = date('m');
 	$mois = date('F', mktime(0, 0, 0, $month, 10));
-	$objectives = get_objective_of_month( $id_user, $month );
 	?>
+	<div id="98795" style="display:none">
+		<div class="card-header">
+				<h3 class="mb-0 ">Add Goals</h3>
+		</div>
+		<form method="post" action="#" >
+			<?php wp_nonce_field('create_new_task', 'verifier_new_task_form'); ?>
+			<div class="pb-3">
+				<div class="row">
+					<input type="hidden" class="form-control" name="type_task" id="type_task" value="objective">
+					<div class="col">
+						<label for="proectlabel">Select Month : </label>
+						<select class="form-control" id="mois" name="mois">
+							<?php for( $z=1; $z<=12; $z++ ){ ?> <option value="<?= $z ?>" <?php if( date('m') == $z ) echo 'selected'; ?> > <?= date('F', mktime(0, 0, 0, $z, 10)) .' '. date('Y') ?></option> <?php } ?>
+						</select>
+					</div>
+				</div>
+				<div id="addojectives" class="pb-3"></div>
+				<input type="hidden" name="nbreobj" id="nbreobj" value="0">
+				<div class="form-group">
+					<span id="addobject" name="addobject" class="btn btn-outline-success">+ Add Goals</span>
+				</div>
+			</div>		
+			<div id="hidden_submit" class="row" >
+				<div class="col-sm-9"></div>
+				<div class="col-sm-3"><button type="submit" class="btn btn-primary" name="validetash">Submit</button></div>
+			</div>
+		</form>
+	</div>
+	<hr>
 	<div class="card">
 		<div class="card-header">
-			<h3 class="mb-0 ">
-				Objectives of the <?= $mois ?>
-			</h3>
+			<div class="row">
+				<div class="col-sm-6">
+					<h3 class="mb-0 " style="text-align:left;">Goals of the <?= $mois ?></h3>
+				</div>
+				<div class="col-sm-6" style="text-align:right;">
+					<span onclick="open_sub_templaye(98795)" class="btn btn-outline-primary"> <span id="change98795"> + Add Goals</span></span>
+				</div>
+			</div>
 		</div>
 		<?php 
-			if( $objectives != null ){
+		$objectives_array = get_objective_of_month( $id_user, $month );
+		if( $objectives_array != null ){
 				?>
 				<div class="card-body">
 					<table class="table table-hover">
 						<thead>
 							<tr>
-								<th>N°</th>
-								<th>Task title</th>
-								<th>Status</th>
+								<th colspan="2">Goals</th>
 							</tr>
 						</thead>
 						<tbody>
-							<?php $k = 1;
-							foreach ($objectives as $task) {
-								$status = get_task_status($task->id_task);
+							<?php
+							$subobjective = unserialize( $objectives_array->objective_section );
+							foreach ($subobjective as $objective) {
 							?>
 								<tr>
-									<td><?= $k ?></td>
-									<td><a href="<?= $task->permalink ?>" class="btn-link"><?= $task->title ?></a></td>
-									<td class="<?php if ($status == 'Not Completed' || $status == 'Completed Before Date') echo 'text-danger';
-										elseif ($status == 'In Progess' || $status == 'Completed') echo 'text-success';
-										else echo 'text-warning';  ?>"><?= $status ?></td>
+									<td colspan="2"><?= $objective['objective'] ?></td>
 								</tr>
-								<?php $k++;
+								<?php 
 							} 
 							?>
+							<tr>
+								<th>Due Date : <?= $objectives_array->duedate_section ?> </th>
+								<th>Click <a href="<?= $objectives_array->section_permalink ?>">here</a> for details</th>
+							</tr>
 						</tbody>
 					</table>
 				</div>
 				<?php
+
 			}else{
 				?>
 				<div class="alert alert-primary" role="alert">
@@ -1202,6 +1279,7 @@ function orion_task_evaluation_shortcode()
 }
 function taches_tab()
 {
+	sync_tasks();
 	?>
 	<div class="container-fluid pt-3">
 		<div class="row" id="accordion">
@@ -1320,18 +1398,18 @@ function get_categories_()
 {
 	$all_categories = get_all_categories();
 	foreach ($all_categories as $categorie) {
-		if ($categorie->categories_key == 'implementation' || $categorie->categories_key == 'test' || $categorie->categories_key == 'revue_de_code' || $categorie->categories_key == 'integration') {
+		if ($categorie->categories_key == 'implementation' || $categorie->categories_key == 'test' || $categorie->categories_key == 'revue' || $categorie->categories_key == 'integration') {
 	?>
 			<div class="form-row pt-2">
-				<div class="col-sm-6"><input type="text" disabled value="<?= $categorie->categories_name ?>" class="form-control text-dark"></div>
-				<div class="col-sm-6"><input type="text" disabled value="<?= $categorie->categories_key ?>" class="form-control text-dark"></div>
+				<div class="col-sm-6"><input type="text" readonly value="<?= $categorie->categories_name ?>" class="form-control text-dark"></div>
+				<div class="col-sm-6"><input type="text" readonly value="<?= $categorie->categories_key ?>" class="form-control text-dark"></div>
 			</div>
 		<?php
 		} else {
 		?>
 			<div class="form-row pt-2">
-				<div class="col-sm-6"><input type="text" id="name<?= $categorie->id ?>" disabled value="<?= $categorie->categories_name ?>" class="form-control text-dark"></div>
-				<div class="col-sm-4"><input type="text" id="key<?= $categorie->id ?>" disabled value="<?= $categorie->categories_key ?>" class="form-control text-dark"></div>
+				<div class="col-sm-6"><input type="text" id="name<?= $categorie->id ?>" readonly value="<?= $categorie->categories_name ?>" class="form-control text-dark"></div>
+				<div class="col-sm-4"><input type="text" id="key<?= $categorie->id ?>" readonly value="<?= $categorie->categories_key ?>" class="form-control text-dark"></div>
 				<div class="col-sm-1 btn btn-primary edit_categorie" id="<?= $categorie->id ?>"> <span id="edit_<?= $categorie->id ?>">Edit</span> </div>
 				<div class="col-sm-1 btn btn-danger delete_categorie" id="<?= $categorie->id ?>">Delete</div>
 			</div>
@@ -1866,42 +1944,6 @@ function get_categorie_format()
 function get_form(array $array, $istemplate)
 {
 	$template = $array['parametre']['template'];
-	if ($template['type_task'] == 'objective') {
-	?>
-		<div class="pb-3">
-			<div class="row">
-				<div class="col">
-					<label for="proectlabel">Select Project : </label>
-					<select class="form-control" id="project_select" name="project_select">
-						<?= option_select(array('' => 'Choose project ...') + get_project_manger_project()) ?>
-					</select>
-					<input type="hidden" class="form-control" name="type_task" id="type_task" value="objective">
-				</div>
-				<div class="col">
-					<label for="proectlabel">Select Month : </label>
-					<select class="form-control" id="mois" name="mois">
-						<option value="1" <?php if( date('m') == 1 ) echo 'selected'; ?> >January <?= date('Y') ?></option>
-						<option value="2" <?php if( date('m') == 2 ) echo 'selected'; ?> >February <?= date('Y') ?></option>
-						<option value="3" <?php if( date('m') == 3 ) echo 'selected'; ?> >March <?= date('Y') ?></option>
-						<option value="4" <?php if( date('m') == 4 ) echo 'selected'; ?> >April <?= date('Y') ?></option>
-						<option value="5" <?php if( date('m') == 5 ) echo 'selected'; ?> >May <?= date('Y') ?></option>
-						<option value="6" <?php if( date('m') == 6 ) echo 'selected'; ?> >June <?= date('Y') ?></option>
-						<option value="7" <?php if( date('m') == 7 ) echo 'selected'; ?> >July <?= date('Y') ?></option>
-						<option value="8" <?php if( date('m') == 8 ) echo 'selected'; ?> >August <?= date('Y') ?></option>
-						<option value="9" <?php if( date('m') == 9 ) echo 'selected'; ?> >September <?= date('Y') ?></option>
-						<option value="10" <?php if( date('m') == 10 ) echo 'selected'; ?> >October <?= date('Y') ?></option>
-						<option value="11" <?php if( date('m') == 11 ) echo 'selected'; ?> >November <?= date('Y') ?></option>
-						<option value="12" <?php if( date('m') == 12 ) echo 'selected'; ?> >December <?= date('Y') ?></option>
-					</select>
-				</div>
-			</div>
-			<div id="addojectives" class="pb-3"></div>
-			<div class="form-group">
-				<span id="addobject" name="addobject" class="btn btn-outline-success">+ Add Objectives</span>
-			</div>
-		</div>
-	<?php
-	} else {
 	?>
 		<div class="pb-3">
 			<?php
@@ -1909,7 +1951,7 @@ function get_form(array $array, $istemplate)
 			?>
 				<div class="form-group">
 					<label for="title">Titre</label>
-					<input type="text" class="form-control" disabled name="sub_title" id="sub_title" value="<?= $template['tasktitle']  ?>">
+					<input type="text" class="form-control" readonly name="sub_title" id="sub_title" value="<?= $template['tasktitle']  ?>">
 				</div>
 			<?php
 			} else {
@@ -1945,12 +1987,16 @@ function get_form(array $array, $istemplate)
 					<label for="duedate">Due Date</label>
 					<input type="date" name="<?php if ($istemplate) echo 'sub_'  ?>duedate" class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>duedate" aria-describedby="duedate">
 				</div>
-				<div class="col">
-					<label for="categorie">Categorie</label>
-					<select class="form-control" id="<?php if ($istemplate) echo 'sub_'  ?>categorie" name="<?php if ($istemplate) echo 'sub_'  ?>categorie">
-						<?= option_select(get_categorie_format()) ?>
-					</select>
-				</div>
+				<?php if ($istemplate){
+					?>
+					<div class="col">
+						<label for="categorie">Categorie</label>
+						<select class="form-control" id="sub_categorie" name="sub_categorie">
+							<?= option_select(get_categorie_format()) ?>
+						</select>
+					</div>
+					<?php
+				}  ?>
 				<div class="col">
 					<label for="assigne">Assigne : </label>
 					<select class="form-control assign_option" id="<?php if ($istemplate) echo 'sub_'  ?>assign" name="<?php if ($istemplate) echo 'sub_'  ?>assign"><option value="" selected></option></select>
@@ -1996,11 +2042,8 @@ function get_form(array $array, $istemplate)
 			?>
 			<input type="hidden" name="nbrechamp" class="form-control" id="nbrechamp" value="<?= $j ?>">
 		<?php
-
 		}
-	}
 }
-
 function get_first_choose($type, $istemplate = false)
 {
 	if ($type == 'usertemplate') {
@@ -2030,7 +2073,7 @@ function get_first_choose($type, $istemplate = false)
 			?>
 				<div class="row">
 					<div class="col">
-						<label for="title">Titre</label>
+						<label for="title">Title Task : </label>
 						<input type="text" class="form-control" required name="title" id="title">
 					</div>
 					<div class="col">
@@ -2073,8 +2116,8 @@ function get_first_choose($type, $istemplate = false)
 				</div>
 				<div class="col">
 					<label for="categorie">Categorie</label>
-					<select class="form-control" id="<?php if ($istemplate) echo 'manuel_'  ?>categorie" name="<?php if ($istemplate) echo 'manuel_'  ?>categorie">
-						<?= option_select(get_categorie_format()) ?>
+					<select class="form-control" id="<?php if ($istemplate) echo 'manuel_'; ?>categorie" name="<?php if ($istemplate) echo 'manuel_'; ?>categorie">
+						<?= option_select(array( '' => 'None' ) + get_categorie_format()) ?>
 					</select>
 				</div>
 			</div>

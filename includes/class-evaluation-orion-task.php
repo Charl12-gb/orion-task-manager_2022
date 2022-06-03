@@ -8,13 +8,31 @@ function evaluator_page()
 	if (isset($_GET['task_id'], $_GET['type_task']) && (!empty($_GET['task_id']) && !empty($_GET['type_task']))) {
 		$task_id = htmlentities($_GET['task_id']);
 		$type_task = htmlentities($_GET['type_task']);
-		if( get_evaluation_info( $task_id )->evaluation == null ){
-			get_evaluation_form($task_id, $type_task);
+		if( $type_task == 'normal' || $type_task == 'developper' ){
+			if( get_evaluation_info( $task_id ) == null ){
+				?>
+				<div class="alert alert-danger" role="alert">
+					Sorry ! <br>
+					Task Not Found
+				</div>
+				<?php
+			}else{
+				if( get_evaluation_info( $task_id )->evaluation == null ){
+					get_evaluation_form($task_id, $type_task);
+				}else{
+					?>
+					<div class="alert alert-danger" role="alert">
+						Sorry ! <br>
+						Task already evaluated
+					</div>
+					<?php
+				}
+			}
 		}else{
 			?>
 			<div class="alert alert-danger" role="alert">
 				Sorry ! <br>
-				Task already evaluated
+				Invalid type
 			</div>
 			<?php
 		}
@@ -173,12 +191,12 @@ function get_evaluation_form($task_id, $type_task)
 	$get_criteria = get_option('_evaluation_criterias');
 	$criterias =  unserialize($get_criteria);
 	?>
-	<div class="container">
+	<div class="container card">
 		<?php
 		if ($type_task == 'normal' || $type_task == 'developper') {
 		?>
 			<div style="width: 100%;text-align: center;color:black">
-				<h3 style="text-align: center; font-weight: bold;"><?= $task->title ?></h3>
+			<hr><h3 style="text-align: center; font-weight: bold;"><?= $task->title ?></h3><hr>
 				<p>Le détails se trouve ici : <a href="<?= $task->permalink_url ?>" class="text-primary"><?= $task->permalink_url ?></a></p>
 			</div>
 		<?php
@@ -199,7 +217,7 @@ function get_evaluation_form($task_id, $type_task)
 function get_form_evaluation($criterias, $id_task)
 {
 ?>
-	<div class="alert alert-primary p-2" role="alert">
+	<div class="alert alert-primary p-2 text-center" role="alert">
 		Double check before submitting as you will not be able to edit once submitted. Thanks
 	</div>
 	<hr>
@@ -210,27 +228,20 @@ function get_form_evaluation($criterias, $id_task)
 		foreach ($criterias as $criteria) {
 		?>
 			<div>
-				<div class="form-row">
-					<div class="col">
-						<div class="alert alert-secondary p-2" role="alert">
-							<?= $criteria['criteria'] ?>
-						</div>
-					</div>
-				</div>
-				<div class="form-row pb-1">
-					<div class="col-sm-4">
+				<div class="form-row pb-1 card-body">
+					<div class="col-sm-5">
 						<div class="form-check mb-2">
-							<div class="row">
-								<div class="col-sm-4">
-									<strong>Make : </strong>
+							<div class="row card-header">
+								<div class="col-sm-8">
+									<strong><?= $criteria['criteria'] ?> : </strong>
 								</div>
-								<div class="col-sm-4">
+								<div class="col-sm-2">
 									<input class="form-check-input" type="radio" onclick="block_(<?= $i ?>)" id="makeYes" value="makeYes<?= $i ?>" name="make-radio<?= $i ?>">
 									<label class="form-check-label" for="make">
 										Yes
 									</label>
 								</div>
-								<div class="col-sm-4">
+								<div class="col-sm-2">
 									<input class="form-check-input" onclick="hide_(<?= $i ?>)" type="radio" id="makeNo" value="makeNo<?= $i ?>" name="make-radio<?= $i ?>">
 									<label class="form-check-label" for="autoSizingCheck">
 										No
@@ -239,12 +250,12 @@ function get_form_evaluation($criterias, $id_task)
 							</div>
 						</div>
 					</div>
-					<div class="col-sm-8" id="<?= $i ?>" style="display: none;">
+					<div class="col-sm-7" id="<?= $i ?>" style="display: none;">
 						<div class="row">
-							<div class="col-sm-5">
+							<div class="col-sm-4">
 								<input type="number" min="0" max="<?= $criteria['note'] ?>" name="note<?= $i ?>" name="note<?= $i ?>" class="form-control" placeholder="0">
 							</div>
-							<div class="col-sm-7">
+							<div class="col-sm-8">
 								<textarea class="form-control m-0" id="description<?= $i ?>" name="description<?= $i ?>" rows="1" placeholder="Description ..."></textarea>
 							</div>
 						</div>
@@ -258,6 +269,7 @@ function get_form_evaluation($criterias, $id_task)
 		<input type="hidden" value="<?= $id_task ?>" name="task_id" id="task_id">
 		<input type="hidden" value="<?= $i ?>" name="nbrecriteria" id="nbrecriteria">
 		<button class="btn btn-outline-primary" type="submit">Submit</button>
+		<hr>
 	</form>
 <?php
 }
