@@ -160,19 +160,51 @@ function sync_projets()
 }
 
 /**
+ * Fonction permettant d'envoyer automatiquement 
+ * les mails si la tache est terminée.
+ */
+function automatique_send_mail( ){
+	$worklogs = get_all_worklog('mail_status', 'no'); 						// récupération des tâches dont mail n'est pas encore send
+	foreach( $worklogs as $worklog ){ 										//parcourir la list
+		$task = get_task_('id', $worklog->id_task);	   						// on récupère les infor de la tâche 
+		if( $task[0]->categorie == 'revue' ){ 								// si categorie = revue
+			if( $task[0]->dependancies != NULL ){ 							// si dependance est != null
+				$dependant = get_task_('id', $task[0]->dependancies); 		//On récupere la dependance
+				if( $dependant[0]->categorie == 'implementation' ){
+					if( $task[0]->assigne != NULL ){
+						$mail_template = get_email_( "0", $task[0]->type_task )[0];
+						$mail_content = $mail_template->content;
+						$subject = $mail_template->subject;
+						
+						$destinataire = get_userdata( $task[0]->assigne )->user_email ;
+						$title_main_task = get_task_main( $worklog->id_task );
+						$msg = content_msg($dependant[0]->id, $title_main_task, $task[0]->type_task, $mail_content);
+						mail_sending_form($destinataire, $subject, $msg);
+						update_worklog( array( 'mail_status'=> 'yes' ),array('id_task' => $worklog->id_task), array('%s') );
+					}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
+				}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
+			}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
+		}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
+	}
+}
+
+/**
  * Synchronisation le status des tâches. (Completed or No)
  */
 function sync_duedate_task()
 {
-	global $wpdb;
-	$table = $wpdb->prefix . 'worklog';
 	$worklog_all = get_all_worklog();
 	$asana = connect_asana();
+	$mail_status = NULL;
 	foreach ($worklog_all as $worklog) {
 		$asana->getTask($worklog->id_task);
 		$detail_task = $asana->getData();
-		if ($worklog->status != $detail_task->completed)
-			$wpdb->update($table, array('finaly_date' => $detail_task->completed_at, 'status' => $detail_task->completed), array('id_task' => $worklog->id_task), array('%s', '%s'));
+		if ($worklog->status != $detail_task->completed){
+			if( $detail_task->completed ) $mail_status = 'no';
+			else $mail_status = NULL;
+			
+			update_worklog( array('finaly_date' => $detail_task->completed_at, 'status' => $detail_task->completed, 'mail_status' => $mail_status), array('id_task' => $worklog->id_task), array('%s', '%s') );
+		}
 	}
 }
 
@@ -192,14 +224,6 @@ function sync_tasks()
 				if ($task_asana != null) {
 					foreach ($task_asana as $task_as) {
 						$TaskExist = true;
-						// if ($task_all == null) $TaskExist = true;
-						// else {
-						// 	foreach ($task_all as $task) {
-						// 		if ($task_as->gid == $task->id) {
-						// 			$TaskExist = false;
-						// 		}
-						// 	}
-						// }
 						//si la task n'est pas dans la bdd, on recupère ces information
 						if ($TaskExist) {
 							$asana->getTask($task_as->gid);
@@ -216,6 +240,26 @@ function sync_tasks()
 								$id_integration = NULL;
 								$sub_categorie = NULL;
 
+								if (isset($task_info->tags[0]->gid)) {
+									$sub_categorie = $task_info->tags[0]->name;
+									if ($task_info->tags[0]->gid == "1202382197625653") {
+										$sub_categorie == "implementation";
+										$id_implementation = $task_as->gid;
+									}
+									if ($task_info->tags[0]->gid == "1202382197625652") {
+										$sub_categorie == "revue";
+										$id_revue = $task_as->gid;
+									}
+									if ($task_info->tags[0]->gid == "1202388626016633") {
+										$sub_categorie == "test";
+										$id_test = $task_as->gid;
+									}
+									if ($task_info->tags[0]->gid == "1202388626016635") {
+										$sub_categorie == "integration";
+										$id_integration = $task_as->gid;
+									}
+								}
+
 								$asana->getTaskStories($task_as->gid);
 								$task_info1 = $asana->getData()[0];
 
@@ -229,19 +273,21 @@ function sync_tasks()
 									'title' => $task_as->name,
 									'permalink_url' => $task_info->permalink_url,
 									'type_task' => NULL,
-									'categorie' => NULL,
+									'categorie' => $sub_categorie,
 									'dependancies' => NULL,
 									'description' => $task_info->notes,
 									'assigne' => $assigne,
 									'duedate' => $task_info->due_on,
 									'created_at' => $task_info1->created_at
 								);
-
+								if( $task_info->completed ) $mail_status = 'no';
+								else $mail_status = NULL;
 								$dataworklog = array(
 									'id_task' => $task_as->gid,
 									'finaly_date' => $task_info->completed_at,
 									'status' => $task_info->completed,
-									'evaluation' => NULL
+									'evaluation' => NULL,
+									'mail_status' => $mail_status
 								);
 								save_new_task($data, $dataworklog);
 
@@ -292,12 +338,15 @@ function sync_tasks()
 											'duedate' => $info_subtask->due_on,
 											'created_at' => $sub_task_info1->created_at
 										);
+										if( $info_subtask->completed ) $mail_status = 'no';
+										else $mail_status = NULL;
 
 										$sub_dataworklog = array(
 											'id_task' => $sub_task->gid,
 											'finaly_date' => $info_subtask->completed_at,
 											'status' => $info_subtask->completed,
-											'evaluation' => NULL
+											'evaluation' => NULL,
+											'mail_status' => $mail_status
 										);
 										$subarray = array('id' => $sub_task->gid, 'id_task_parent' => $task_as->gid);
 										save_new_task($sub_data, $sub_dataworklog, $subarray);
@@ -403,7 +452,8 @@ function traite_task_and_save($data)
 			'id_task' => $taskId,
 			'finaly_date' => $task_asana->completed_at,
 			'status' => $task_asana->completed,
-			'evaluation' => NULL
+			'evaluation' => NULL,
+			'mail_status' => NULL
 		);
 		$output = save_new_task($data_add, $dataworklog);
 		if (!$output) return false;
@@ -517,7 +567,8 @@ function save_new_subtask($data, $parent_id)
 				'id_task' => $taskId,
 				'finaly_date' => $output->completed_at,
 				'status' => $output->completed,
-				'evaluation' => NULL
+				'evaluation' => NULL,
+				'mail_status' => NULL
 			);
 			$subarray = array('id' => $taskId, 'id_task_parent' => $parent_id);
 			$sortir = save_new_task($data_add, $dataworklog, $subarray);

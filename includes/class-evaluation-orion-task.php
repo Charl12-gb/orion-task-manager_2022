@@ -128,7 +128,7 @@ function download_worklog($user_id)
  * 
  * @return string
  */
-function content_msg($id_task, $type_task, $content)
+function content_msg($id_task,$title_main_task, $type_task, $content)
 {
 	$task = get_task_('id', $id_task, 'yes')[0];
 	$variable_table = array('task_name', 'project_name', 'task_link', 'form_link');
@@ -151,7 +151,7 @@ function content_msg($id_task, $type_task, $content)
 			$content = preg_replace("/{{" . $output . "}}/", "inconnu", $content);
 		}
 	}
-	return $content;
+	return $content . "<br><hr><h5><span style='text-decoration:underline; color:blue;'>Main Task : </span>$title_main_task</h5><hr>";
 }
 
 /**
@@ -196,8 +196,8 @@ function get_evaluation_form($task_id, $type_task)
 		if ($type_task == 'normal' || $type_task == 'developper') {
 		?>
 			<div style="width: 100%;text-align: center;color:black">
-			<hr><h3 style="text-align: center; font-weight: bold;"><?= $task->title ?></h3><hr>
-				<p>Le détails se trouve ici : <a href="<?= $task->permalink_url ?>" class="text-primary"><?= $task->permalink_url ?></a></p>
+			<h4 class="pt-2" style="text-align: center; font-weight: bold;"><?= $task->title ?></h4>
+				<p>Find task details <a href="<?= $task->permalink_url ?>" class="text-primary">here</a></p><hr>
 			</div>
 		<?php
 		} else {
@@ -216,9 +216,39 @@ function get_evaluation_form($task_id, $type_task)
 
 function get_form_evaluation($criterias, $id_task)
 {
+	$task = get_task_( 'id', $id_task ); 
 ?>
-	<div class="alert alert-primary p-2 text-center" role="alert">
-		Double check before submitting as you will not be able to edit once submitted. Thanks
+	<div class="container row">
+		<div class="col-sm-4">
+			<img src="https://us.123rf.com/450wm/hvostik/hvostik1701/hvostik170100080/70049332-point-de-doigt-silhouette-direction-ic%C3%B4ne-noire-man-geste-de-la-main-pictogramme-vector-illustration.jpg">
+		</div>
+		<div class="col-sm-8 alert alert-info p-2">
+			<h4 class="pl-5 m-0" style="text-decoration: underline; color:darkgoldenrod">Readme</h4>
+			<hr>
+			<div class="row pb-2 pt-2 text-center">
+				<div class="col-sm-3"><strong style="text-decoration: underline;">Status: <br></strong> <?= get_task_status( $id_task) ?> </div>
+				<div class="col-sm-4"><strong style="text-decoration: underline;">Due Date: <br></strong> <?= $task[0]->duedate ?></div>
+				<div class="col-sm-5"><strong style="text-decoration: underline;">Date Completed: <br></strong> <?php if( ! get_task_status( $id_task , 'yes') ) echo '--- -- --'; else echo $task->finaly_date; ?></div>
+			</div><hr>
+			<ul>
+				<?php
+					if( ! get_task_status( $id_task , 'yes') ){
+						?>
+						<li>The task being evaluated is not yet marked as complete.</li>
+						<li>Make sure of that or take that into account.</li>
+						<?php 
+					}
+				?>
+				<li>Click on <strong class="text-primary">yes</strong> if the criterion is met.</li>
+				<li>If not click on <strong class="text-danger">no</strong> </li>
+				<li>Set the correspondind <strong class="text-success">note</strong> </li>
+				<li>Give a <strong class="text-success">description</strong> if possible </li>
+				<li>Double check before submitting as you will not be able to edit once submitted. Thanks</li>
+			</ul>
+		</div>
+	</div>
+	<div class=" text-center" role="alert">
+		
 	</div>
 	<hr>
 	<form method="POST" action="<?= get_site_url() . "/task-evaluation" ?>" >
@@ -236,13 +266,13 @@ function get_form_evaluation($criterias, $id_task)
 									<strong><?= $criteria['criteria'] ?> : </strong>
 								</div>
 								<div class="col-sm-2">
-									<input class="form-check-input" type="radio" onclick="block_(<?= $i ?>)" id="makeYes" value="makeYes<?= $i ?>" name="make-radio<?= $i ?>">
+									<input class="form-check-input" type="radio" onclick="block_(<?= $i ?>)" id="makeYes" required value="makeYes<?= $i ?>" name="make-radio<?= $i ?>">
 									<label class="form-check-label" for="make">
 										Yes
 									</label>
 								</div>
 								<div class="col-sm-2">
-									<input class="form-check-input" onclick="hide_(<?= $i ?>)" type="radio" id="makeNo" value="makeNo<?= $i ?>" name="make-radio<?= $i ?>">
+									<input class="form-check-input" onclick="hide_(<?= $i ?>)" type="radio" id="makeNo" required value="makeNo<?= $i ?>" name="make-radio<?= $i ?>">
 									<label class="form-check-label" for="autoSizingCheck">
 										No
 									</label>

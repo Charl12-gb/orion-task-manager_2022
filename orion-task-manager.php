@@ -146,12 +146,13 @@ function my_plugin_create_db()
 			finaly_date datetime,
 			status varchar(50),
 			evaluation text,
+			mail_status varchar(10) NULL,
 			FOREIGN KEY  (id_task) REFERENCES $table_task(id), 
 			PRIMARY KEY  (id_task)
 		);
 		CREATE TABLE $table_mail(
 			id bigint AUTO_INCREMENT,
-			type_task varchar(255),
+			type_task varchar(255) UNIQUE,
 			subject varchar(255),
 			content text,
 			PRIMARY KEY  (id)

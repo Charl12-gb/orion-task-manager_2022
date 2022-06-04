@@ -199,7 +199,7 @@ function save_new_task(array $data, array $worklog, $subarray = null)
 	$tabletask = $wpdb->prefix . 'task';
 	$tableworklog = $wpdb->prefix . 'worklog';
 
-	$formatworklog = array('%d', '%s', '%s', '%s');
+	$formatworklog = array('%d', '%s', '%s', '%s', '%s');
 	$formattask = array('%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%s');
 
 	$ok = $wpdb->insert($tabletask, $data, $formattask);
@@ -260,11 +260,14 @@ function objective_exist( $id_user, $mois, $annee ){
 	else return false;
 }
 
-function get_all_worklog()
+function get_all_worklog( $column=null, $value=null )
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'worklog';
-	$sql = "SELECT * FROM $table";
+	if( $column != null AND $value != null )
+		$sql = "SELECT * FROM $table WHERE $column='$value'";
+	else
+		$sql = "SELECT * FROM $table";
 	return $wpdb->get_results($sql);
 }
 
@@ -279,17 +282,56 @@ function get_all_sections($id_project = null)
 	return $wpdb->get_results($sql);
 }
 
-function get_all_email($id_email = null)
+/**
+ * Récupération de template de mail
+ * @param int|string $id_email
+ * @param string $column
+ */
+function get_email_($id_email = null, $column=null)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'mails';
-	if ($id_email == null)
-		$sql = "SELECT * FROM $table";
-	else
-		$sql = "SELECT * FROM $table WHERE id = $id_email";
+	if( $column == null ){
+		if ($id_email == null)
+			$sql = "SELECT * FROM $table";
+		else
+			$sql = "SELECT * FROM $table WHERE id = '$id_email'";
+	}else 
+		$sql = "SELECT * FROM $table WHERE type_task = '$column'";
 	return $wpdb->get_results($sql);
 }
 
+/**
+ * Mettre à jour les informations dans le worklog comme
+ * mail_status, finaly_date, etc
+ * 
+ * Exemple: 
+ * 
+ * update_worklog( array( 'column'=> 'foo' ),array('ID' => 1), array('%s') );
+ * 
+ * @param array $data
+ * @param array $where
+ * @param array $format
+ * 
+ * @return bool
+ * 
+ */
+function update_worklog( array $data, array $where, array $format=null){
+	global $wpdb;
+	$table = $wpdb->prefix . 'worklog';
+	if( $format != null )
+		return $wpdb->update($table, $data, $where, $format);
+	else
+		return $wpdb->update($table, $data, $where);
+}
+
+/**
+ * Obtenir les tâches | Ou une tâche | une catégorie de tâche
+ * 
+ * @param string $specification
+ * @param string|int|null $value
+ * @param string|int|null $project
+ */
 function get_task_($specification = null, $value = null, $project = null)
 {
 	global $wpdb;
@@ -308,12 +350,15 @@ function get_task_($specification = null, $value = null, $project = null)
 	return $wpdb->get_results($sql);
 }
 
-function get_subtask($task_id)
+function get_task_main($subtask_id)
 {
 	global $wpdb;
-	$table = $wpdb->prefix . 'subtask';
-	$sql = "SELECT id FROM $table WHERE id_task_parent = $task_id";
-	return $wpdb->get_results($sql);
+	$table = $wpdb->prefix . 'task';
+	$tablesub = $wpdb->prefix . 'subtask';
+	$sql = "SELECT id_task_parent FROM $tablesub WHERE $tablesub.id=$subtask_id";
+	$parent = $wpdb->get_row($sql);
+	$task_main = get_task_( 'id', $parent->id_task_parent );
+	return $task_main[0]->title;
 }
 
 function get_user_current_project($id_user)
@@ -443,26 +488,33 @@ function get_project_title($id_project)
 	}
 }
 
-function get_task_status($task_id)
+function get_task_status($task_id, $status = null)
 {
-	if( isset( get_task_('id', $task_id)[0] ) ){
-		$task = get_task_('id', $task_id)[0];
-		$duedate = strtotime($task->duedate);
-		if ($task->status == null) {
-			$finaly_date = strtotime(date('Y-m-d H:i:s',  strtotime('+1 hours')));
-			if ($duedate < $finaly_date) {
-				return 'Not Completed';
-			} elseif ($duedate == $finaly_date) {
-				return 'Today deadline';
+	if( $status != null ){
+		if( isset( get_task_('id', $task_id)[0] ) ){
+			$task = get_task_('id', $task_id)[0];
+			return $task->status;
+		}
+	}else{
+		if( isset( get_task_('id', $task_id)[0] ) ){
+			$task = get_task_('id', $task_id)[0];
+			$duedate = strtotime($task->duedate);
+			if (!$task->status) {
+				$finaly_date = strtotime(date('Y-m-d H:i:s',  strtotime('+1 hours')));
+				if ($duedate < $finaly_date) {
+					return 'Not Completed';
+				} elseif ($duedate == $finaly_date) {
+					return 'Today deadline';
+				} else {
+					return 'In Progess';
+				}
 			} else {
-				return 'In Progess';
-			}
-		} else {
-			$finaly_date = strtotime($task->finaly_date);
-			if ($duedate >= $finaly_date) {
-				return 'Completed';
-			} else {
-				return 'Completed Before Date';
+				$finaly_date = strtotime($task->finaly_date);
+				if ($duedate >= $finaly_date) {
+					return 'Completed';
+				} else {
+					return 'Completed Before Date';
+				}
 			}
 		}
 	}
@@ -1279,7 +1331,9 @@ function orion_task_evaluation_shortcode()
 }
 function taches_tab()
 {
-	sync_tasks();
+	//sync_tasks();
+	//sync_duedate_task();
+	automatique_send_mail();
 	?>
 	<div class="container-fluid pt-3">
 		<div class="row" id="accordion">
@@ -1487,7 +1541,7 @@ function get_email_task_tab($id_template = null)
 {
 	$vrai = false;
 	if ($id_template != null) {
-		$template_email = get_all_email($id_template)[0];
+		$template_email = get_email_($id_template)[0];
 		$vrai = true;
 	}
 ?>
@@ -1762,7 +1816,7 @@ function create_task_criteria()
 
 function list_email_sending()
 {
-	$emails = get_all_email();
+	$emails = get_email_();
 ?>
 	<table class="table table-hover table-responsive-lg">
 		<thead>
@@ -2332,7 +2386,7 @@ function settings_function()
 		$content = htmlentities($_POST['content']);
 		$destinataire = htmlentities($_POST['email']);
 		$id_task = 1202081187468663;
-		$msg = content_msg($id_task, $type_task, $content);
+		$msg = content_msg($id_task,'test', $type_task, $content);
 
 		$retour = mail_sending_form($destinataire, $subject, $msg);
 		echo $retour;
