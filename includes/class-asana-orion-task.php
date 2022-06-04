@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Connexion à l'api de asana
  */
@@ -20,15 +21,16 @@ function connect_asana()
 
 
 add_action('task_cron_hook', 'task_cron_sync');
-function task_cron_sync(){
+function task_cron_sync()
+{
 	// sync_projets();
 	// sync_tasks();
 	// sync_duedate_task();
 }
 
-if( ! wp_next_scheduled( 'task_cron_hook' ) ){
-	$time_def = get_option( '_synchronisation_time' );
-	wp_schedule_event( time(), $time_def, 'task_cron_hook' );
+if (!wp_next_scheduled('task_cron_hook')) {
+	$time_def = get_option('_synchronisation_time');
+	wp_schedule_event(time(), $time_def, 'task_cron_hook');
 }
 
 //***************************************************************************************** */
@@ -88,7 +90,7 @@ function sync_new_project($data)
 			'project_manager' => $data['project_manager'],
 			'collaborator' => serialize($data['collaborator'])
 		);
-		return save_project( $array );
+		return save_project($array);
 	} else return false;
 }
 
@@ -105,10 +107,12 @@ function sync_projets()
 	if ($asana->getData() != null) {
 		foreach ($asana->getData() as $project_asana) {
 			$Exist = true;
-			if( $project_asana == null ) $Exist = true;
-			else{
+			if ($projects == null) $Exist = true;
+			else {
 				foreach ($projects as $project) {
-					if ($project_asana->gid == $project->id) { $Exist = false; }
+					if ($project_asana->gid == $project->id) {
+						$Exist = false;
+					}
 				}
 			}
 			if ($Exist) {
@@ -116,7 +120,7 @@ function sync_projets()
 				$created = $asana->getData()[0]->created_by->gid;
 				$asana->getProject($project_asana->gid);
 				$project_asana_info = $asana->getData();
-				if( $project_asana->gid == get_option( '_project_manager_id' ) ) $project_manager = NULL;
+				if ($project_asana->gid == get_option('_project_manager_id')) $project_manager = NULL;
 				else $project_manager = get_user_asana_id($created);
 				$data1 = array(
 					'id' => $project_asana->gid,
@@ -157,7 +161,6 @@ function sync_projets()
 
 /**
  * Synchronisation le status des tâches. (Completed or No)
- * @return void
  */
 function sync_duedate_task()
 {
@@ -175,7 +178,6 @@ function sync_duedate_task()
 
 /**
  * Synchronisation des tâches depuis Asana
- * @return void
  */
 function sync_tasks()
 {
@@ -190,67 +192,70 @@ function sync_tasks()
 				if ($task_asana != null) {
 					foreach ($task_asana as $task_as) {
 						$TaskExist = true;
-						if ($task_all == null) $TaskExist = true;
-						else {
-							foreach ($task_all as $task) {
-								if ($task_as->gid == $task->id) {
-									$TaskExist = false;
-								}
-							}
-						}
+						// if ($task_all == null) $TaskExist = true;
+						// else {
+						// 	foreach ($task_all as $task) {
+						// 		if ($task_as->gid == $task->id) {
+						// 			$TaskExist = false;
+						// 		}
+						// 	}
+						// }
 						//si la task n'est pas dans la bdd, on recupère ces information
 						if ($TaskExist) {
 							$asana->getTask($task_as->gid);
 							$task_info = $asana->getData();
-							if ($task_info->parent == NULL) {
+							$assig = $asana->getData()->assignee->gid;
+							$assigne = get_user_asana_id($assig);
+							$section_id = $task_info->memberships[0]->section->gid;
+							$array_tab_sub = array();
+							if ($task_info->parent != NULL) {
+							} else {
+								$id_implementation = NULL;
+								$id_revue = NULL;
+								$id_test = NULL;
+								$id_integration = NULL;
+								$sub_categorie = NULL;
+
 								$asana->getTaskStories($task_as->gid);
 								$task_info1 = $asana->getData()[0];
-								$assigne = get_user_asana_id($task_info->assignee->gid);
-								$section_id = $task_info->memberships[0]->section->gid;
+
+								//savegarde de la tache principale + update de table save
+								$array_tab_sub[] = $task_as->gid;//+= array($task_as->gid);
+								$data = array(
+									'id' => $task_as->gid,
+									'author_id' => get_user_asana_id($task_info1->created_by->gid),
+									'project_id' => $project_asana->gid,
+									'section_id' => $section_id,
+									'title' => $task_as->name,
+									'permalink_url' => $task_info->permalink_url,
+									'type_task' => NULL,
+									'categorie' => NULL,
+									'dependancies' => NULL,
+									'description' => $task_info->notes,
+									'assigne' => $assigne,
+									'duedate' => $task_info->due_on,
+									'created_at' => $task_info1->created_at
+								);
+
+								$dataworklog = array(
+									'id_task' => $task_as->gid,
+									'finaly_date' => $task_info->completed_at,
+									'status' => $task_info->completed,
+									'evaluation' => NULL
+								);
+								save_new_task($data, $dataworklog);
 
 								//Partons à la recherche de ces enfants
 								$enfant = 0;
 								$asana->getSubTasks($task_as->gid);
 								$subtask_info = $asana->getData();
 								if ($subtask_info != null) {
-									$id_implementation = NULL;
-									$id_revue = NULL;
-									$id_test = NULL;
-									$id_integration = NULL;
-									$array_tab_sub = array();
-
-									//savegarde de la tache principale + update de table save
-									$array_tab_sub += array($task_as->gid);
-									$data = array(
-										'id' => $task_as->gid,
-										'author_id' => get_user_asana_id($task_info1->created_by->gid),
-										'project_id' => $project_asana->gid,
-										'section_id' => $section_id,
-										'title' => $task_as->name,
-										'permalink_url' => $task_info->permalink_url,
-										'type_task' => NULL,
-										'categorie' => NULL,
-										'dependancies' => NULL,
-										'description' => $task_info->notes,
-										'assigne' => $assigne,
-										'duedate' => $task_info->due_on,
-										'created_at' => $task_info1->created_at
-									);
-
-									$dataworklog = array(
-										'id_task' => $task_as->gid,
-										'finaly_date' => $task_info->completed_at,
-										'status' => $task_info->completed,
-										'evaluation' => NULL
-									);
-									save_new_task($data, $dataworklog);
-
 									//Recherche des enfants de la tâche
 									foreach ($subtask_info as $sub_task) {
-										$array_tab_sub += array($sub_task->gid);
+										$array_tab_sub[] = $sub_task->gid; //+= array($sub_task->gid);
 										$asana->getTask($sub_task->gid);
 										$info_subtask = $asana->getData();
-										$sub_assigne = get_user_asana_id($info_subtask->assignee->gid);
+										$sub_assigne = get_user_asana_id($asana->getData()->assignee->gid);
 										if (isset($info_subtask->tags[0]->gid)) {
 											$sub_categorie = $info_subtask->tags[0]->name;
 											if ($info_subtask->tags[0]->gid == "1202382197625653") {
@@ -310,10 +315,9 @@ function sync_tasks()
 									}
 									if ($id_integration != NULL) {
 										update_task_dependance($id_implementation, $id_integration);
-										$enfant = $enfant + 1;
 									}
 								}
-								if ($enfant == 3) $type_task = 'developper';
+								if ($enfant == 2) $type_task = 'developper';
 								else $type_task = 'normal';
 								update_type_task($array_tab_sub, $type_task);
 							}
@@ -402,11 +406,11 @@ function traite_task_and_save($data)
 			'evaluation' => NULL
 		);
 		$output = save_new_task($data_add, $dataworklog);
-		if( !$output ) return false;
+		if (!$output) return false;
 	}
 	if (isset($data['parametre']['subtask'])) {
 		return save_new_subtask($data['parametre']['subtask'], $taskId);
-	}else return true;
+	} else return true;
 }
 
 /**
@@ -416,25 +420,26 @@ function traite_task_and_save($data)
  * 
  * @return bool
  */
-function save_objective_section( $projectmanager_id ){
+function save_objective_section($projectmanager_id)
+{
 	$section_name =  get_userdata($projectmanager_id)->display_name;
 	$project = get_option('_project_manager_id');
-	$sectionExist = section_exist( $section_name, $project  );
-	if( $sectionExist ) return false;
+	$sectionExist = section_exist($section_name, $project);
+	if ($sectionExist) return false;
 	else {
 		$asana = connect_asana();
 		$asana->createSection(
 			$project,
-			array("name" => $section_name )
+			array("name" => $section_name)
 		);
 		$asana_output = $asana->getData();
-		if( isset( $asana_output->gid ) ){
+		if (isset($asana_output->gid)) {
 			$data2 = array(
 				'id' 		=> $asana_output->gid,
 				'project_id' => $project,
 				'section_name'		=> $asana_output->name
 			);
-		}else return false;
+		} else return false;
 		return save_new_sections($data2);
 	}
 }

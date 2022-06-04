@@ -170,8 +170,8 @@ function update_type_task( $datas, $type_task ){
 	$table = $wpdb->prefix . 'task';
 	$format = array('%s');
 	foreach( $datas as $data ){
-		$data = array( 'type_task' => $type_task );
-		$wpdb->update($table, $data, array( 'id' => $data ), $format);
+		$data_add = array( 'type_task' => $type_task );
+		$wpdb->update($table, $data_add, array( 'id' => $data ), $format);
 	}
 }
 
