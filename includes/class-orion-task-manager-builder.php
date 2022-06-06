@@ -20,30 +20,30 @@ class Task_Manager_Builder
             'Tasks Manager', 
             'manage_options', 
             'o_task_manager', 
-            'Task_Manager_Builder::list_table_page',
+            'Task_Manager_Builder::settings_page',
             'dashicons-welcome-write-blog',
             30 ,
             '', 
         );
         
         //Generate Task Admin Sub Pages
-        add_submenu_page( 
-            'o_task_manager', 
-            'Task', 
-            'Projects', 
-            'manage_options', 
-            'o_task_manager', 
-            'Task_Manager_Builder::list_table_page'
-        );
+        // add_submenu_page( 
+        //     'o_task_manager', 
+        //     'Task', 
+        //     'Projects', 
+        //     'manage_options', 
+        //     'o_task_manager', 
+        //     'Task_Manager_Builder::list_table_page'
+        // );
 
-        add_submenu_page( 
-            'o_task_manager', 
-            'Task', 
-            'Settings', 
-            'manage_options', 
-            'o_task_manager_setting', 
-            'Task_Manager_Builder::settings_page'
-        );
+        // add_submenu_page( 
+        //     'o_task_manager', 
+        //     'Task', 
+        //     'Settings', 
+        //     'manage_options', 
+        //     'o_task_manager', 
+        //     'Task_Manager_Builder::settings_page'
+        // );
     }
 
     public static function settings_page(){
@@ -52,21 +52,21 @@ class Task_Manager_Builder
         <?php _e( 'Configuration Task Manager', 'task' ); ?>
         </h3>
             <?php
-            $active_tableau = isset( $_GET[ 'set' ] ) ? $_GET[ 'set' ] : 'o_task_manager_setting';
+            $active_tableau = isset( $_GET[ 'set' ] ) ? $_GET[ 'set' ] : 'o_task_manager';
             ?>
       
         <div class="wrap woocommerce wc_addons_wrap">
             <nav class="nav-tab-wrapper woo-nav-tab-wrapper">
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o_task_manager_setting' ? 'nav-tab-active' : ''; ?>"><?php _e( 'TASK', 'task' ); ?></a>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-worklog' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-worklog' ? 'nav-tab-active' : ''; ?>"><?php _e( 'WORKLOG', 'task' ); ?></a>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-evaluation' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-evaluation' ? 'nav-tab-active' : ''; ?>"><?php _e( 'EVALUATION', 'task' ); ?></a>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-rapport' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-rapport' ? 'nav-tab-active' : ''; ?>"><?php _e( 'RAPPORT', 'task' ); ?></a>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-performance' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-performance' ? 'nav-tab-active' : ''; ?>"><?php _e( 'PERFORMANCE', 'task' ); ?></a>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager_setting&set=o-active' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-active' ? 'nav-tab-active' : ''; ?>"><?php _e( 'INTEGRATION', 'task' ); ?></a>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o_task_manager' ? 'nav-tab-active' : ''; ?>"><?php _e( 'TASK', 'task' ); ?></a>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-worklog' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-worklog' ? 'nav-tab-active' : ''; ?>"><?php _e( 'WORKLOG', 'task' ); ?></a>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-evaluation' ? 'nav-tab-active' : ''; ?>"><?php _e( 'EVALUATION', 'task' ); ?></a>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-rapport' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-rapport' ? 'nav-tab-active' : ''; ?>"><?php _e( 'RAPPORT', 'task' ); ?></a>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-performance' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-performance' ? 'nav-tab-active' : ''; ?>"><?php _e( 'PERFORMANCE', 'task' ); ?></a>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-active' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-active' ? 'nav-tab-active' : ''; ?>"><?php _e( 'INTEGRATION', 'task' ); ?></a>
             </nav>
-            <div class="o_task_manager_setting addons-featured">
+            <div class="o_task_manager addons-featured">
         <?php
-        if ( $active_tableau == 'o_task_manager_setting' ) {
+        if ( $active_tableau == 'o_task_manager' ) {
             taches_tab();
         }
         if ( $active_tableau == 'o-worklog' ) {
@@ -231,7 +231,7 @@ class Orion_Task_Manager_Table_List extends WP_List_Table
     private function table_data()
     {
         $data = array();
-        foreach( get_all_project(  ) as $projects ){
+        foreach( get_project_(  ) as $projects ){
             $data_format = (array) $projects;
             $projec_manager = get_userdata( $data_format['project_manager'] )->display_name;
             $project = array_replace( $data_format, array('project_manager' => $projec_manager) ) ;

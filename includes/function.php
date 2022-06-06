@@ -21,11 +21,18 @@ function _taitement_form(){
 		}
 	}
 }
-function option_select($array)
+function option_select($array, $k=null)
 {
 	$option = '';
-	foreach ($array as $key => $value) {
-		$option .= "<option value='$key'>$value</option>";
+	if( $k != null ){
+		foreach ($array as $key => $value) {
+			if( $key == $k ) $option .= "<option value='$key' selected >$value</option>";
+			else $option .= "<option value='$key'>$value</option>";
+		}
+	}else{
+		foreach ($array as $key => $value) {
+			$option .= "<option value='$key'>$value</option>";
+		}
 	}
 	return $option;
 }
@@ -73,7 +80,7 @@ function save_evaluation_info($array, $task_id): bool
 	if (get_evaluation_info($task_id)->evaluation == null) {
 		$table = $wpdb->prefix . 'worklog';
 		$format = array('%s');
-		return $wpdb->update($table, array('evaluation' => serialize($array)), array('id_task' => $task_id), $format);
+		return $wpdb->update($table, array('evaluation' => serialize($array), 'evaluation_date' => date('m') . "-" . date('Y')), array('id_task' => $task_id), $format);
 	} else {
 		return false;
 	}
@@ -199,7 +206,7 @@ function save_new_task(array $data, array $worklog, $subarray = null)
 	$tabletask = $wpdb->prefix . 'task';
 	$tableworklog = $wpdb->prefix . 'worklog';
 
-	$formatworklog = array('%d', '%s', '%s', '%s', '%s');
+	$formatworklog = array('%d', '%s', '%s', '%s', '%s', '%s');
 	$formattask = array('%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%s');
 
 	$ok = $wpdb->insert($tabletask, $data, $formattask);
@@ -221,12 +228,21 @@ function save_objective( $data ){
 	return $wpdb->insert($table, $data, $format);
 }
 
-function get_all_project()
+/**
+ * Ensemble des projects ou project spécifique
+ * @param int $id_project
+ */
+function get_project_( $id_project = null )
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'project';
-	$sql = "SELECT * FROM $table";
-	return $wpdb->get_results($sql);
+	if( $id_project == null ){
+		$sql = "SELECT * FROM $table WHERE id != " . get_option('_project_manager_id');
+		return $wpdb->get_results($sql);
+	}else{
+		$sql = "SELECT * FROM $table WHERE id = $id_project";
+		return $wpdb->get_row($sql);
+	}
 }
 
 function section_exist( $section_name, $project_id = null ){
@@ -343,10 +359,11 @@ function get_task_($specification = null, $value = null, $project = null)
 		else if ($specification != null && $value == null)
 			$sql = "SELECT * FROM $table WHERE assigne = $specification"; //Tâche assign à l'utilisateur x
 		else
-			$sql = "SELECT * FROM $table ORDER BY duedate"; //Toutes les tâches par ordre de la date
+			$sql = "SELECT * FROM $table"; //Toutes les tâches par ordre de la date
 	} else {
 		$sql = "SELECT * FROM $table WHERE $specification = $value";  //Tâche avec une spéfication
 	}
+	$sql = $sql . " ORDER BY duedate";
 	return $wpdb->get_results($sql);
 }
 
@@ -357,8 +374,14 @@ function get_task_main($subtask_id)
 	$tablesub = $wpdb->prefix . 'subtask';
 	$sql = "SELECT id_task_parent FROM $tablesub WHERE $tablesub.id=$subtask_id";
 	$parent = $wpdb->get_row($sql);
-	$task_main = get_task_( 'id', $parent->id_task_parent );
-	return $task_main[0]->title;
+	if( $parent == null ) $task_main = null;
+	else{
+		if( $parent->id_task_parent == null ) $task_main=null;
+		else{
+			$task_main = get_task_( 'id', $parent->id_task_parent )[0]->title;
+		}
+	}
+	return $task_main;
 }
 
 function get_user_current_project($id_user)
@@ -366,7 +389,7 @@ function get_user_current_project($id_user)
 	$user_projects_id = array();
 	if ($id_user == null) $id_user = get_current_user_id();
 	$j = 0;
-	foreach (get_all_project() as $value) {
+	foreach (get_project_() as $value) {
 		if( $value->collaborator != null ){
 			if (in_array($id_user, unserialize($value->collaborator))) {
 				$user_projects_id += array($j => array('id' => $value->id, 'title' => $value->title));
@@ -454,7 +477,7 @@ function is_project_manager(int $id_user = null)
 {
 	global $wpdb, $current_user;
 	$table = $wpdb->prefix . 'project';
-	$projects = get_all_project();
+	$projects = get_project_();
 	$user_project = array();
 	if ($id_user == null) {
 		$id_user = $current_user->ID;
@@ -469,7 +492,7 @@ function is_project_manager(int $id_user = null)
 	return $user_project;
 }
 
-function get_project_manger_project()
+function get_project_manager_project()
 {
 	$projects = array();
 	foreach (is_project_manager() as $project) {
@@ -480,7 +503,7 @@ function get_project_manger_project()
 
 function get_project_title($id_project)
 {
-	$projects = get_all_project();
+	$projects = get_project_();
 	foreach ($projects as $project) {
 		if ($project->id == $id_project) {
 			return $project->title;
@@ -945,6 +968,7 @@ function get_form_template($id_template = null)
 		$templates = get_templates_($id_template)[0]->option_value;
 		$template = unserialize($templates)['parametre'];
 	?>
+		<h3>List Template <button class="btn btn-outline-success btn_list_task" id="template_btn_list">List Template</button> </h3>
 		<div class="form-group">
 			<div class="form-row">
 				<label for="InputTitle">Title Template</label>
@@ -1003,6 +1027,7 @@ function get_form_template($id_template = null)
 	<?php
 	} else {
 	?>
+	<h3>List Template <button class="btn btn-outline-success btn_list_task" id="template_btn_list">List Template</button> </h3>
 		<div class="form-group">
 			<div class="form-row">
 				<label for="InputTitle">Title Template</label>
@@ -1036,11 +1061,102 @@ function get_form_template($id_template = null)
 
 <?php
 }
+function project_form_add( $id_project=null ){
+	if( $id_project != null ) $project = get_project_( $id_project );
+	?>
+		<h3><?php if( $id_project != null ) echo 'Update Project'; else echo 'New Project'; ?> <button class="btn btn-outline-success btn_list_project" id="project_btn_list">List Projects</button> </h3>
+			<hr>
+			<form id="create_new_projet" name="create_new_projet" action="" method="post">
+			<?php if( $id_project != null ) { ?> <input type="hidden" name="project_id" id="project_id" value="<?= $id_project ?>"> <?php } ?>
+				<div class="form-group">
+					<label for="InputTitle">Project Name </label>
+					<input type="text" name="titleproject" id="titleproject" class="form-control" <?php if( $id_project != null ) { ?> value="<?= $project->title ?>" <?php } ?> placeholder="Project Name">
+				</div>
+				<div class="form-group">
+					<textarea class="form-control" id="description" name="description" rows="3" placeholder="Description ..."><?php if( $id_project != null ) { echo $project->description; }?>  </textarea>
+				</div>
+				<div class="form-group">
+					<div class="form-row">
+						<div class="col">
+							<label for="InputTitle">Slug </label>
+							<input type="text" name="slug" id="slug" <?php if( $id_project != null ) { ?> value="<?= $project->slug ?>" <?php } ?> class="form-control" placeholder="Slug">
+						</div>
+						<div class="col">
+							<label for="inputState">Project Manager :</label>
+							<select id="projectmanager" name="projectmanager" class="form-control">
+								<?php 
+								if( $id_project != null ) echo option_select(get_all_users(), $project->project_manager );
+								else { 
+									?> 
+									<option value="">Choose...</option>
+									<?php
+									echo option_select(get_all_users()); 
+								}
+								?>
+							</select>
+						</div>
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="inputState">Collaborators :</label>
+					<select class="selectpicker form-control" id="multichoix" name="multichoix" multiple data-live-search="true">
+						<?= option_select(get_all_users()) ?>
+					</select>
+				</div>
+				<div class="form-group">
+					<button type="submit" name="valide" class="btn btn-primary btn-sm btn-block"> <?php if( $id_project != null ) echo 'UPDATE PROJECT'; else echo 'CREATE PROJECT'; ?> </button>
+				</div>
+			</form>
+	<?php
+}
+
+function project_tab( ){
+	$projects = get_project_();
+	?>
+		<h3>List Projects <button class="btn btn-outline-success btn_list_project" id="project_btn_add">Add New Project</button> </h3>
+		<table class="table table-hover table-responsive-lg">
+			<thead>
+				<tr>
+					<th>N°</th>
+					<th>Title</th>
+					<th>Project Manager</th>
+					<th>Action</th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php
+				$k = 0;
+				foreach ($projects as $project) {
+				?>
+					<tr>
+						<td class="m-0 p-0" style="height: 45px;"><?= $k + 1 ?></td>
+						<td class="m-0 p-0" style="height: 45px;"><span class="btn btn-link project_edit" id="<?= $project->id ?>"><?= $project->title ?></span></td>
+						<td class="m-0 p-0" style="height: 45px;"><?= get_userdata( $project->project_manager )->display_name ?> (<?= get_userdata( $project->project_manager )->user_email ?>)</td>
+						<td class="m-0 p-0" style="height: 45px;">
+							<span class="text-primary btn btn-link project_edit" id="<?= $project->id ?>">Edit</span> | <span class="text-danger btn btn-link project_remove" id="<?= $project->id ?>">Delete</span>
+						</td>
+					</tr>
+				<?php
+					$k++;
+				}
+				if ($k == 0) {
+				?>
+					<div class="alert alert-primary" role="alert">
+						Template not found
+					</div>
+				<?php
+				}
+				?>
+			</tbody>
+		</table>
+	<?php
+}
 
 function get_list_template()
 {
 	$tab_templates = get_templates_();
 ?>
+	<h3>List Template <button class="btn btn-outline-success btn_list_task" id="template_btn_add">Add New Template</button> </h3>
 	<table class="table table-hover table-responsive-lg">
 		<thead>
 			<tr>
@@ -1056,11 +1172,11 @@ function get_list_template()
 			foreach ($tab_templates as $template) {
 				$titles = unserialize($template->option_value);
 			?>
-				<tr class="alert alert-primary">
-					<td><?= $k + 1 ?></td>
-					<td><span class="btn btn-link template_edit" id="<?= $template->option_id ?>"><?= $titles['parametre']['template']['templatetitle'] ?></span></td>
-					<td><?= $titles['parametre']['template']['tasktitle'] ?></td>
-					<td>
+				<tr class="">
+					<td class="m-0 p-0" style="height: 45px;"><?= $k + 1 ?></td>
+					<td class="m-0 p-0" style="height: 45px;"><span class="btn btn-link template_edit" id="<?= $template->option_id ?>"><?= $titles['parametre']['template']['templatetitle'] ?></span></td>
+					<td class="m-0 p-0" style="height: 45px;"><?= $titles['parametre']['template']['tasktitle'] ?></td>
+					<td class="m-0 p-0" style="height: 45px;">
 						<span class="text-primary btn btn-link template_edit" id="<?= $template->option_id ?>">Edit</span> | <span class="text-danger btn btn-link template_remove" id="<?= $template->option_id ?>">Delete</span>
 					</td>
 				</tr>
@@ -1243,13 +1359,19 @@ function get_user_task()
 			foreach ($user_current_tasks as $project) {
 			?>
 				<div class="card">
-					<div class="card-header" id="heading<?= $project['id'] . $project['title'] ?>" data-toggle="collapse" data-target="#collapse<?= $project['id'] . $project['title'] ?>" aria-expanded="true" aria-controls="collapse<?= $project['id'] . $project['title'] ?>">
-						<h3 class="mb-0 ">
-							<button class="btn btn-link">
-								<?= $project['title'] ?>
-							</button>
-						</h3>
-					</div>
+				<?php 
+					if( $project['id'] != get_option( '_project_manager_id' ) ){
+						?>
+						<div class="card-header" id="heading<?= $project['id'] . $project['title'] ?>" data-toggle="collapse" data-target="#collapse<?= $project['id'] . $project['title'] ?>" aria-expanded="true" aria-controls="collapse<?= $project['id'] . $project['title'] ?>">
+							<h3 class="mb-0 ">
+								<button class="btn btn-link">
+									<?= $project['title'] ?>
+								</button>
+							</h3>
+						</div>
+						<?php
+					}
+				?>
 					<div id="collapse<?= $project['id'] . $project['title'] ?>" class="collapse <?php if ($i == 1) echo 'show'; ?>" aria-labelledby="heading<?= $project['id'] . $project['title'] ?>" data-parent="#accord">
 						<div class="card-body">
 							<table class="table table-hover">
@@ -1264,17 +1386,35 @@ function get_user_task()
 								<tbody>
 									<?php
 									$k = 0;
-									foreach (get_task_() as $task) {
-										if ($project['id'] == $task->project_id && $task->assigne == get_current_user_id()) {
+									foreach (get_task_(get_current_user_id() ) as $task) {
+										if ($project['id'] == $task->project_id ) {
 											$status = get_task_status($task->id);
+											if( in_array($task->categorie, categorie_name()) ){
+													$main_task = get_task_main( $task->id ) . ' <-- ';
+											}
 									?>
 											<tr>
 												<td><?= $k + 1 ?></td>
-												<td><a href="<?= $task->permalink_url ?>" class="btn-link"><?= $task->title ?></a></td>
-												<td class="alert alert-primary"><?= $task->duedate ?></td>
-												<td class="<?php if ($status == 'Not Completed' || $status == 'Completed Before Date') echo 'text-danger';
-															elseif ($status == 'In Progess' || $status == 'Completed') echo 'text-success';
-															else echo 'text-warning';  ?>"><?= $status ?></td>
+												<td><?php if (get_task_main( $task->id ) != null) echo $main_task; ?><a href="<?= $task->permalink_url ?>" class="btn-link"><?= $task->title ?></a></td>
+												<?php 
+													if( $task->duedate != NULL ){
+														?>
+													<td class="alert alert-primary"><?= $task->duedate ?></td>
+													<td class="<?php if ($status == 'Not Completed' || $status == 'Completed Before Date') echo 'text-danger';
+																elseif ($status == 'In Progess' || $status == 'Completed') echo 'text-success';
+																else echo 'text-warning';  ?>"><?= $status ?></td>
+														<?php
+													}else{
+														?>
+													<td class="alert alert-primary">Not define</td>
+													<td class="<?php if( ! get_task_status( $task->id , 'yes') ) echo 'text-warning'; else echo 'text-success'; ?> ">
+														<?php
+														if( ! get_task_status( $task->id , 'yes') ) echo 'Not Completed'; else echo 'Completed';
+														?>
+													</td>
+														<?php
+													}
+												?>
 											</tr>
 										<?php
 											$k++;
@@ -1331,9 +1471,7 @@ function orion_task_evaluation_shortcode()
 }
 function taches_tab()
 {
-	//sync_tasks();
-	//sync_duedate_task();
-	automatique_send_mail();
+	var_dump(get_task_main(1202088438425044));
 	?>
 	<div class="container-fluid pt-3">
 		<div class="row" id="accordion">
@@ -1367,13 +1505,12 @@ function taches_tab()
 				<div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
 					<div class="card-body">
 						<div>
-							<h3><span id="template_label">List Template</span> <button class="btn btn-outline-success btn_list_task" id="template_btn_add">Add New Template</button> </h3>
 							<div id="add_success"></div>
 							<hr>
 							<form action="" method="post" id="create_template">
 							</form>
 							<div id="template_card">
-								<?= get_list_template(); //get_form_template() 
+								<?= get_list_template();  
 								?>
 							</div>
 						</div>
@@ -1392,46 +1529,9 @@ function taches_tab()
 					</div>
 				</div>
 				<div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordion">
-					<div class="card-body">
-						<div>
-							<h3>New Project</h3>
-							<div id="add_success1"></div>
-							<hr>
-							<form id="create_new_projet" name="create_new_projet" action="" method="post">
-								<div class="form-group">
-									<label for="InputTitle">Project Name </label>
-									<input type="text" name="titleproject" id="titleproject" class="form-control" placeholder="Project Name">
-								</div>
-								<div class="form-group">
-									<textarea class="form-control" id="description" name="description" rows="3" placeholder="Description ..."></textarea>
-								</div>
-								<div class="form-group">
-									<div class="form-row">
-										<div class="col">
-											<label for="InputTitle">Slug </label>
-											<input type="text" name="slug" id="slug" class="form-control" placeholder="Slug">
-										</div>
-										<div class="col">
-											<label for="inputState">Project Manager :</label>
-											<select id="projectmanager" name="projectmanager" class="form-control">
-												<option value="">Choose...</option>
-												<?= option_select(get_all_users()) ?>
-											</select>
-										</div>
-									</div>
-								</div>
-
-								<div class="form-group">
-									<label for="inputState">Collaborators :</label>
-									<select class="selectpicker form-control" id="multichoix" name="multichoix" multiple data-live-search="true">
-										<?= option_select(get_all_users()) ?>
-									</select>
-								</div>
-								<div class="form-group">
-									<button type="submit" name="valide" class="btn btn-primary btn-sm btn-block">CREATE PROJECT</button>
-								</div>
-							</form>
-						</div>
+					<div class="card-body" id="project_card">
+					<div id="add_success1"></div>
+					<?= project_tab() ?>
 					</div>
 				</div>
 			</div>
@@ -1440,19 +1540,40 @@ function taches_tab()
 	<?php
 }
 
-function get_all_categories()
+/**
+ * Récupérer les catégories de tâche ou une catégorie spécifique
+ * 
+ * @param int $id_categorie
+ * @param string $key
+ */
+function get_categories_task($id_categorie=null, $key=null)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'categories';
-	$sql = "SELECT * FROM $table";
-	return $wpdb->get_results($sql);
+	if( $id_categorie == null && $key == null ){
+		$sql = "SELECT * FROM $table";
+		return $wpdb->get_results($sql);
+	}else{
+		if( $id_categorie != null && $key == null )
+			$sql = "SELECT * FROM $table WHERE id=$id_categorie";
+		else
+			$sql = "SELECT * FROM $table WHERE categories_key='$key'";
+		return $wpdb->get_row( $sql );
+	}
+}
+
+/**
+ * Constitution d'un table de categorie key permettant de faire facilement des vérification
+ */
+function categorie_name(){
+	return array( 'implementation', 'revue', 'integration', 'test' );
 }
 
 function get_categories_()
 {
-	$all_categories = get_all_categories();
+	$all_categories = get_categories_task();
 	foreach ($all_categories as $categorie) {
-		if ($categorie->categories_key == 'implementation' || $categorie->categories_key == 'test' || $categorie->categories_key == 'revue' || $categorie->categories_key == 'integration') {
+		if (in_array($categorie->categories_key, categorie_name())) {
 	?>
 			<div class="form-row pt-2">
 				<div class="col-sm-6"><input type="text" readonly value="<?= $categorie->categories_name ?>" class="form-control text-dark"></div>
@@ -1987,7 +2108,7 @@ function get_dependancies($array)
 
 function get_categorie_format()
 {
-	$cats = get_all_categories();
+	$cats = get_categories_task();
 	$categorie = array();
 	foreach ($cats as $cat) {
 		$categorie += array($cat->categories_key => $cat->categories_name);
@@ -2019,7 +2140,7 @@ function get_form(array $array, $istemplate)
 					<div class="col">
 						<label for="proectlabel" id="label1" style="color:red">Select Project : </label>
 						<select class="form-control project projectSection" id="project" name="project">
-							<?= option_select(array('' => 'Choose project ...') + get_project_manger_project()) ?>
+							<?= option_select(array('' => 'Choose project ...') + get_project_manager_project()) ?>
 						</select>
 					</div>
 					<div class="col">
@@ -2142,7 +2263,7 @@ function get_first_choose($type, $istemplate = false)
 					<div class="col">
 						<label for="proectlabel" id="label1" style="color:red">Select Project : </label>
 						<select class="form-control project projectSection" id="project" name="project">
-							<?= option_select(array('' => 'Choose project ...') + get_project_manger_project()) ?>
+							<?= option_select(array('' => 'Choose project ...') + get_project_manager_project()) ?>
 						</select>
 					</div>
 					<div class="col">
@@ -2239,7 +2360,9 @@ function settings_function()
 			$template_id = '';
 		}
 		$data = wp_unslash($send);
-		echo save_new_templates($template_id, $data);
+		$sortir = save_new_templates($template_id, $data);
+		if( $sortir ) echo  get_list_template();
+		else echo false;
 	}
 	if ($action == 'get_option_add') {
 		echo option_select(get_template_titles());
@@ -2351,6 +2474,18 @@ function settings_function()
 			echo list_email_sending();
 		else
 			echo get_email_task_tab();
+	}
+	if ($action == 'project_card') {
+		if( isset( $_POST['update_id'] ) ){
+			$id_project = htmlentities($_POST['update_id']);
+			echo project_form_add( $id_project );
+		}else{
+			$type = htmlentities($_POST['valeur']);
+			if ($type == 'project_btn_list')
+				echo project_tab();
+			else
+				echo project_form_add();
+		}
 	}
 	if ($action == 'save_criteria_evaluation') {
 		$send = array_diff($_POST, array('action' => 'save_criteria_evaluation'));

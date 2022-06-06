@@ -251,14 +251,15 @@ function get_form_evaluation($criterias, $id_task)
 		
 	</div>
 	<hr>
-	<form method="POST" action="<?= get_site_url() . "/task-evaluation" ?>" >
+	<form method="POST" action="<?= get_site_url() . "/task-evaluation" ?>"  class="alert alert-secondary">
+	<h4 class="pl-5">Evaluation</h4><hr>
 		<?php
 		wp_nonce_field('save_evaluation_form', 'verifier_nonce_evaluation');
 		$i =1;
 		foreach ($criterias as $criteria) {
 		?>
 			<div>
-				<div class="form-row pb-1 card-body">
+				<div class="form-row pb-1 card-body ">
 					<div class="col-sm-5">
 						<div class="form-check mb-2">
 							<div class="row card-header">

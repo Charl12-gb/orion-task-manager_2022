@@ -189,16 +189,6 @@
         $(document).on('click', '.btn_list_task', function() {
             document.getElementById('add_success').innerHTML = '';
             var action_template = $(this).attr('id');
-            if (action_template == 'template_btn_list') {
-                document.getElementById('template_btn_list').innerHTML = 'Add New Template';
-                $(this).attr('id', 'template_btn_add');
-                document.getElementById('template_label').innerHTML = 'List Template';
-            }
-            if (action_template == 'template_btn_add') {
-                document.getElementById('template_btn_add').innerHTML = 'List Template';
-                $(this).attr('id', 'template_btn_list');
-                document.getElementById('template_label').innerHTML = 'Add New Template';
-            }
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
@@ -219,6 +209,54 @@
                         document.getElementById('template_card').innerHTML = '';
                         document.getElementById('create_template').innerHTML = response;
                     }
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
+
+        $(document).on('click', '.btn_list_project', function() {
+            document.getElementById('add_success').innerHTML = '';
+            var action_template = $(this).attr('id');
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'project_card',
+                    'valeur': action_template
+                },
+                beforeSend: function() {
+                    document.getElementById('project_card').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>'
+                },
+                success: function(response) {
+                    if (action_template == 'project_btn_list') {
+                        document.getElementById('project_card').innerHTML = response;
+                    }
+                    if (action_template == 'project_btn_add') {
+                        document.getElementById('project_card').innerHTML = response;
+                    }
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
+
+        $(document).on('click', '.project_edit', function() {
+            var id_proeject = $(this).attr('id');
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'project_card',
+                    'update_id': id_proeject
+                },
+                beforeSend: function() {
+                    document.getElementById('project_card').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
+                },
+                success: function(response) {
+                    document.getElementById('project_card').innerHTML = response;
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -589,31 +627,6 @@
             });
         });
 
-        $(document).on('submit', '#add_short_name', function(e) {
-            e.preventDefault();
-            var shortcode_name = $('#shortcode').val();
-            $.ajax({
-                url: ajaxurl,
-                type: "POST",
-                data: {
-                    'action': 'get_user_role',
-                    'shortcode_name': shortcode_name,
-                },
-                success: function(response) {
-                    console.log(shortcode_name + " => " + response);
-                    if (response) {
-                        document.getElementById('add_success_short').innerHTML = '<div class="alert alert-success" role="alert">Successfully</div>';
-                    } else {
-                        document.getElementById('add_success_short').innerHTML = '<div class="alert alert-danger" role="alert">Error</div>';
-                    }
-                    setTimeout(function() { $('#add_success_short').hide(); }, 3000);
-                },
-                error: function(errorThrown) {
-                    console.log(errorThrown);
-                }
-            });
-        });
-
         $(document).on('submit', '#add_sender_info', function(e) {
             e.preventDefault();
             var sender_name = $('#sender_name').val();
@@ -691,7 +704,7 @@
                 }
             }
             parametre = { template: template, subtemplate: subtemplate };
-            console.log(parametre);
+            //console.log(parametre);
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
@@ -701,16 +714,20 @@
                     'updatetempplate_id': updatetempplate_id
                 },
                 success: function(response) {
-                    console.log(response);
+                    //console.log(response);
                     if (updatetempplate_id != "") {
-                        if (response)
+                        if (response) {
                             document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">Edit successfully</div>';
-                        else
+                            document.getElementById('create_template').innerHTML = '';
+                            document.getElementById('template_card').innerHTML = response;
+                        } else
                             document.getElementById('add_success').innerHTML = '<div class="alert alert-danger" role="alert">Edit error</div>';
                     } else {
-                        if (response)
+                        if (response) {
                             document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">New template created successfully</div>';
-                        else
+                            document.getElementById('create_template').innerHTML = '';
+                            document.getElementById('template_card').innerHTML = response;
+                        } else
                             document.getElementById('add_success').innerHTML = '<div class="alert alert-danger" role="alert">Error occurred during template creation</div>';
                     }
                     setTimeout(function() { $('#add_success').hide(); }, 3000);

@@ -233,6 +233,9 @@ class Orion_Task_Manager {
 
 		add_action('wp_ajax_synchronisation_time', 'settings_function');
 		add_action('wp_ajax_nopriv_synchronisation_time', 'settings_function');
+
+		add_action('wp_ajax_project_card', 'settings_function');
+		add_action('wp_ajax_nopriv_project_card', 'settings_function');
 		
 		add_action('wp', 'login_redirect');
 		add_action('template_redirect', '_taitement_form');

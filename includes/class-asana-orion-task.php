@@ -100,7 +100,7 @@ function sync_new_project($data)
 function sync_projets()
 {
 	// See class comments and Asana API for full info
-	$projects = get_all_project();
+	$projects = get_project_();
 	$sections_all = get_all_sections();
 	$asana = connect_asana();
 	$asana->getProjects();
@@ -242,19 +242,19 @@ function sync_tasks()
 
 								if (isset($task_info->tags[0]->gid)) {
 									$sub_categorie = $task_info->tags[0]->name;
-									if ($task_info->tags[0]->gid == "1202382197625653") {
+									if ($task_info->tags[0]->gid == get_categories_task(null,'implementation')->id) {
 										$sub_categorie == "implementation";
 										$id_implementation = $task_as->gid;
 									}
-									if ($task_info->tags[0]->gid == "1202382197625652") {
+									if ($task_info->tags[0]->gid == get_categories_task(null,'revue')->id) {
 										$sub_categorie == "revue";
 										$id_revue = $task_as->gid;
 									}
-									if ($task_info->tags[0]->gid == "1202388626016633") {
+									if ($task_info->tags[0]->gid == get_categories_task(null,'test')->id) {
 										$sub_categorie == "test";
 										$id_test = $task_as->gid;
 									}
-									if ($task_info->tags[0]->gid == "1202388626016635") {
+									if ($task_info->tags[0]->gid == get_categories_task(null,'integration')->id) {
 										$sub_categorie == "integration";
 										$id_integration = $task_as->gid;
 									}
@@ -287,6 +287,7 @@ function sync_tasks()
 									'finaly_date' => $task_info->completed_at,
 									'status' => $task_info->completed,
 									'evaluation' => NULL,
+									'evaluation_date' => NULL,
 									'mail_status' => $mail_status
 								);
 								save_new_task($data, $dataworklog);
@@ -304,19 +305,19 @@ function sync_tasks()
 										$sub_assigne = get_user_asana_id($asana->getData()->assignee->gid);
 										if (isset($info_subtask->tags[0]->gid)) {
 											$sub_categorie = $info_subtask->tags[0]->name;
-											if ($info_subtask->tags[0]->gid == "1202382197625653") {
+											if ($info_subtask->tags[0]->gid == get_categories_task(null,'implementation')->id) {
 												$sub_categorie == "implementation";
 												$id_implementation = $sub_task->gid;
 											}
-											if ($info_subtask->tags[0]->gid == "1202382197625652") {
+											if ($info_subtask->tags[0]->gid == get_categories_task(null,'revue')->id) {
 												$sub_categorie == "revue";
 												$id_revue = $sub_task->gid;
 											}
-											if ($info_subtask->tags[0]->gid == "1202388626016633") {
+											if ($info_subtask->tags[0]->gid == get_categories_task(null,'test')->id) {
 												$sub_categorie == "test";
 												$id_test = $sub_task->gid;
 											}
-											if ($info_subtask->tags[0]->gid == "1202388626016635") {
+											if ($info_subtask->tags[0]->gid == get_categories_task(null,'integration')->id) {
 												$sub_categorie == "integration";
 												$id_integration = $sub_task->gid;
 											}
@@ -346,6 +347,7 @@ function sync_tasks()
 											'finaly_date' => $info_subtask->completed_at,
 											'status' => $info_subtask->completed,
 											'evaluation' => NULL,
+											'evaluation_date' => NULL,
 											'mail_status' => $mail_status
 										);
 										$subarray = array('id' => $sub_task->gid, 'id_task_parent' => $task_as->gid);
@@ -453,6 +455,7 @@ function traite_task_and_save($data)
 			'finaly_date' => $task_asana->completed_at,
 			'status' => $task_asana->completed,
 			'evaluation' => NULL,
+			'evaluation_date' => NULL,
 			'mail_status' => NULL
 		);
 		$output = save_new_task($data_add, $dataworklog);
@@ -509,16 +512,16 @@ function save_new_subtask($data, $parent_id)
 	$id_integration = NULL;
 	foreach ($data as $array) {
 		if ($array['categorie'] == 'implementation') {
-			$tags = "1202382197625653";
+			$tags = get_categories_task(null,'implementation')->id;
 		}
 		if ($array['categorie'] == 'revue') {
-			$tags = "1202382197625652";
+			$tags = get_categories_task(null,'revue')->id;
 		}
 		if ($array['categorie'] == 'test') {
-			$tags = "1202388626016633";
+			$tags = get_categories_task(null,'test')->id;
 		}
 		if ($array['categorie'] == 'integration') {
-			$tags = "1202388626016635";
+			$tags = get_categories_task(null,'integration')->id;
 		}
 		$result = $asana->createSubTask(
 			$parent_id,
@@ -568,6 +571,7 @@ function save_new_subtask($data, $parent_id)
 				'finaly_date' => $output->completed_at,
 				'status' => $output->completed,
 				'evaluation' => NULL,
+				'evaluation_date' => NULL,
 				'mail_status' => NULL
 			);
 			$subarray = array('id' => $taskId, 'id_task_parent' => $parent_id);

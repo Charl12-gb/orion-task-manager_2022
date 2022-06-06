@@ -96,7 +96,7 @@ function my_plugin_create_db()
 			PRIMARY KEY  (id)
 		);
 		CREATE TABLE $table_categories(
-			id int AUTO_INCREMENT,
+			id bigint NOT NULL,
 			categories_key varchar(255) UNIQUE,
 			categories_name varchar(255) NOT NULL,
 			PRIMARY KEY  (id)
@@ -146,6 +146,7 @@ function my_plugin_create_db()
 			finaly_date datetime,
 			status varchar(50),
 			evaluation text,
+			evaluation_date varchar(20) NULL,
 			mail_status varchar(10) NULL,
 			FOREIGN KEY  (id_task) REFERENCES $table_task(id), 
 			PRIMARY KEY  (id_task)
