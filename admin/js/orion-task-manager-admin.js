@@ -743,9 +743,14 @@
             console.log('Le clic sur le bouton a été pris en compte');
             var multi_choix = $('#multichoix option:selected').toArray().map(item => item.value);
             var projectmanager = document.getElementById('projectmanager').value;
+            var project_id = "";
+            if (document.getElementById('project_id')) {
+                project_id = document.getElementById('project_id').value;
+            }
             var title = $('#titleproject').val();
             var slug = $('#slug').val();
             var description = $('#description').val();
+            //console.log(project_id);
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
@@ -756,12 +761,17 @@
                     'description': description,
                     'project_manager': projectmanager,
                     'collaborator': multi_choix,
+                    'project_id': project_id
+                },
+                beforeSend: function() {
+                    document.getElementById('add_success1').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
                 },
                 success: function(response) {
                     //console.log(response);
-                    if (response)
+                    if (response) {
                         document.getElementById('add_success1').innerHTML = '<div class="alert alert-success" role="alert">New project created successfully</div>';
-                    else
+                        document.getElementById('project_card').innerHTML = response;
+                    } else
                         document.getElementById('add_success1').innerHTML = '<div class="alert alert-danger" role="alert">Error occurred during project creation</div>';
                     setTimeout(function() { $('#add_success1').hide(); }, 3000);
                 },

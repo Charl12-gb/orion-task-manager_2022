@@ -69,7 +69,7 @@ function get_asana_collaborator($project_id)
  * @param array $data
  * @return bool
  */
-function sync_new_project($data)
+function sync_new_project($data, $project_id=null)
 {
 	global $wpdb;
 	$asana = connect_asana();
@@ -78,19 +78,38 @@ function sync_new_project($data)
 		'name' => $data['title'],
 		'notes' => $data['description']
 	);
-	$asana->createProject($array_asana);
+	if( $project_id != null ){
+		$asana->updateProject(
+			$project_id,
+			$array_asana
+		);
+	}else
+		$asana->createProject($array_asana);
+
 	$result = $asana->getData();
 	if (isset($result->gid)) {
-		$array = array(
-			'id'		=> $result->gid,
-			'title'		=> $data['title'],
-			'description' => $data['description'],
-			'permalink'	=> $result->permalink_url,
-			'slug' => $data['slug'],
-			'project_manager' => $data['project_manager'],
-			'collaborator' => serialize($data['collaborator'])
-		);
-		return save_project($array);
+		if( $project_id != null ){
+			$array = array(
+				'title'		=> $data['title'],
+				'description' => $data['description'],
+				'permalink'	=> $result->permalink_url,
+				'slug' => $data['slug'],
+				'project_manager' => $data['project_manager'],
+				'collaborator' => serialize($data['collaborator'])
+			);
+			return save_project($array, $project_id);
+		}else{
+			$array = array(
+				'id'		=> $result->gid,
+				'title'		=> $data['title'],
+				'description' => $data['description'],
+				'permalink'	=> $result->permalink_url,
+				'slug' => $data['slug'],
+				'project_manager' => $data['project_manager'],
+				'collaborator' => serialize($data['collaborator'])
+			);
+			return save_project($array);
+		}
 	} else return false;
 }
 
@@ -106,16 +125,17 @@ function sync_projets()
 	$asana->getProjects();
 	if ($asana->getData() != null) {
 		foreach ($asana->getData() as $project_asana) {
-			$Exist = true;
-			if ($projects == null) $Exist = true;
+			$sync = true;
+			if ($projects == null) $sync = true;
 			else {
+				if( $project_asana->gid == get_option('_project_manager_id') ) $sync = false;
 				foreach ($projects as $project) {
 					if ($project_asana->gid == $project->id) {
-						$Exist = false;
+						$sync = false;
 					}
 				}
 			}
-			if ($Exist) {
+			if ($sync) {
 				$asana->getProjectStories($project_asana->gid);
 				$created = $asana->getData()[0]->created_by->gid;
 				$asana->getProject($project_asana->gid);
@@ -138,13 +158,13 @@ function sync_projets()
 			$sections_asana = $asana->getProjectSections($project_asana->gid);
 			if ($asana->getData() != null) {
 				foreach ($asana->getData() as $sections) {
-					$SectionExist = true;
+					$sync = true;
 					foreach ($sections_all as $section) {
 						if ($sections->gid == $section->id) {
-							$SectionExist = false;
+							$sync = false;
 						}
 					}
-					if ($SectionExist) {
+					if ($sync) {
 						$data2 = array(
 							'id' 		=> $sections->gid,
 							'project_id' => $project_asana->gid,
@@ -209,6 +229,87 @@ function sync_duedate_task()
 }
 
 /**
+ * Fonction de synchronisation des objectives du mois
+ */
+function sync_objectives_month(){
+	$asana = connect_asana();
+	$objectives = get_objective_of_month();
+	$asana->getProjectTasks( get_option('_project_manager_id') );
+	$tasks = $asana->getData();
+	if( $tasks != null ){
+		foreach( $tasks as $task ){
+			$asana->getTask($task->gid);
+			$task_detail = $asana->getData();
+			if( $task_detail->parent == NULL ){
+				$sync = true; $exist = false;
+				if( $objectives != null ){
+					foreach( $objectives as $objective ){
+						if( $objective->id_objective == $task->gid ){
+							$sync = false; $exist = true;
+							if( $objective->modify_date != $task_detail->modified_at ){
+								$sync = true;
+							}
+						}
+					}
+				}
+				if( $sync ){
+					$objective_array = array();
+					$asana->getSubTasks($task->gid);
+					$subtasks = $asana->getData();
+					foreach( $subtasks as $subtask ){
+						$objective_array += array($subtask->gid => array('objective' => $subtask->name, 'status' => ''));
+					}
+					if( $exist ){
+						update_objective( $objective_array, $task->gid );
+					}else{
+						$id_user = get_user_asana_id( $task_detail->assignee->gid );
+						$id_section = $task_detail->memberships[0]->section->gid;
+						$objective_tab_save = array(
+							'id_objective' 			=> $task->gid,
+							'id_user' 				=> $id_user,
+							'id_section'			=> $id_section,
+							'month_section' 		=> (date('m')/1),
+							'year_section'			=> date('Y'),
+							'duedate_section'		=> $task_detail->due_on,
+							'objective_section'		=> serialize($objective_array),
+							'section_permalink'		=> $task_detail->permalink_url,
+							'modify_date'			=> $task_detail->modified_at
+						);
+						//Sauvegarde du worklog
+						$task_array = array(
+							'id' => $task->gid,
+							'author_id' => $id_user,
+							'project_id' => get_option('_project_manager_id'),
+							'section_id' => $id_section,
+							'title' => '',
+							'permalink_url' => $task_detail->permalink_url,
+							'type_task' => 'objective',
+							'categorie' => NULL,
+							'dependancies' => NULL,
+							'description' => NULL,
+							'assigne' =>  NULL,
+							'duedate' => $task_detail->due_on,
+							'created_at' => $task_detail->created_at);
+						
+							$dataworklog = array(
+							'id_task' => $task->gid,
+							'finaly_date' => $task_detail->completed_at,
+							'status' => $task_detail->completed,
+							'evaluation' => NULL,
+							'evaluation_date' => NULL,
+							'mail_status' => 'cp');
+						save_objective($objective_tab_save);
+						save_new_task($task_array, $dataworklog);
+					}
+				}
+			}
+		}
+	}
+
+}
+
+
+/**
  * Synchronisation des tâches depuis Asana
  */
 function sync_tasks()
@@ -223,9 +324,9 @@ function sync_tasks()
 				$task_asana = $asana->getData();
 				if ($task_asana != null) {
 					foreach ($task_asana as $task_as) {
-						$TaskExist = true;
+						$sync = true;
 						//si la task n'est pas dans la bdd, on recupère ces information
-						if ($TaskExist) {
+						if ($sync) {
 							$asana->getTask($task_as->gid);
 							$task_info = $asana->getData();
 							$assig = $asana->getData()->assignee->gid;

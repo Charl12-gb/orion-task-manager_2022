@@ -110,6 +110,7 @@ function my_plugin_create_db()
 			duedate_section datetime NOT NULL,
 			objective_section text NOT NULL,
 			section_permalink text,
+			modify_date datetime NOT NULL,
 			FOREIGN KEY  (id_user) REFERENCES $table_users(id),
 			FOREIGN KEY  (id_section) REFERENCES $table_section(id),
 			PRIMARY KEY  (id_objective,id_user,id_section,month_section,year_section)
@@ -118,7 +119,7 @@ function my_plugin_create_db()
 			id bigint NOT NULL,
 			author_id bigint UNSIGNED NOT NULL,
 			project_id bigint NOT NULL,
-			section_id bigint NOT NULL,
+			section_id bigint NULL,
 			title varchar(255) NOT NULL,
 			permalink_url text NOT NULL,
 			type_task varchar(50) NULL,

@@ -80,6 +80,45 @@ function evaluator_page()
 }
 
 /**
+ * Evaluation des projects manager à la fin de chaque mois
+ */
+function evluation_project(){
+	$string = 'last friday of ' . date('F', mktime(0, 0, 0, date('m'), 10)) . ' this year';
+	$last_friday = gmdate('Y-m-d', strtotime($string));
+	$string2 = 'next day '. $last_friday;
+	$date1 = gmdate('Y-m-d', strtotime($string2));
+	$date2 = date('Y-m-d');
+	$evaluation_date = strtotime($date1);
+	$today_date = strtotime( $date2 );
+
+	if( $evaluation_date == $today_date ){
+		$objectives = get_objective_of_month((date('m')/1), date('Y'));
+		$tab_rapport_month = array();
+		foreach( $objectives as $objective ){
+			$total = 0; $completed = 0; $reste = 0; $moyenne=0;
+			$month_objectives = unserialize( $objective->objective_section );
+			foreach( $month_objectives as $key => $month_objective ){
+				$total++;
+				if( $month_objective['status'] ) $completed++;
+			}
+			$reste = $total - $completed;
+			$moyenne = ($completed / $total) * 100;
+			$array_evaluation = array( 
+				'objectives' => $month_objectives, 
+				'evaluation' => array( 
+					'total' => $total, 
+					'completed' => $completed, 
+					'reste' => $reste, 
+					'moyenne' => $moyenne 
+				)
+			);
+		$output = save_evaluation_info( $array_evaluation, $objective->id_objective );
+		if( $output ) array_push( $tab_rapport_month, $objective->id_objective );
+		}
+	}
+}
+
+/**
  * Function permettant de télécharger le worklog d'un membre
  * 
  * @param int $user_id

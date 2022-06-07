@@ -115,12 +115,17 @@ function delete_email($id_template)
 	return $ok;
 }
 
-function save_project($data)
+function save_project($data, $project_id=null)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'project';
-	$format = array('%d', '%s', '%s', '%s', '%s', '%d', '%s');
-	return $wpdb->insert($table, $data, $format);
+	if( $project_id != null ){
+		$format = array('%s', '%s', '%s', '%s', '%d', '%s');
+		return $wpdb->update($table, $data, array('id' => $project_id), $format);
+	}else{
+		$format = array('%d', '%s', '%s', '%s', '%s', '%d', '%s');
+		return $wpdb->insert($table, $data, $format);
+	}
 }
 
 function save_new_sections($data)
@@ -224,8 +229,16 @@ function save_new_task(array $data, array $worklog, $subarray = null)
 function save_objective( $data ){
 	global $wpdb;
 	$table = $wpdb->prefix . 'objectives';
-	$format = array( '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s');
+	
+	$format = array( '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s');
 	return $wpdb->insert($table, $data, $format);
+}
+
+function update_objective( $data, $id_objective ){
+	global $wpdb;
+	$table = $wpdb->prefix . 'objectives';
+	$format = array( '%s' );
+	$wpdb->update($table, array('objective_section' => serialize( $data )), array('id_objective' => $id_objective), $format);
 }
 
 /**
@@ -391,14 +404,17 @@ function get_user_current_project($id_user)
 	$j = 0;
 	foreach (get_project_() as $value) {
 		if( $value->collaborator != null ){
-			if (in_array($id_user, unserialize($value->collaborator))) {
-				$user_projects_id += array($j => array('id' => $value->id, 'title' => $value->title));
-				$j++;
+			if( unserialize($value->collaborator) != null ){
+				if (in_array($id_user, unserialize($value->collaborator))) {
+					$user_projects_id += array($j => array('id' => $value->id, 'title' => $value->title));
+					$j++;
+				}
 			}
 		}
 	}
 	return $user_projects_id;
 }
+
 function get_templates_($template_id = null)
 {
 	global $wpdb;
@@ -414,16 +430,27 @@ function get_templates_($template_id = null)
  * Fonction permettant d'obtenir les objectifs d'un mois d'un project manager
  * 
  * @param int $id_user
- * @param string $month
+ * @param string|int|null $month
+ * @param string|int|null $year
  * 
  * @return object|array
  */
-function get_objective_of_month( $id_user, $month, $year=null ){
+function get_objective_of_month( $month=null, $year=null ,$id_user = null){
 	global $wpdb;
 	$table = $wpdb->prefix . 'objectives';
-	if( $year == null ) $year = date('Y');
-	$sql = "SELECT * FROM $table WHERE id_user=$id_user AND month_section=$month AND year_section=$year";
-	return $wpdb->get_row($sql);
+	$table1 = $wpdb->prefix . 'worklog';
+	if( $month == null and $year == null and $id_user == null ){
+		$sql = "SELECT *FROM $table";
+		return $wpdb->get_results( $sql );
+	}else{
+		if( $id_user != null ){
+			$sql = "SELECT * FROM $table WHERE id_user=$id_user AND month_section='$month' AND year_section='$year'";
+			return $wpdb->get_row($sql);
+		}else{
+			$sql = "SELECT * FROM $table, $table1 WHERE id_task=id_objective AND month_section='$month' AND year_section='$year'";
+			return $wpdb->get_results($sql);
+		}
+	}
 }
 
 function get_template_titles()
@@ -435,24 +462,6 @@ function get_template_titles()
 		$title_array += array($template->option_id => $titles['parametre']['template']['templatetitle']);
 	}
 	return $title_array;
-}
-
-function get_all_role( $not=null )
-{
-	global $wp_roles;
-	$roles_get = $wp_roles->roles;
-	$roles = array();
-	if( $not == null ){
-		foreach ($roles_get as $key => $value) {
-			$roles = $roles + array($key => $value['name']);
-		}
-	}else{
-		foreach ($roles_get as $key => $value) {
-			if( $key != $not )
-			$roles = $roles + array($key => $value['name']);
-		}
-	}
-	return $roles;
 }
 
 function get_all_users($key = null)
@@ -541,29 +550,6 @@ function get_task_status($task_id, $status = null)
 			}
 		}
 	}
-}
-
-function save_objective_project( $project ){
-	$asana = connect_asana();
-	$data = array(
-		"workspace" => get_workspace(),
-		"name" => $project['title'],
-	);
-	$asana->createProject( $data );
-	$result = $asana->getData();
-	if (isset($result->gid)){
-		$array = array(
-			'id' => $result->gid,
-			'title' => $project['title'],
-			'description' => $project['mois'],
-			'slug' => $project['type_task'],
-			'permalink'=> $result->permalink_url,
-			'project_manager' => get_current_user_id(),
-			'collaborator' => ''
-		);
-		save_project( $array );
-		return $result->gid;
-	}else return null;
 }
 
 function useTemplate_save( $array ){
@@ -694,7 +680,7 @@ function traite_form_public($array)
 		$mois = htmlentities($array['mois']);
 		$annee = date('Y');
 		$project = htmlentities($array['project_select']);
-		if (objective_exist(get_current_user_id(), $mois, $annee)) return false;
+		if (get_objective_of_month($mois,  $annee, get_current_user_id()) != null ) return false;
 		else {
 			if ($nbre == 0) return false;
 			else {
@@ -722,6 +708,8 @@ function traite_form_public($array)
 					} else {
 						$task_asana = json_decode($result)->data;
 						$permalink_objective = $task_asana->permalink_url;
+						
+						// Sauvegarde des subtask
 						$objective_array = array();
 						for ($k = 1; $k <= $nbre; $k++) {
 							$ob = 'objective' . $k;
@@ -742,9 +730,14 @@ function traite_form_public($array)
 							'year_section'			=> $annee,
 							'duedate_section'		=> $duedate,
 							'objective_section'		=> serialize($objective_array),
-							'section_permalink'		=> $permalink_objective
+							'section_permalink'		=> $permalink_objective,
+							'modify_date'			=> $task_asana->modified_at
 						);
-						return save_objective($objective_tab_save);
+						//Sauvegarde du worklog
+						$task_array = array('id' => $objective_id,'author_id' => get_current_user_id(),'project_id' => get_option('_project_manager_id'),'section_id' => $id_section,'title' => '','permalink_url' => $permalink_objective,'type_task' => 'objective','categorie' => NULL,'dependancies' => NULL,'description' => NULL,'assigne' => NULL,'duedate' => $duedate,'created_at' => $task_asana->created_at);
+						$dataworklog = array('id_task' => $objective_id,'finaly_date' => $task_asana->completed_at,'status' => $task_asana->completed,'evaluation' => NULL,'evaluation_date' => NULL,'mail_status' => 'cp');
+						save_objective($objective_tab_save);
+						return $output = save_new_task($task_array, $dataworklog);
 					}
 				}
 			}
@@ -1261,7 +1254,7 @@ function add_task_form()
  */
 function objective_tab( $id_user = null, $month = null ){
 	if( $id_user == null ) $id_user = get_current_user_id();
-	if( $month == null ) $month = date('m');
+	if( $month == null ) $month = date('m')/1;
 	$mois = date('F', mktime(0, 0, 0, $month, 10));
 	?>
 	<div id="98795" style="display:none">
@@ -1305,7 +1298,7 @@ function objective_tab( $id_user = null, $month = null ){
 			</div>
 		</div>
 		<?php 
-		$objectives_array = get_objective_of_month( $id_user, $month );
+		$objectives_array = get_objective_of_month( $month, date('Y'), $id_user );
 		if( $objectives_array != null ){
 				?>
 				<div class="card-body">
@@ -1471,7 +1464,7 @@ function orion_task_evaluation_shortcode()
 }
 function taches_tab()
 {
-	var_dump(get_task_main(1202088438425044));
+	//print_r( get_objective_of_month(6,2022,1) );
 	?>
 	<div class="container-fluid pt-3">
 		<div class="row" id="accordion">
@@ -1529,8 +1522,8 @@ function taches_tab()
 					</div>
 				</div>
 				<div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordion">
-					<div class="card-body" id="project_card">
 					<div id="add_success1"></div>
+					<div class="card-body" id="project_card">
 					<?= project_tab() ?>
 					</div>
 				</div>
@@ -2348,8 +2341,16 @@ function settings_function()
 			echo 'Sorry you can\'t change the roles of this user';
 	}
 	if ($action == 'create_new_projet') {
-		$post = wp_unslash($_POST);
-		echo sync_new_project($post);
+		if( isset( $_POST['project_id'] ) && !empty( $_POST['project_id'] ) ){
+			$project_id = htmlentities( $_POST['project_id'] );
+			$post = wp_unslash($_POST);
+			$output =  sync_new_project($post, $project_id);
+		}else{
+			$post = wp_unslash($_POST);
+			$output = sync_new_project($post);
+		}
+		if( $output ) echo project_tab();
+		else echo false;
 	}
 	if ($action == 'create_template') {
 		if (isset($_POST['updatetempplate_id']) && !empty($_POST['updatetempplate_id'])) {
