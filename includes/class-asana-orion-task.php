@@ -23,14 +23,50 @@ function connect_asana()
 add_action('task_cron_hook', 'task_cron_sync');
 function task_cron_sync()
 {
-	// sync_projets();
-	// sync_tasks();
-	// sync_duedate_task();
+	sync_projets();
+	sync_tasks();
+	sync_duedate_task();
+	automatique_send_mail( );
 }
 
 if (!wp_next_scheduled('task_cron_hook')) {
 	$time_def = get_option('_synchronisation_time');
 	wp_schedule_event(time(), $time_def, 'task_cron_hook');
+}
+
+
+add_action('objective_cron_hook', 'objective_cron_sync');
+function objective_cron_sync(){
+	sync_objectives_month();
+}
+
+if (!wp_next_scheduled('objective_cron_hook')) {
+	wp_schedule_event(time(), 'weekly', 'objective_cron_hook');
+}
+
+
+
+add_action('report_cron_hook', 'report__cron_sync');
+if (!wp_next_scheduled('report__cron_hook')) {
+	wp_schedule_event(time(), 'daily', 'report_cron_hook');
+}
+function report__cron_sync(){
+	$sent_info = unserialize( get_option('_report_sent_info') );
+	$today = date('Y-m-d');
+	if( $sent_info['last_day_month'] ){
+		$date_send_report = gmdate('Y-m-d', strtotime('last day of this month'));
+		if( strtotime( $today ) == strtotime( $date_send_report ) ){
+			//call function
+		}
+	}
+	if( $sent_info['last_friday_month'] ){
+		$mois = date('m');
+		$string = 'last friday of ' . date('F', mktime(0, 0, 0, $mois, 10)) . ' this year';
+		$date_send_report = gmdate('Y-m-d', strtotime($string));
+		if( strtotime( $today ) == strtotime( $date_send_report ) ){
+			//call function
+		}
+	}
 }
 
 //***************************************************************************************** */

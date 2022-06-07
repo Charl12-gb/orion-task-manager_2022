@@ -83,7 +83,7 @@ class Task_Manager_Builder
             active_tab();
         }
         if ( $active_tableau == 'o-rapport' ) {
-            
+            rapport_tab();
         }
         if ( $active_tableau == 'o-performance' ) {
             

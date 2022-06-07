@@ -472,15 +472,22 @@
             });
         });
 
-        $(document).on('submit', '#add_project_manager', function(e) {
+        $(document).on('submit', '#report_send_save', function(e) {
             e.preventDefault();
-            var projectmanager = document.getElementById('projectmanager').value;
+            var email_manager = $('#email_manager').val();
+            var date_report_sent = $('#date_report_sent').val();
+            var report_send = $('#report_send').val();
+            var sent_cp = $('#sent_cp:checked').val();
+            if (sent_cp == undefined) sent_cp = false;
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
                 data: {
                     'action': 'synchronisation_time',
-                    'projectmanager': projectmanager
+                    'email_manager': email_manager,
+                    'date_report_sent': date_report_sent,
+                    'report_send': report_send,
+                    'sent_cp': sent_cp,
                 },
                 beforeSend: function() {
                     document.getElementById('add_success_id').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';

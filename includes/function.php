@@ -904,11 +904,16 @@ function get_task_calendar($id_user = null)
 							<td style="<?php if ($counter > 4) : ?>color: red;<?php endif; ?><?php if ($current_day == $d) : ?>color:blue;font-weight:bold;<?php endif; ?>">
 								<?php echo ($d > 0 ? ($d > $days_count ? '' : $d) : '') ?>
 								<?php
-								$exist_Task = false;
+								$exist_Task = false; $k=0;
+								$array = array();
 								foreach ($tasks as $task) {
 									if ((date('m', strtotime($task->duedate)) == $month) && (date('Y', strtotime($task->duedate)) == $year)) {
-										if (date('d', strtotime($task->duedate)) == $d) {
-											$exist_Task = true;
+										if (date('d', strtotime($task->duedate)/1) == $d) {
+											if( $task->title != '' ){
+												$exist_Task = true;
+												$array += array( $k => array( 'id' => $task->id,'title' => $task->title, 'assign' => $task->assigne ) );
+												$k++;
+											}
 										}
 									}
 								}
@@ -920,7 +925,7 @@ function get_task_calendar($id_user = null)
 								?>
 							</td>
 							<?php
-							modal_event_calendar($year . '-' . $month . '-' . $d);
+							modal_event_calendar($year . '-' . $month . '-' . $d, $array);
 							$counter++; ?>
 						<?php endfor; ?>
 					</tr>
@@ -931,11 +936,11 @@ function get_task_calendar($id_user = null)
 <?php
 }
 
-function modal_event_calendar($date_event)
+function modal_event_calendar($date_event, $array)
 {
 ?>
 	<div class="modal fade <?= $date_event ?>" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
-		<div class="modal-dialog modal-lg">
+		<div class="modal-dialog">
 			<div class="modal-content">
 				<div class="modal-header">
 					<h5 class="modal-title" id="exampleModalLabel">Task ( <?= $date_event ?> )</h5>
@@ -944,7 +949,20 @@ function modal_event_calendar($date_event)
 					</button>
 				</div>
 				<div class="modal-body">
-
+					<h5>Tasks : </h5>
+					<?php
+						foreach( $array as $data ){
+							if( $data['title'] != '' ){
+								$task = get_task_( 'id', $data['id'] ); 
+								?>
+								<div class="alert alert-primary" role="alert">
+								<p class="row text-center ml-3 mt-0 mb-1"><?php if( get_task_main( $data['id'] ) != null ) echo get_task_main( $data['id'] ) . '<--'; ?> <strong><?= $data['title'] ?></strong> </p>
+								<small id="emailHelp" class="form-text text-muted"><strong style="text-decoration: underline;">Status:</strong> <?= ' '.get_task_status( $data['id'] ) ?> | <strong style="text-decoration: underline;">Assigne:</strong><?= ' '.get_userdata(  $data['assign'] )->display_name ?></small>  
+							</div>
+							<?php
+							}
+						}
+					?>
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -1093,7 +1111,7 @@ function project_form_add( $id_project=null ){
 				<div class="form-group">
 					<label for="inputState">Collaborators :</label>
 					<select class="selectpicker form-control" id="multichoix" name="multichoix" multiple data-live-search="true">
-						<?= option_select(get_all_users()) ?>
+					<?= option_select(get_all_users()) ?>
 					</select>
 				</div>
 				<div class="form-group">
@@ -1124,7 +1142,7 @@ function project_tab( ){
 					<tr>
 						<td class="m-0 p-0" style="height: 45px;"><?= $k + 1 ?></td>
 						<td class="m-0 p-0" style="height: 45px;"><span class="btn btn-link project_edit" id="<?= $project->id ?>"><?= $project->title ?></span></td>
-						<td class="m-0 p-0" style="height: 45px;"><?= get_userdata( $project->project_manager )->display_name ?> (<?= get_userdata( $project->project_manager )->user_email ?>)</td>
+						<td class="m-0 p-0" style="height: 45px;"><?= get_userdata( $project->project_manager )->display_name ?></td>
 						<td class="m-0 p-0" style="height: 45px;">
 							<span class="text-primary btn btn-link project_edit" id="<?= $project->id ?>">Edit</span> | <span class="text-danger btn btn-link project_remove" id="<?= $project->id ?>">Delete</span>
 						</td>
@@ -1718,6 +1736,7 @@ function get_project_manager_tab(){
 			<div class="form-row">
 				<div class="col-sm-8">
 					<input type="text" name="id_project_manager" id="id_project_manager" class="form-control" placeholder="Project Id" value="<?= get_option( '_project_manager_id' ) ?>">
+					<small id="emailHelp" class="form-text text-muted">Enter the ASANA ID of the project where the objectives will be saved</small>
 				</div>
 				<div class="col">
 					<button type="submit" class="btn btn-outline-primary mb-2">UPDATE</button>
@@ -1725,20 +1744,6 @@ function get_project_manager_tab(){
 			</div>
 		</form>
 		<hr>
-		<form id="add_project_manager" method="post" action="">
-			<label for="add_project_manager">Select New Project Manager</label>
-			<div class="form-row">
-				<div class="col-sm-8">
-					<select id="projectmanager" name="projectmanager" class="form-control">
-						<option value="">Choose...</option>
-						<?= option_select(get_all_users('name')) ?>
-					</select>
-				</div>
-				<div class="col">
-					<button type="submit" class="btn btn-outline-primary mb-2">SAVE</button>
-				</div>
-			</div>
-		</form>
 	</div>
 	<?php
 }
@@ -1926,6 +1931,66 @@ function create_task_criteria()
 		</div>
 	</form>
 <?php
+}
+
+function rapport_tab(){
+	$sent_info = unserialize( get_option('_report_sent_info') );
+	if( $sent_info == null ) { $sent_info['email_manager'] = null; $sent_info['send_date'] = null; $sent_info['sent_cp'] = null;  }
+	?>
+<div class="container-fluid pt-3">
+		<div class="row" id="accordion">
+			<div class="col-sm-4 card bg-light">
+				<div class="card-header" id="headingEvaluation1">
+					<h5 class="mb-0">
+						<button class="btn btn-link" data-toggle="collapse" data-target="#collapseEvaluationRP" aria-expanded="true" aria-controls="collapseEvaluationRP">
+							Send Report
+						</button>
+					</h5>
+					<p class="mt-0 mb-0">Set the parameters for sending reports</p>
+				</div>
+			</div>
+			<div class="col-sm-8 card">
+				<div id="collapseEvaluationRP" class="collapse show" aria-labelledby="headingEvaluationRP" data-parent="#accordion">
+					<div class="card-body" id="criteria_evaluation_tab">
+					<span id="add_success_id"></span>
+					<form id="report_send_save" method="post" action="">
+						<div class="form-row">
+							<div class="col">
+								<label for="">Email Manager</label>
+								<input type="email" name="email_manager" id="email_manager" class="form-control" placeholder="Email Manager" value="<?= $sent_info['email_manager'] ?>" >
+							</div>
+							<div class="col">
+								<label for="">Date reports sent</label>
+								<select class="custom-select" id="date_report_sent">
+									<option value="now">Now</option>
+									<option value="last_day_month" <?php if( $sent_info['send_date']  == 'last_day_month') echo 'selected' ?>>Last day of the month</option>
+									<option value="last_friday_month" <?php if( $sent_info['send_date']  == 'last_friday_month') echo 'selected' ?>>Last friday of the month</option>
+								</select>
+							</div>
+						</div>
+						<div class="form-row">
+							<div class="col">
+								<label for="">Report to send : </label>
+								<select class="custom-select" id="report_send">
+									<?php for( $z=1; $z<=12; $z++ ){ ?> <option value="<?= $z ?>" <?php if( date('m') == $z ) echo 'selected'; ?> > <?= date('F', mktime(0, 0, 0, $z, 10)) .' '. date('Y') ?></option> <?php } ?>
+								</select>
+							</div>
+							<div class="col">
+							<div class="custom-control custom-checkbox mt-4">
+								<input type="checkbox" class="sent_cp" <?php if( $sent_info['sent_cp']  == 'on') echo 'checked' ?> id="sent_cp">
+								<label class="" for="customControlValidation1">Send report to project manager</label>
+							</div>
+							</div>
+						</div>
+						<button class="btn btn-outline-primary mt-3" type="submit">Submit</button>
+					</form>
+					<hr>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<?php
 }
 
 function list_email_sending()
@@ -2528,10 +2593,17 @@ function settings_function()
 		echo $retour;
 	}
 	if( $action == 'synchronisation_time' ){
-		if( isset( $_POST['projectmanager'] ) ){
-			$projectmanager = htmlentities( $_POST['projectmanager'] );
-			$output = save_objective_section( $projectmanager );
-			print_r($output);
+		if( isset( $_POST['email_manager'] ) && !empty( $_POST['email_manager'] )){
+			$email_manager = htmlentities( $_POST['email_manager'] );
+			$date_report_sent = htmlentities( $_POST['date_report_sent'] );
+			$report_send = htmlentities( $_POST['report_send'] );
+			$sent_cp = htmlentities( $_POST['sent_cp'] );
+			if( $date_report_sent == 'now' ){
+				//return send_rapport( $email_manager, $report_send );
+			}else{
+				$array = serialize( array( 'email_manager' => $email_manager, 'send_date' => $date_report_sent, 'sent_cp' => $sent_cp) );
+				return update_option( '_report_sent_info', $array );
+			}
 		}
 		if( isset( $_POST['id_project_manager'] ) ){
 			$id_project_manager = htmlentities( $_POST['id_project_manager'] );

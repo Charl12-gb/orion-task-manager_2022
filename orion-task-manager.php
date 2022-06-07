@@ -58,11 +58,11 @@ function deactivate_orion_task_manager()
 }
 
 register_activation_hook(__FILE__, 'activate_orion_task_manager');
-register_activation_hook(__FILE__, 'my_plugin_create_db');
+register_activation_hook(__FILE__, 'orion_task_manager_create_db');
 register_deactivation_hook(__FILE__, 'deactivate_orion_task_manager');
 
 
-function my_plugin_create_db()
+function orion_task_manager_create_db()
 {
 
 	global $wpdb;
@@ -115,7 +115,7 @@ function my_plugin_create_db()
 			FOREIGN KEY  (id_section) REFERENCES $table_section(id),
 			PRIMARY KEY  (id_objective,id_user,id_section,month_section,year_section)
 		);
-		CREATE TABLE $table_task (
+		CREATE TABLE $table_task(
 			id bigint NOT NULL,
 			author_id bigint UNSIGNED NOT NULL,
 			project_id bigint NOT NULL,
@@ -126,7 +126,7 @@ function my_plugin_create_db()
 			categorie varchar(50),
 			dependancies bigint,
 			description text,
-			assigne bigint,
+			assigne bigint UNSIGNED,
 			duedate datetime,
 			created_at datetime NOT NULL,
 			FOREIGN KEY  (author_id) REFERENCES $table_users(id),
