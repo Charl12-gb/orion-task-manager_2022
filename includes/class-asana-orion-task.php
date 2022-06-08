@@ -265,6 +265,21 @@ function sync_duedate_task()
 }
 
 /**
+ * Creation de tag pour la catégorisation des tâches
+ * 
+ * @param string $name
+ * 
+ * @return int|null
+ */
+function create_tag( $name ){
+	$asana = connect_asana();
+	$asana->createTag( $name, array( "workspace" => get_workspace() ) );
+	$result = $asana->getData();
+	if( $result != null ) return  $result->gid;
+	else return null;
+}
+
+/**
  * Fonction de synchronisation des objectives du mois
  */
 function sync_objectives_month(){

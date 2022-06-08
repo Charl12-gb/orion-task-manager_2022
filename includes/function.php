@@ -140,12 +140,15 @@ function save_new_categories($datas, $id = null)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'categories';
-	$format = array('%s', '%s');
+	$format = array('%d','%s', '%s');
 	if ($id == null) {
 		foreach ($datas['valeur'] as $data) {
 			$form = str_replace(" ", "_", strtolower($data['categorie']));
-			$data_format = array('categories_key' => $form, 'categories_name' => $data['categorie']);
-			$wpdb->insert($table, $data_format, $format);
+			$id_categorie = create_tag( $form );
+			if( $id_categorie != null ){
+				$data_format = array('id' => $id_categorie, 'categories_key' => $form, 'categories_name' => $data['categorie']);
+				$wpdb->insert($table, $data_format, $format);
+			}
 		}
 	} else {
 		$format = array('%s');
@@ -943,13 +946,12 @@ function modal_event_calendar($date_event, $array)
 		<div class="modal-dialog">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h5 class="modal-title" id="exampleModalLabel">Task ( <?= $date_event ?> )</h5>
+					<h5 class="modal-title" id="exampleModalLabel">Tasks : ( <?= $date_event ?> )</h5>
 					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
 						<span aria-hidden="true">&times;</span>
 					</button>
 				</div>
 				<div class="modal-body">
-					<h5>Tasks : </h5>
 					<?php
 						foreach( $array as $data ){
 							if( $data['title'] != '' ){
