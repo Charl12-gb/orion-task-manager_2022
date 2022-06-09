@@ -31,18 +31,57 @@
 
     $(document).ready(function() {
         var y = 0,
+            z = 0,
             i = 1;
-        $(document).on('click', '#addobject', function() {
-            y++;
-            if (document.getElementById('nbreobject')) {
-                val = $('#nbreobject').val();
-                if (y < val) {
-                    y = val;
-                    document.getElementById('nbre').value = y;
+        //$(document).on('click', '#addobject', function() {
+        $(document).on('click', '.add_more', function() {
+            var choix = $(this).attr("id");
+            if (choix == 'addobject') {
+                y++;
+                if (document.getElementById('nbreobject')) {
+                    val = $('#nbreobject').val();
+                    if (y < val) {
+                        y = val;
+                        document.getElementById('nbre').value = y;
+                    }
                 }
+                $('#addojectives').append('<div id="rm2' + y + '"><div class="form-row pt-2"><div class="col"><input type="text" name="objective' + y + '" id="objective' + y + '" class="form-control" placeholder="Enter Goal"></div><div class="col-sm-1"><span name="remove" id="' + y + '" class="btn btn-outline-danger btn_remove_objective">X</span></div></div></div>');
+                document.getElementById('nbreobj').value = y;
             }
-            $('#addojectives').append('<div id="rm2' + y + '"><div class="form-row pt-2"><div class="col"><input type="text" name="objective' + y + '" id="objective' + y + '" class="form-control" placeholder="Enter Goal"></div><div class="col-sm-1"><span name="remove" id="' + y + '" class="btn btn-outline-danger btn_remove_objective">X</span></div></div></div>');
-            document.getElementById('nbreobj').value = y;
+            if (choix == 'more_subtask') {
+                z++;
+                $.ajax({
+                    url: task_manager.ajaxurl,
+                    type: "POST",
+                    data: {
+                        'action': 'get_option_add',
+                        'nbresubtask': z,
+                    },
+                    success: function(response) {
+                        $('#add_more_subtask').append('<div id="rm22' + z + '"><div class="form-row pt-2"><div class="col">' + response + ' <span name="remove" id="' + z + '" class="btn btn-outline-danger btn_remove_subtask">X</span></div></div></div>')
+                        if (document.getElementById('project'))
+                            var project_id = document.getElementById('project').value;
+                        $.ajax({
+                            url: task_manager.ajaxurl,
+                            type: "POST",
+                            data: {
+                                'action': 'get_option_add_template',
+                                'project_id': project_id
+                            },
+                            success: function(response) {
+                                for (var t = 0; t < 10; t++) {
+                                    if (document.getElementById('manuel_assign' + t))
+                                        document.getElementById('manuel_assign' + t).innerHTML = response;
+                                }
+                            }
+                        });
+                    },
+                    error: function(errorThrown) {
+                        console.log(errorThrown);
+                    }
+                });
+            }
+
         });
 
         $(document).on('click', '.btn_remove_objective', function() {
@@ -134,8 +173,8 @@
                             document.getElementById('sub_assign' + t).innerHTML = response;
                     }
                     for (var t = 0; t < 20; t++) {
-                        if (document.getElementById('assign' + t))
-                            document.getElementById('assign' + t).innerHTML = response;
+                        if (document.getElementById('manuel_assign' + t))
+                            document.getElementById('manuel_assign' + t).innerHTML = response;
                     }
                     document.getElementById('label1').style.color = 'black';
                 },
@@ -191,6 +230,10 @@
                                 if (document.getElementById('sub_assign' + t))
                                     document.getElementById('sub_assign' + t).innerHTML = response;
                             }
+                            for (var t = 0; t < 10; t++) {
+                                if (document.getElementById('manuel_assign' + t))
+                                    document.getElementById('manuel_assign' + t).innerHTML = response;
+                            }
                         },
                         error: function(errorThrown) {
                             console.log(errorThrown);
@@ -238,6 +281,7 @@
             }
             if (this.value == 'manuelTemplate1') {
                 var type = "manueltemplate";
+                $('#subtaskmore').show(1000)
             }
             $.ajax({
                 url: task_manager.ajaxurl,
@@ -265,6 +309,10 @@
                             for (var t = 0; t < 10; t++) {
                                 if (document.getElementById('sub_assign' + t))
                                     document.getElementById('sub_assign' + t).innerHTML = response;
+                            }
+                            for (var t = 0; t < 10; t++) {
+                                if (document.getElementById('manuel_assign' + t))
+                                    document.getElementById('manuel_assign' + t).innerHTML = response;
                             }
                         },
                         error: function(errorThrown) {

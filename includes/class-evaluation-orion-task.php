@@ -207,8 +207,8 @@ function  mail_sending_form($destinataire, $subject, $message)
 	$sender_info = unserialize(get_option('_sender_mail_info'));
 	// Pour les champs $expediteur / $copie / $destinataire, séparer par une virgule s'il y a plusieurs adresses
 	$expediteur = $sender_info['sender_email'];
-	$copie = $sender_info['sender_email'];
-	$copie_cachee = $sender_info['sender_email'];
+	$copie = $expediteur;
+	$copie_cachee = $expediteur;
 	$headers  = 'MIME-Version: 1.0' . "\n"; // Version MIME
 	$headers .= 'Content-type: text/html; charset=UTF-8' . "\n"; // l'en-tete Content-type pour le format HTML
 	$headers .= 'Reply-To: ' . $expediteur . "\n"; // Mail de reponse

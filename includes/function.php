@@ -1256,7 +1256,15 @@ function add_task_form()
 				</div>
 			</div>
 			<span id="second_choix"></span>
-		</div>
+			<div id="add_more_subtask"></div>
+			<hr>
+			<div id="subtaskmore" style="display:none;">
+			<input type="hidden" value="0" id="nbresubtask" name="nbresubtask">
+				<div class="form-group">
+					<span id="more_subtask" name="more_subtask" class="btn btn-outline-primary add_more">+ Add Sub Task</span>
+				</div>
+			</div>
+			</div>
 		<div class="pt-5" id="hidden_submit" style="display:none">
 			<button type="submit" name="validetash">Submit</button>
 		</div>
@@ -1296,7 +1304,7 @@ function objective_tab( $id_user = null, $month = null ){
 				<div id="addojectives" class="pb-3"></div>
 				<input type="hidden" name="nbreobj" id="nbreobj" value="0">
 				<div class="form-group">
-					<span id="addobject" name="addobject" class="btn btn-outline-success">+ Add Goals</span>
+					<span id="addobject" name="addobject" class="btn btn-outline-success add_more">+ Add Goals</span>
 				</div>
 			</div>		
 			<div id="hidden_submit" class="row" >
@@ -1484,7 +1492,6 @@ function orion_task_evaluation_shortcode()
 }
 function taches_tab()
 {
-	//print_r( get_objective_of_month(6,2022,1) );
 	?>
 	<div class="container-fluid pt-3">
 		<div class="row" id="accordion">
@@ -2360,6 +2367,35 @@ function get_first_choose($type, $istemplate = false)
 <?php
 	}
 }
+
+function add_manuel_form( $id ){
+?>
+	<div class="form-group">
+		<label for="title">Titre</label>
+		<input type="text" class="form-control" name="manuel_title<?= $id ?>" required id="manuel_title<?= $id ?>">
+	</div>
+	<div class="form-group">
+		<label for="exampleFormControlTextarea1">Description</label>
+		<textarea class="form-control" id="manuel_description<?= $id ?>" name="manuel_description<?= $id ?>" placeholder="Description..." rows="3"></textarea>
+	</div>
+	<div class="row">
+		<div class="col">
+			<label for="assigne">Assigne : </label>
+			<select class="form-control assign_option" id="manuel_assign<?= $id ?>" name="manuel_assign<?= $id ?>"><option value="" selected></option></select>
+		</div>
+		<div class="col">
+			<label for="duedate">Due Date</label>
+				<input type="datetime-local" name="manuel_duedate<?= $id ?>" class="form-control" id="manuel_duedate<?= $id ?>" aria-describedby="duedate">
+		</div>
+		<div class="col">
+			<label for="categorie">Categorie</label>
+			<select class="form-control" id="manuel_categorie<?= $id ?>" name="manuel_categorie<?= $id ?>">
+				<?= option_select(array( '' => 'None' ) + get_categorie_format()) ?>
+			</select>
+		</div>
+	</div>
+<?php
+}
 /**
  * 
  * @param int $id id template
@@ -2433,7 +2469,12 @@ function settings_function()
 		else echo false;
 	}
 	if ($action == 'get_option_add') {
-		echo option_select(get_template_titles());
+		if( isset( $_POST['nbresubtask'] ) ){
+			$id_cham = htmlentities( $_POST['nbresubtask'] );
+			echo add_manuel_form( $id_cham );
+		}else{
+			echo option_select(get_template_titles());
+		}
 	}
 	if ($action == 'get_option_add_template') {
 		$id_project = htmlentities($_POST['project_id']);
@@ -2588,7 +2629,7 @@ function settings_function()
 		$subject = htmlentities($_POST['subject']);
 		$content = htmlentities($_POST['content']);
 		$destinataire = htmlentities($_POST['email']);
-		$id_task = 1202081187468663;
+		$id_task = 1202382197625650;
 		$msg = content_msg($id_task,'test', $type_task, $content);
 
 		$retour = mail_sending_form($destinataire, $subject, $msg);
