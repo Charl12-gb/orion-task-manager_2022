@@ -80,7 +80,7 @@ function save_evaluation_info($array, $task_id): bool
 	if (get_evaluation_info($task_id)->evaluation == null) {
 		$table = $wpdb->prefix . 'worklog';
 		$format = array('%s');
-		return $wpdb->update($table, array('evaluation' => serialize($array), 'evaluation_date' => date('m') . "-" . date('Y')), array('id_task' => $task_id), $format);
+		return $wpdb->update($table, array('evaluation' => serialize($array), 'evaluation_date' => date('m-Y')), array('id_task' => $task_id), $format);
 	} else {
 		return false;
 	}
@@ -364,14 +364,20 @@ function update_worklog( array $data, array $where, array $format=null){
  * @param string|int|null $value
  * @param string|int|null $project
  */
-function get_task_($specification = null, $value = null, $project = null)
+function get_task_($specification = null, $value = null, $project = null, $month=null, $year=null)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'task';
 	$table1 = $wpdb->prefix . 'worklog';
-	if ($project == null) {
-		if ($specification != null && $value != null)
+	if ($project == null || $project == 'worklog') {
+		if ($specification != null && $value != null){
 			$sql = "SELECT * FROM $table INNER JOIN $table1 ON id=id_task WHERE $specification = $value"; // Association avec le worklog
+			if( $project == 'worklog' ){
+				$nxtm = strtotime("previous month");
+				$date_evaluation =  date("m-Y", $nxtm);
+				$sql .= " AND evaluation_date='$date_evaluation'";
+			}
+		}
 		else if ($specification != null && $value == null)
 			$sql = "SELECT * FROM $table WHERE assigne = $specification"; //Tâche assign à l'utilisateur x
 		else
@@ -818,7 +824,7 @@ function page_task()
 							</div>
 							<div class="col-sm-6" style="text-align:right;">
 								<span><?php if ($download_worklog == 'true') {
-											echo '<a class="btn btn-outline-success" href="' . download_worklog(get_current_user_id()) . '" download="' . get_userdata(get_current_user_id())->user_nicename . '.csv">Download Worklog</a>';
+											echo '<a class="btn btn-outline-success" href="' . download_worklog(get_current_user_id()) . '" download="' . get_userdata(get_current_user_id())->display_name . 'worklog.xlsx">Download Worklog</a>';
 										} ?></span>
 								<span>
 									<?php if (is_project_manager() != null) {
@@ -1513,6 +1519,7 @@ function orion_task_evaluation_shortcode()
 }
 function taches_tab()
 {
+	download_worklog(1);
 	?>
 	<div class="container-fluid pt-3">
 		<div class="row" id="accordion">

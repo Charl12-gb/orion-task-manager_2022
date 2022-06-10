@@ -1,5 +1,7 @@
 <?php
-
+require 'file_modele/vendor/autoload.php';
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 /**
  * Page d'évaluation des tâches
  */
@@ -126,40 +128,65 @@ function evluation_project()
  * Function permettant de télécharger le worklog d'un membre
  * 
  * @param int $user_id
- * @return string
  */
 function download_worklog($user_id, $month=null, $year=null)
 {
-	$alldata = "";
-	$tasks = get_task_('assigne', $user_id);
-	$m = 1;
-	foreach ($tasks as $task) {
-		$project_manager = get_userdata($task->author_id)->display_name;
-		$project_title = get_project_title($task->project_id);
-		$duedate = strtotime($task->duedate);
-		if ($task->status == null) {
-			$finaly_date = strtotime(date('Y-m-d H:i:s',  strtotime('+1 hours')));
-			if ($duedate < $finaly_date) {
-				$status = 'Not Completed';
-			} elseif ($duedate == $finaly_date) {
-				$status = 'Today deadline';
-			} else {
-				$status = 'Progess';
-			}
-		} else {
-			$finaly_date = strtotime($task->finaly_date);
-			if ($duedate >= $finaly_date) {
-				$status = 'Render';
-			} else {
-				$status = 'Completed Before Date';
-			}
-		}
-		$alldata .= "$m,$task->title,$project_title,$project_manager,$task->duedate,$status,$task->evaluation\n";
+	$tasks = get_task_('assigne', $user_id, 'worklog');
+	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-worklog.xlsx';
+	$url_save_file = plugin_dir_path(__FILE__) . 'worklog_evaluation/';
 
-		$m++;
+	$reader = IOFactory::createReader('Xlsx');
+	$spreadsheet = $reader->load( $url_file );
+	$name_user = get_userdata($user_id)->display_name;
+	if( $month == null ){
+		$nxtm = strtotime("previous month");
+		$date_evaluation =  date("M", $nxtm);
 	}
-	$response = "data:text/csv;charset=utf-8,N°,Task Title,Project Title,Responsable,Due Date,Status,Note\n";
-	return $response .= $alldata;
+
+	$spreadsheet->getActiveSheet()->setCellValue('C2', $name_user);
+	$spreadsheet->getActiveSheet()->setCellValue('C3', $date_evaluation);	
+
+	$nemberRow=5;
+	$numberFiels = 0;
+	$chaine = '=(';
+
+	foreach( $tasks as $task ){
+		$numberFiels++;
+		$status='FALSE';
+		if( get_task_status($task->id, 'yes') ) $status = 'VRAI';
+
+		if( get_task_main( $task->id ) != null ) $task_title = $task->title . '( ' . get_task_main( $task->id ) . ' )';
+		else $task_title = $task->title;
+
+		$spreadsheet->getActiveSheet()->insertNewRowBefore($nemberRow);
+		$spreadsheet->getActiveSheet()->mergeCells('C'. $nemberRow .':D'. $nemberRow .'');
+
+		$this_task = unserialize( $task->evaluation );
+		if( $task->type_task == 'developper' ){
+			$spreadsheet->getActiveSheet()
+				->setCellValue('B'.$nemberRow, $numberFiels)
+				->setCellValue('C'.$nemberRow, $task_title)
+				->setCellValue('E'.$nemberRow, '=(G'. $nemberRow .'+H'. $nemberRow .'+I'. $nemberRow .'+J'. $nemberRow .'+K'. $nemberRow .')')
+				->setCellValue('F'.$nemberRow, $status)
+				->setCellValue('G'.$nemberRow, $this_task[1]['note'])
+				->setCellValue('H'.$nemberRow, $this_task[2]['note'])
+				->setCellValue('I'.$nemberRow, $this_task[3]['note'])
+				->setCellValue('J'.$nemberRow, $this_task[4]['note'])
+				->setCellValue('K'.$nemberRow, $this_task[5]['note'])
+				->setCellValue('E1', $numberFiels)
+				->setCellValue('L'.$nemberRow, '=(G'. $nemberRow .'+H'. $nemberRow .')/2');
+			$chaine .= 'E'.$nemberRow.'+';
+			$nemberRow++;
+		}
+		
+	}
+
+	$chaine .= '0)';
+	$spreadsheet->getActiveSheet()->setCellValue('L1', $chaine . '/(E1)');
+
+	$writer = new Xlsx($spreadsheet);
+	$file_name = $url_save_file . $name_user .'_worklog.xlsx';
+	return $writer->save($file_name);
 }
 
 /**
