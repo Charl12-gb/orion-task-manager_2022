@@ -58,7 +58,8 @@
                         'nbresubtask': z,
                     },
                     success: function(response) {
-                        $('#add_more_subtask').append('<div id="rm22' + z + '"><div class="form-row pt-2"><div class="col">' + response + ' <span name="remove" id="' + z + '" class="btn btn-outline-danger btn_remove_subtask">X</span></div></div></div>')
+                        $('#add_more_subtask').append('<hr><div id="rm22' + z + '"><div class="form-row pt-2"><div class="col">' + response + ' <span name="remove" id="' + z + '" class="btn btn-outline-danger btn_remove_subtask">X</span></div></div></div>')
+                        document.getElementById('nbresubtask').value = z;
                         if (document.getElementById('project'))
                             var project_id = document.getElementById('project').value;
                         $.ajax({
@@ -89,6 +90,12 @@
             $('#rm2' + button_id + '').remove();
             y = y - 1
             document.getElementById('nbreobj').value = y;
+        });
+        $(document).on('click', '.btn_remove_subtask', function() {
+            var button_id = $(this).attr("id");
+            $('#rm22' + button_id + '').remove();
+            z = z - 1
+            document.getElementById('nbresubtask').value = z;
         });
 
         $('#add_template').click(function() {
@@ -293,6 +300,9 @@
                 },
                 success: function(response) {
                     document.getElementById("second_choix").innerHTML = response;
+                    if (this.value == 'manuelTemplate1') {
+                        $('#subtaskmore').show(1000)
+                    }
                     var project_id = document.getElementById('project').value;
                     $.ajax({
                         url: task_manager.ajaxurl,

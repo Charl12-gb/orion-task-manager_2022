@@ -8,72 +8,72 @@ function evaluator_page()
 	if (isset($_GET['task_id'], $_GET['type_task']) && (!empty($_GET['task_id']) && !empty($_GET['type_task']))) {
 		$task_id = htmlentities($_GET['task_id']);
 		$type_task = htmlentities($_GET['type_task']);
-		if( $type_task == 'normal' || $type_task == 'developper' ){
-			if( get_evaluation_info( $task_id ) == null ){
-				?>
+		if ($type_task == 'normal' || $type_task == 'developper') {
+			if (get_evaluation_info($task_id) == null) {
+?>
 				<div class="alert alert-danger" role="alert">
 					Sorry ! <br>
 					Task Not Found
 				</div>
 				<?php
-			}else{
-				if( get_evaluation_info( $task_id )->evaluation == null ){
+			} else {
+				if (get_evaluation_info($task_id)->evaluation == null) {
 					get_evaluation_form($task_id, $type_task);
-				}else{
-					?>
+				} else {
+				?>
 					<div class="alert alert-danger" role="alert">
 						Sorry ! <br>
 						Task already evaluated
 					</div>
-					<?php
+			<?php
 				}
 			}
-		}else{
+		} else {
 			?>
 			<div class="alert alert-danger" role="alert">
 				Sorry ! <br>
 				Invalid type
 			</div>
-			<?php
+		<?php
 		}
 	} else {
-		if( ! isset( $_POST['verifier_nonce_evaluation'] ) || ! wp_verify_nonce( $_POST['verifier_nonce_evaluation'], 'save_evaluation_form' ) ){
-			?>
+		if (!isset($_POST['verifier_nonce_evaluation']) || !wp_verify_nonce($_POST['verifier_nonce_evaluation'], 'save_evaluation_form')) {
+		?>
 			<div class="alert alert-danger" role="alert">
 				Error ! <br>
 				No task to evaluate.
 			</div>
 			<?php
-		}else{
-			$data = wp_unslash( $_POST );
+		} else {
+			$data = wp_unslash($_POST);
 			$n = $data['nbrecriteria'];
 			$array = array();
 			$task_id = $data['task_id'];
-			for( $k=1; $k<=($n-1); $k++ ){
+			for ($k = 1; $k <= ($n - 1); $k++) {
 				$make = 'make-radio' . $k;
 				$note = 'note' . $k;
 				$description = 'description' . $k;
-				if( isset( $data[$make] ) ){
-					if( $data[$make] == ('makeYes'.$k)) {
-						$array += array( $k => array( 'note' => htmlentities( $data[$note]), 'description' => htmlentities( $data[$description] )) );
-					}else{
-						$array += array( $k => array( 'note' => 0, 'description' => 'Not make' ) );
+				if (isset($data[$make])) {
+					if ($data[$make] == ('makeYes' . $k)) {
+						$array += array($k => array('note' => htmlentities($data[$note]), 'description' => htmlentities($data[$description])));
+					} else {
+						$array += array($k => array('note' => 0, 'description' => 'Not make'));
 					}
 				}
 			}
-			$save = save_evaluation_info( $array, $task_id );
-			if( $save ){
-				?>
-			<div class="alert alert-success" role="alert">
-				Task evaluate successfully
-			</div>
+			$save = save_evaluation_info($array, $task_id);
+			if ($save) {
+			?>
+				<div class="alert alert-success" role="alert">
+					Task evaluate successfully
+				</div>
 			<?php
-			}else{
-				?>
+			} else {
+			?>
 				<div class="alert alert-danger" role="alert">
-				Error ! <br>
-			</div>
-			<?php
+					Error ! <br>
+				</div>
+	<?php
 			}
 		}
 	}
@@ -82,38 +82,42 @@ function evaluator_page()
 /**
  * Evaluation des projects manager à la fin de chaque mois
  */
-function evluation_project(){
+function evluation_project()
+{
 	$string = 'last friday of ' . date('F', mktime(0, 0, 0, date('m'), 10)) . ' this year';
 	$last_friday = gmdate('Y-m-d', strtotime($string));
-	$string2 = 'next day '. $last_friday;
+	$string2 = 'next day ' . $last_friday;
 	$date1 = gmdate('Y-m-d', strtotime($string2));
 	$date2 = date('Y-m-d');
 	$evaluation_date = strtotime($date1);
-	$today_date = strtotime( $date2 );
+	$today_date = strtotime($date2);
 
-	if( $evaluation_date == $today_date ){
-		$objectives = get_objective_of_month((date('m')/1), date('Y'));
+	if ($evaluation_date == $today_date) {
+		$objectives = get_objective_of_month((date('m') / 1), date('Y'));
 		$tab_rapport_month = array();
-		foreach( $objectives as $objective ){
-			$total = 0; $completed = 0; $reste = 0; $moyenne=0;
-			$month_objectives = unserialize( $objective->objective_section );
-			foreach( $month_objectives as $key => $month_objective ){
+		foreach ($objectives as $objective) {
+			$total = 0;
+			$completed = 0;
+			$reste = 0;
+			$moyenne = 0;
+			$month_objectives = unserialize($objective->objective_section);
+			foreach ($month_objectives as $key => $month_objective) {
 				$total++;
-				if( $month_objective['status'] ) $completed++;
+				if ($month_objective['status']) $completed++;
 			}
 			$reste = $total - $completed;
 			$moyenne = ($completed / $total) * 100;
-			$array_evaluation = array( 
-				'objectives' => $month_objectives, 
-				'evaluation' => array( 
-					'total' => $total, 
-					'completed' => $completed, 
-					'reste' => $reste, 
-					'moyenne' => $moyenne 
+			$array_evaluation = array(
+				'objectives' => $month_objectives,
+				'evaluation' => array(
+					'total' => $total,
+					'completed' => $completed,
+					'reste' => $reste,
+					'moyenne' => $moyenne
 				)
 			);
-		$output = save_evaluation_info( $array_evaluation, $objective->id_objective );
-		if( $output ) array_push( $tab_rapport_month, $objective->id_objective );
+			$output = save_evaluation_info($array_evaluation, $objective->id_objective);
+			if ($output) array_push($tab_rapport_month, $objective->id_objective);
 		}
 	}
 }
@@ -124,7 +128,7 @@ function evluation_project(){
  * @param int $user_id
  * @return string
  */
-function download_worklog($user_id)
+function download_worklog($user_id, $month=null, $year=null)
 {
 	$alldata = "";
 	$tasks = get_task_('assigne', $user_id);
@@ -167,7 +171,7 @@ function download_worklog($user_id)
  * 
  * @return string
  */
-function content_msg($id_task,$title_main_task, $type_task, $content)
+function content_msg($id_task, $title_main_task, $type_task, $content)
 {
 	$task = get_task_('id', $id_task, 'yes')[0];
 	$variable_table = array('task_name', 'project_name', 'task_link', 'form_link');
@@ -233,21 +237,52 @@ function get_evaluation_form($task_id, $type_task)
 	<div class="container card">
 		<?php
 		if ($type_task == 'normal' || $type_task == 'developper') {
+			if ($type_task !=  $task->type_task) {
 		?>
-			<div style="width: 100%;text-align: center;color:black">
-			<h4 class="pt-2" style="text-align: center; font-weight: bold;"><?= $task->title ?></h4>
-				<p>Find task details <a href="<?= $task->permalink_url ?>" class="text-primary">here</a></p><hr>
-			</div>
-		<?php
+				<div class="alert alert-danger" role="alert">
+					Error Type Task! <br>
+				</div>
+			<?php
+			} else {
+			?>
+				<div class="row">
+					<div class="col-sm-6 alert alert-success">
+						<div style="width: 100%;text-align: center;color:black">
+							<h6 class="pt-2" style="text-align: center; font-weight: bold;"><?= $task->title ?></h6>
+							<p>Find task details <a href="<?= $task->permalink_url ?>" class="text-primary">here</a></p>
+						</div>
+					</div>
+					<div class="col-sm-6 alert alert-primary">
+						<div class="row pb-2 pt-2 text-center">
+							<div class="col-sm-3"><strong style="text-decoration: underline;">Status: <br></strong> <?= get_task_status($task_id) ?> </div>
+							<div class="col-sm-4"><strong style="text-decoration: underline;">Due Date: <br></strong> <?= $task->duedate ?></div>
+							<div class="col-sm-5"><strong style="text-decoration: underline;">Date Completed: <br></strong> <?php if (!get_task_status($task_id, 'yes')) echo '--- -- --';
+																															else echo $task->finaly_date; ?></div>
+						</div>
+					</div>
+				</div>
+				<?php
+				if (!get_task_status($task_id, 'yes')) {
+				?>
+					<small id="emailHelp" class="form-text text-muted text-center">The task being evaluated is not yet marked as complete. <br>Make sure of that or take that into account. </small>
+					<button class="btn btn-outline-primary" data-toggle="modal" data-target="#detail_criteria">Readme before review </button>
+				<?php
+				}
+				?>
+				<hr>
+			<?php
+			}
 		} else {
-		?>
+			?>
 			<div class="alert alert-danger" role="alert">
 				Error ! <br>
 			</div>
 		<?php
 		}
-		if ($type_task == 'normal') get_form_evaluation($criterias['normal'], $task_id);
-		else get_form_evaluation($criterias['developper'], $task_id);
+		if ($type_task ==  $task->type_task) {
+			if ($type_task == 'normal') get_form_evaluation($criterias['normal'], $task_id);
+			else get_form_evaluation($criterias['developper'], $task_id);
+		}
 		?>
 	</div>
 <?php
@@ -255,46 +290,23 @@ function get_evaluation_form($task_id, $type_task)
 
 function get_form_evaluation($criterias, $id_task)
 {
-	$task = get_task_( 'id', $id_task ); 
+	$task = get_task_('id', $id_task);
+	$get_criteria = get_option('_evaluation_criterias');
+	$criterias_all =  unserialize($get_criteria);
 ?>
 	<div class="container row">
-		<div class="col-sm-4">
-			<img src="https://us.123rf.com/450wm/hvostik/hvostik1701/hvostik170100080/70049332-point-de-doigt-silhouette-direction-ic%C3%B4ne-noire-man-geste-de-la-main-pictogramme-vector-illustration.jpg">
-		</div>
-		<div class="col-sm-8 alert alert-info p-2">
-			<h4 class="pl-5 m-0" style="text-decoration: underline; color:darkgoldenrod">Readme</h4>
-			<hr>
-			<div class="row pb-2 pt-2 text-center">
-				<div class="col-sm-3"><strong style="text-decoration: underline;">Status: <br></strong> <?= get_task_status( $id_task) ?> </div>
-				<div class="col-sm-4"><strong style="text-decoration: underline;">Due Date: <br></strong> <?= $task[0]->duedate ?></div>
-				<div class="col-sm-5"><strong style="text-decoration: underline;">Date Completed: <br></strong> <?php if( ! get_task_status( $id_task , 'yes') ) echo '--- -- --'; else echo $task->finaly_date; ?></div>
-			</div><hr>
-			<ul>
-				<?php
-					if( ! get_task_status( $id_task , 'yes') ){
-						?>
-						<li>The task being evaluated is not yet marked as complete.</li>
-						<li>Make sure of that or take that into account.</li>
-						<?php 
-					}
-				?>
-				<li>Click on <strong class="text-primary">yes</strong> if the criterion is met.</li>
-				<li>If not click on <strong class="text-danger">no</strong> </li>
-				<li>Set the correspondind <strong class="text-success">note</strong> </li>
-				<li>Give a <strong class="text-success">description</strong> if possible </li>
-				<li>Double check before submitting as you will not be able to edit once submitted. Thanks</li>
-			</ul>
-		</div>
+
 	</div>
 	<div class=" text-center" role="alert">
-		
+
 	</div>
 	<hr>
-	<form method="POST" action="<?= get_site_url() . "/task-evaluation" ?>"  class="alert alert-secondary">
-	<h4 class="pl-5">Evaluation</h4><hr>
+	<form method="POST" action="<?= get_site_url() . "/task-evaluation" ?>" class="alert alert-secondary">
+		<h4 class="pl-5">Evaluation</h4>
+		<hr>
 		<?php
 		wp_nonce_field('save_evaluation_form', 'verifier_nonce_evaluation');
-		$i =1;
+		$i = 1;
 		foreach ($criterias as $criteria) {
 		?>
 			<div>
@@ -341,5 +353,60 @@ function get_form_evaluation($criterias, $id_task)
 		<button class="btn btn-outline-primary" type="submit">Submit</button>
 		<hr>
 	</form>
+
+	<div class="modal fade" id="detail_criteria" tabindex="-1" role="dialog" aria-labelledby="detail_criteriaTitle" aria-hidden="true">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="exampleModalLongTitle">Readme before review</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<div class="row">
+						<h5 class=""><span style="text-decoration: underline; color:darkgoldenrod">Criteria for a development task</span> : </h5>
+						<?php $k = 1;
+						foreach ($criterias_all['developper'] as $dev) {
+						?>
+							<h6> <span>Criteria <?= $k ?> : </span> <?= $dev['criteria'] ?> <span class="text-danger"> ( <?= $dev['note'] ?> )</span> <br></h6><br>
+							<p><?= nl2br($dev['description']) ?></p>
+						<?php
+							$k++;
+						}
+						?>
+					</div>
+					<hr>
+					<div class="row">
+						<h5><span style="text-decoration: underline; color:darkgoldenrod">Criteria for a research task</span> : </h5><br>
+						<?php $k = 1;
+						foreach ($criterias_all['normal'] as $normal) {
+						?>
+							<h6> <span>Criteria <?= $k ?> : </span> <?= $normal['criteria'] ?> <span class="text-danger"> ( <?= $normal['note'] ?> )</span><br> </h6><br>
+							<p><?= nl2br($normal['description']) ?></p>
+						<?php
+							$k++;
+						}
+						?>
+					</div>
+					<hr>
+					<div class="row alert alert-info p-2">
+						<h6 class="pl-5 m-0" style="text-decoration: underline; color:darkgoldenrod">NB : </h6>
+						<ul>
+							<li>Click on <strong class="text-primary">yes</strong> if the criterion is met.</li>
+							<li>If not click on <strong class="text-danger">no</strong> </li>
+							<li>Set the correspondind <strong class="text-success">note</strong> </li>
+							<li>Give a <strong class="text-success">description</strong> if possible </li>
+							<li>Double check before submitting as you will not be able to edit once submitted. Thanks</li>
+							<li>Chaque aller retour effectué dans Work Consistency enlève 5 points en dehors de la première revue de code. Code quality est prit en compte lors du premier codage.</li>
+						</ul>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+				</div>
+			</div>
+		</div>
+	</div>
 <?php
 }

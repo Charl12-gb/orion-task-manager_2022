@@ -658,6 +658,27 @@ function manuel_save($array)
 					'description' => htmlentities($array['manuel_description'])
 				)
 			);
+			if( isset($array['nbresubtask']) ){
+				$nbrechamp = htmlentities($array['nbresubtask']);
+				for ($l = 1; $l <= $nbrechamp; $l++) {
+					$titre = 'manuel_title' . $l;
+					$categorie = 'manuel_categorie' . $l;
+					$assign = 'manuel_assign' . $l;
+					$duedate = 'manuel_duedate' . $l;
+					$description = 'manuel_description' . $l;
+					$subtask += array($l => array(
+						'title' => htmlentities($array[$titre]),
+						'section_project' => htmlentities($array['project_section']),
+						'type_task' => htmlentities($array['type_task']),
+						'categorie' => htmlentities($array[$categorie]),
+						'dependance' => '',
+						'project' => htmlentities($array['project']),
+						'assign' => htmlentities($array[$assign]),
+						'duedate' => htmlentities($array[$duedate]),
+						'description' => htmlentities($array[$description])
+					));
+				}
+			}
 		}
 	}
 	$parametre = array('parametre' => array('task' => $task, 'subtask' => $subtask));
@@ -959,7 +980,7 @@ function modal_event_calendar($date_event, $array)
 								?>
 								<div class="alert alert-primary" role="alert">
 								<p class="row text-center ml-3 mt-0 mb-1"><?php if( get_task_main( $data['id'] ) != null ) echo get_task_main( $data['id'] ) . '<--'; ?> <strong><?= $data['title'] ?></strong> </p>
-								<small id="emailHelp" class="form-text text-muted"><strong style="text-decoration: underline;">Status:</strong> <?= ' '.get_task_status( $data['id'] ) ?> | <strong style="text-decoration: underline;">Assigne:</strong><?= ' '.get_userdata(  $data['assign'] )->display_name ?></small>  
+								<small id="emailHelp" class="form-text text-muted"><strong style="text-decoration: underline;">Status:</strong> <?= ' '.get_task_status( $data['id'] ) ?><?php if( get_userdata(  $data['assign'] ) ) { ?> | <strong style="text-decoration: underline;"> Assigne:</strong><?= ' '.get_userdata(  $data['assign'] )->display_name ?> <?php } ?></small>  
 							</div>
 							<?php
 							}
