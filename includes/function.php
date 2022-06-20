@@ -5,22 +5,7 @@ if (isset($_POST['tokens']) && !empty($_POST['tokens'])) {
 	$data_post   = wp_unslash($_POST['tokens']);
 	update_option('access_token', $data_post);
 }
-function _taitement_form(){
-	if (isset($_POST['verifier_new_task_form']) ) {
-		if (wp_verify_nonce($_POST['verifier_new_task_form'], 'create_new_task')) {
-			$retour =  traite_form_public($_POST);
-			if (!$retour) {
-				$url = add_query_arg('status', 'error', wp_get_referer());
-				wp_safe_redirect($url);
-				exit();
-			} else {
-				$url = add_query_arg('status', 'success', wp_get_referer());
-				wp_safe_redirect($url);
-				exit();
-			}
-		}
-	}
-}
+
 function option_select($array, $k=null)
 {
 	$option = '';
@@ -282,7 +267,6 @@ function section_exist( $section_name, $project_id = null ){
 	}
 }
 
-
 function objective_exist( $id_user, $mois, $annee ){
 	global $wpdb;
 	$table = $wpdb->prefix . 'objectives';
@@ -364,7 +348,7 @@ function update_worklog( array $data, array $where, array $format=null){
  * @param string|int|null $value
  * @param string|int|null $project
  */
-function get_task_($specification = null, $value = null, $project = null, $month=null, $year=null)
+function get_task_($specification = null, $value = null, $project = null, $date_evaluation=null)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'task';
@@ -373,8 +357,6 @@ function get_task_($specification = null, $value = null, $project = null, $month
 		if ($specification != null && $value != null){
 			$sql = "SELECT * FROM $table INNER JOIN $table1 ON id=id_task WHERE $specification = $value"; // Association avec le worklog
 			if( $project == 'worklog' ){
-				$nxtm = strtotime("previous month");
-				$date_evaluation =  date("m-Y", $nxtm);
 				$sql .= " AND evaluation_date='$date_evaluation'";
 			}
 		}
@@ -453,7 +435,7 @@ function get_objective_of_month( $month=null, $year=null ,$id_user = null){
 		return $wpdb->get_results( $sql );
 	}else{
 		if( $id_user != null ){
-			$sql = "SELECT * FROM $table WHERE id_user=$id_user AND month_section='$month' AND year_section='$year'";
+			$sql = "SELECT * FROM $table, $table1 WHERE id_task=id_objective AND id_user=$id_user AND month_section='$month' AND year_section='$year'";
 			return $wpdb->get_row($sql);
 		}else{
 			$sql = "SELECT * FROM $table, $table1 WHERE id_task=id_objective AND month_section='$month' AND year_section='$year'";
@@ -949,7 +931,7 @@ function get_task_calendar($id_user = null)
 								}
 								if ($exist_Task) {
 								?>
-									<button class="btn btn-link alert alert-info p-0 m-0 get_list_event" data-toggle="modal" data-target=".<?= $year . '-' . $month . '-' . $d ?>" id="<?= $year . '-' . $month . '-' . $d ?>">Task List</button>
+									<button class="btn btn-link alert alert-info p-0 m-0 get_list_event" data-toggle="modal" data-target=".<?= $year . '-' . $month . '-' . $d ?>" id="<?= $year . '-' . $month . '-' . $d ?>">See Task List</button>
 								<?php
 								}
 								?>
@@ -1237,16 +1219,6 @@ function get_list_template()
 
 }
 
-//Redirect users who arent logged in...
-function login_redirect()
-{
-	//Current Page
-	global $pagenow;
-
-	if (!is_user_logged_in() && (is_page('orion-task') || is_page('task-evaluation') ))
-		auth_redirect();
-}
-
 function add_task_form()
 {
 ?>
@@ -1292,7 +1264,7 @@ function add_task_form()
 				</div>
 			</div>
 			</div>
-		<div class="pt-5" id="hidden_submit" style="display:none">
+		<div class="pt-1" id="hidden_submit" style="display:none">
 			<button type="submit" name="validetash">Submit</button>
 		</div>
 	</form>
@@ -1519,7 +1491,6 @@ function orion_task_evaluation_shortcode()
 }
 function taches_tab()
 {
-	download_worklog(1);
 	?>
 	<div class="container-fluid pt-3">
 		<div class="row" id="accordion">
@@ -1554,7 +1525,6 @@ function taches_tab()
 					<div class="card-body">
 						<div>
 							<div id="add_success"></div>
-							<hr>
 							<form action="" method="post" id="create_template">
 							</form>
 							<div id="template_card">
@@ -1769,7 +1739,7 @@ function get_project_manager_tab(){
 	<div class="card-bdy">
 		<span id="add_success_id"></span>
 		<form id="project_manager_id" method="post" action="">
-			<label for="project_manager_id">Project manager evaluation</label>
+			<label for="project_manager_id">ASANA Project ID for CP evaluation</label>
 			<div class="form-row">
 				<div class="col-sm-8">
 					<input type="text" name="id_project_manager" id="id_project_manager" class="form-control" placeholder="Project Id" value="<?= get_option( '_project_manager_id' ) ?>">
@@ -2053,7 +2023,7 @@ function list_email_sending()
 					<td id="<?= $email->id ?>"><span class="btn btn-link email_edit p-0 m-0" id="<?= $email->id ?>"><?= $email->subject ?></span></td>
 					<td><?= ucfirst($email->type_task) ?></td>
 					<td>
-						<span class="text-primary btn btn-link email_edit m-0 p-0" id="<?= $email->id ?>">Edit</span><span class="text-danger btn btn-link email_remove m-0 p-0" id="<?= $email->id ?>">Delete</span>
+						<span class="text-primary btn btn-link email_edit m-0 p-0" id="<?= $email->id ?>">Edit</span> | <span class="text-danger btn btn-link email_remove m-0 p-0" id="<?= $email->id ?>">Delete</span>
 					</td>
 				</tr>
 			<?php
@@ -2458,43 +2428,7 @@ function settings_function()
 				echo ucfirst($user_role);
 			}
 		}
-		print_r($_POST);
-	}
-	if ($action == 'update_user_role') {
-		$user_id = htmlspecialchars($_POST['id_user']);
-		$user_info = get_userdata($user_id);
-		$user_role = implode(', ', $user_info->roles);
-		if ($user_role != 'administrator') {
-			$user_new_role = htmlspecialchars($_POST['select_role']);
-			$user_id = wp_update_user(array('ID' => $user_id, 'role' => $user_new_role));
-			echo ucfirst($user_new_role) . ' (New Role)';
-		} else
-			echo 'Sorry you can\'t change the roles of this user';
-	}
-	if ($action == 'create_new_projet') {
-		if( isset( $_POST['project_id'] ) && !empty( $_POST['project_id'] ) ){
-			$project_id = htmlentities( $_POST['project_id'] );
-			$post = wp_unslash($_POST);
-			$output =  sync_new_project($post, $project_id);
-		}else{
-			$post = wp_unslash($_POST);
-			$output = sync_new_project($post);
-		}
-		if( $output ) echo project_tab();
-		else echo false;
-	}
-	if ($action == 'create_template') {
-		if (isset($_POST['updatetempplate_id']) && !empty($_POST['updatetempplate_id'])) {
-			$template_id = htmlentities($_POST['updatetempplate_id']);
-			$send = array_diff($_POST, array('action' => 'create_template', 'updatetempplate_id' => $template_id));
-		} else {
-			$send = array_diff($_POST, array('action' => 'create_template'));
-			$template_id = '';
-		}
-		$data = wp_unslash($send);
-		$sortir = save_new_templates($template_id, $data);
-		if( $sortir ) echo  get_list_template();
-		else echo false;
+		//print_r($_POST);
 	}
 	if ($action == 'get_option_add') {
 		if( isset( $_POST['nbresubtask'] ) ){
@@ -2517,16 +2451,6 @@ function settings_function()
 			echo '';
 		else
 			echo option_select(get_project_section($id_project));
-	}
-	if ($action == 'get_template_choose') {
-		$id_template = htmlentities($_POST['template_id']);
-		$istemplate = htmlentities($_POST['istemplate']);
-		if (!empty($id_template)) {
-			if ($istemplate == 'yes') echo get_template_form($id_template, true);
-			else echo get_template_form($id_template);
-		} else {
-			echo '';
-		}
 	}
 	if ($action == 'get_first_form') {
 		$type = htmlentities($_POST['type']);

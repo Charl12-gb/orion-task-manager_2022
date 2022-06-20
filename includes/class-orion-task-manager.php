@@ -159,23 +159,24 @@ class Orion_Task_Manager {
 		
 		$this->loader->add_action( 'admin_menu', 'Task_Manager_Builder', 'add_menu_Task_Table_List_page' );
 		
+		$this->loader->add_action('wp', 'Task_Manager_Builder', 'login_redirect');
+		$this->loader->add_action('template_redirect', 'Task_Manager_Builder', '_taitement_form');
+		$this->loader->add_action('wp_ajax_nopriv_create_new_projet', 'Task_Manager_Builder', 'create_new_projet_');
+		$this->loader->add_action('wp_ajax_create_new_projet', 'Task_Manager_Builder', 'create_new_projet_');
+		$this->loader->add_action('wp_ajax_nopriv_create_template', 'Task_Manager_Builder', 'create_template_');
+		$this->loader->add_action('wp_ajax_create_template',  'Task_Manager_Builder','create_template_');
+		$this->loader->add_action('wp_ajax_nopriv_get_template_choose', 'Task_Manager_Builder', 'get_template_choose_');
+		$this->loader->add_action('wp_ajax_get_template_choose', 'Task_Manager_Builder', 'get_template_choose_');
+
+		add_shortcode('orion_task', 'orion_task_shortcode');
+		add_shortcode('task_evaluation', 'orion_task_evaluation_shortcode');
+		
+		
 		add_action('wp_ajax_nopriv_get_user_role', 'settings_function');
 		add_action('wp_ajax_get_user_role', 'settings_function');
 		
-		add_action('wp_ajax_nopriv_update_user_role', 'settings_function');
-		add_action('wp_ajax_update_user_role', 'settings_function');
-		
-		add_action('wp_ajax_nopriv_create_new_projet', 'settings_function');
-		add_action('wp_ajax_create_new_projet', 'settings_function');
-		
-		add_action('wp_ajax_nopriv_create_template', 'settings_function');
-		add_action('wp_ajax_create_template', 'settings_function');
-		
 		add_action('wp_ajax_nopriv_get_option_add', 'settings_function');
 		add_action('wp_ajax_get_option_add', 'settings_function');
-		
-		add_action('wp_ajax_nopriv_get_template_choose', 'settings_function');
-		add_action('wp_ajax_get_template_choose', 'settings_function');
 		
 		add_action('wp_ajax_nopriv_get_option_add_template', 'settings_function');
 		add_action('wp_ajax_get_option_add_template', 'settings_function');
@@ -237,10 +238,6 @@ class Orion_Task_Manager {
 		add_action('wp_ajax_project_card', 'settings_function');
 		add_action('wp_ajax_nopriv_project_card', 'settings_function');
 		
-		add_action('wp', 'login_redirect');
-		add_action('template_redirect', '_taitement_form');
-		add_shortcode('orion_task', 'orion_task_shortcode');
-		add_shortcode('task_evaluation', 'orion_task_evaluation_shortcode');
 	}
 
 	/**

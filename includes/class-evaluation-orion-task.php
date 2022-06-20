@@ -84,7 +84,7 @@ function evaluator_page()
 /**
  * Evaluation des projects manager à la fin de chaque mois
  */
-function evluation_project()
+function evaluation_project_manager()
 {
 	$string = 'last friday of ' . date('F', mktime(0, 0, 0, date('m'), 10)) . ' this year';
 	$last_friday = gmdate('Y-m-d', strtotime($string));
@@ -94,7 +94,7 @@ function evluation_project()
 	$evaluation_date = strtotime($date1);
 	$today_date = strtotime($date2);
 
-	if ($evaluation_date == $today_date) {
+	//if ($evaluation_date == $today_date) {
 		$objectives = get_objective_of_month((date('m') / 1), date('Y'));
 		$tab_rapport_month = array();
 		foreach ($objectives as $objective) {
@@ -121,132 +121,217 @@ function evluation_project()
 			$output = save_evaluation_info($array_evaluation, $objective->id_objective);
 			if ($output) array_push($tab_rapport_month, $objective->id_objective);
 		}
-	}
+	//}
 }
 
 /**
  * Function permettant de télécharger le worklog d'un membre
  * 
  * @param int $user_id
+ * @param string $month
+ * 
+ * @return void
  */
-function download_worklog($user_id, $month=null, $year=null)
+function download_worklog($user_id, $month=null)
 {
-	$tasks = get_task_('assigne', $user_id, 'worklog');
 	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-worklog.xlsx';
 	$url_save_file = plugin_dir_path(__FILE__) . 'worklog_evaluation/';
-
+	
 	$reader = IOFactory::createReader('Xlsx');
 	$spreadsheet = $reader->load( $url_file );
 	$name_user = get_userdata($user_id)->display_name;
 	if( $month == null ){
 		$nxtm = strtotime("previous month");
-		$date_evaluation =  date("M", $nxtm);
-	}
+		$date_evaluation =  date("m-Y", $nxtm);
+		$date_worklog = date("M-Y", $nxtm);
+	}else $date_evaluation = $month;
+	$tasks = get_task_('assigne', $user_id, 'worklog', $date_evaluation);
 
 	//Worklog
 	$spreadsheet->setActiveSheetIndex(0);
 	$spreadsheet->getActiveSheet()->setCellValue('C2', $name_user);
-	$spreadsheet->getActiveSheet()->setCellValue('C3', $date_evaluation. ' ' . date('Y'));	
+	$spreadsheet->getActiveSheet()->setCellValue('C3', $date_worklog);	
 
 	$nemberRow=5;
 	$numberFiels = 0; $numberFielsNormal=0;
 	$custom = 0;
 	$chaine = 0; $criteria1 = 0; $criteria2 = 0; $criteria3 = 0; $criteria4 = 0; $criteria5 = 0;
 
-	foreach( $tasks as $task ){
-		$numberFiels++;
-		$status='NO';
-		if( get_task_status($task->id, 'yes') ) $status = 'YES';
-
-		if( get_task_main( $task->id ) != null ) $task_title = $task->title . '( ' . get_task_main( $task->id ) . ' )';
-		else $task_title = $task->title;
-
-		$spreadsheet->getActiveSheet()->insertNewRowBefore($nemberRow);
-		$spreadsheet->getActiveSheet()->mergeCells('C'. $nemberRow .':D'. $nemberRow .'');
-
-		$this_task = unserialize( $task->evaluation );
-		if( $task->type_task == 'developper' ){
-			$spreadsheet->getActiveSheet()
-				->setCellValue('B'.$nemberRow, $numberFiels)
-				->setCellValue('C'.$nemberRow, $task_title)
-				->setCellValue('E'.$nemberRow, '=(G'. $nemberRow .'+H'. $nemberRow .'+I'. $nemberRow .'+J'. $nemberRow .'+K'. $nemberRow .')')
-				->setCellValue('F'.$nemberRow, $status)
-				->setCellValue('G'.$nemberRow, $this_task[1]['note'])
-				->setCellValue('H'.$nemberRow, $this_task[2]['note'])
-				->setCellValue('I'.$nemberRow, $this_task[3]['note'])
-				->setCellValue('J'.$nemberRow, $this_task[4]['note'])
-				->setCellValue('K'.$nemberRow, $this_task[5]['note'])
-				->setCellValue('E1', $numberFiels)
-				->setCellValue('L'.$nemberRow, '=(G'. $nemberRow .'+H'. $nemberRow .')/2');
-			$chaine += (($this_task[1]['note'])+($this_task[2]['note'])+($this_task[3]['note'])+($this_task[4]['note'])+($this_task[5]['note']));
-			$criteria1 += $this_task[1]['note']; $criteria2 += $this_task[2]['note']; $criteria3 += $this_task[3]['note']; $criteria4 += $this_task[4]['note']; $criteria5 += $this_task[5]['note'];
+	if( $tasks != null ){
+		foreach( $tasks as $task ){
+			$numberFiels++;
+			$status='NO';
+			if( get_task_status($task->id, 'yes') ) $status = 'YES';
+	
+			if( get_task_main( $task->id ) != null ) $task_title = $task->title . '( ' . get_task_main( $task->id ) . ' )';
+			else $task_title = $task->title;
+	
+			$spreadsheet->getActiveSheet()->insertNewRowBefore($nemberRow);
+			$spreadsheet->getActiveSheet()->mergeCells('C'. $nemberRow .':D'. $nemberRow .'');
+	
+			$this_task = unserialize( $task->evaluation );
+			if( $task->type_task == 'developper' ){
+				$spreadsheet->getActiveSheet()
+					->setCellValue('B'.$nemberRow, $numberFiels)
+					->setCellValue('C'.$nemberRow, $task_title)
+					->setCellValue('E'.$nemberRow, '=(G'. $nemberRow .'+H'. $nemberRow .'+I'. $nemberRow .'+J'. $nemberRow .'+K'. $nemberRow .')')
+					->setCellValue('F'.$nemberRow, $status)
+					->setCellValue('G'.$nemberRow, $this_task[1]['note'])
+					->setCellValue('H'.$nemberRow, $this_task[2]['note'])
+					->setCellValue('I'.$nemberRow, $this_task[3]['note'])
+					->setCellValue('J'.$nemberRow, $this_task[4]['note'])
+					->setCellValue('K'.$nemberRow, $this_task[5]['note'])
+					->setCellValue('E1', $numberFiels)
+					->setCellValue('L'.$nemberRow, '=(G'. $nemberRow .'+H'. $nemberRow .')/2');
+				$chaine += (($this_task[1]['note'])+($this_task[2]['note'])+($this_task[3]['note'])+($this_task[4]['note'])+($this_task[5]['note']));
+				$criteria1 += $this_task[1]['note']; $criteria2 += $this_task[2]['note']; $criteria3 += $this_task[3]['note']; $criteria4 += $this_task[4]['note']; $criteria5 += $this_task[5]['note'];
+			}
+			if( $task->type_task == 'normal' ){
+				$spreadsheet->getActiveSheet()
+					->setCellValue('B'.$nemberRow, $numberFiels)
+					->setCellValue('C'.$nemberRow, $task_title)
+					->setCellValue('E'.$nemberRow, '=(G'. $nemberRow .'+H'. $nemberRow . '+K'. $nemberRow .')')
+					->setCellValue('F'.$nemberRow, $status)
+					->setCellValue('G'.$nemberRow, $this_task[3]['note'])
+					->setCellValue('H'.$nemberRow, $this_task[1]['note'])
+					->setCellValue('I'.$nemberRow, '-')
+					->setCellValue('J'.$nemberRow, '-')
+					->setCellValue('K'.$nemberRow, $this_task[2]['note'])
+					->setCellValue('E1', $numberFiels);
+				$chaine += (($this_task[1]['note'])+($this_task[2]['note'])+($this_task[3]['note']));
+				$numberFielsNormal++;
+				$criteria1 += $this_task[1]['note']; $criteria2 += $this_task[2]['note']; $criteria3 += $this_task[3]['note'];
+			}
+			$nemberRow++;
+			$custom += ( (($this_task[1]['note']) + ( $this_task[2]['note'] ) + ( $this_task[3]['note'] )) );
 		}
-		if( $task->type_task == 'normal' ){
-			$spreadsheet->getActiveSheet()
-				->setCellValue('B'.$nemberRow, $numberFiels)
-				->setCellValue('C'.$nemberRow, $task_title)
-				->setCellValue('E'.$nemberRow, '=(G'. $nemberRow .'+H'. $nemberRow . '+K'. $nemberRow .')')
-				->setCellValue('F'.$nemberRow, $status)
-				->setCellValue('G'.$nemberRow, $this_task[3]['note'])
-				->setCellValue('H'.$nemberRow, $this_task[1]['note'])
-				->setCellValue('I'.$nemberRow, '-')
-				->setCellValue('J'.$nemberRow, '-')
-				->setCellValue('K'.$nemberRow, $this_task[2]['note'])
-				->setCellValue('E1', $numberFiels);
-			$chaine += (($this_task[1]['note'])+($this_task[2]['note'])+($this_task[3]['note']));
-			$numberFielsNormal++;
-			$criteria1 += $this_task[1]['note']; $criteria2 += $this_task[2]['note']; $criteria3 += $this_task[3]['note'];
+		
+		$performance = $chaine/$numberFiels;
+		$spreadsheet->getActiveSheet()->setCellValue('K1', $performance);
+	
+		$customs_job = $custom / $numberFiels;
+	
+		$good_performance = '';
+		$bad_performance = '';
+		if( ($criteria1/$numberFiels) >= 35 ) $good_performance .= ' Work quality | ';
+		else $bad_performance .= ' Work quality | ';
+	
+		if( ($criteria2/$numberFiels) >= 10 ) $good_performance .= 'Deadline | ';
+		else $bad_performance .= 'Deadline | ';
+	
+		if( ($criteria3/$numberFiels) >= 4 ) $good_performance .= 'Commit | ';
+		else $bad_performance .= 'Commit | ';
+	
+		try {
+			$perfo_coll = ($criteria4/($numberFiels-$numberFielsNormal));
+		} catch (\Throwable $th) {
+			$perfo_coll = 10;
 		}
-		$nemberRow++;
-		$custom += ( (($this_task[1]['note']) + ( $this_task[2]['note'] ) + ( $this_task[3]['note'] )) );
+		try {
+			$perfo_cons = ($criteria5/($numberFiels-$numberFielsNormal));
+		} catch (\Throwable $th) {
+			$perfo_cons = 10;
+		}
+
+		if( $perfo_coll >= 10 ) $good_performance .= 'Collaboration | ';
+		else $bad_performance .= 'Collaboration | ';
+
+		if( $perfo_cons >= 10 ) $good_performance .= 'Work consistency | ';
+		else $bad_performance .= 'Work consistency | ';
+	
+		//Rapport d'évaluation
+	
+		$spreadsheet->setActiveSheetIndex(1);
+		$spreadsheet->getActiveSheet()->setCellValue('C1', $date_worklog);
+		$spreadsheet->getActiveSheet()->setCellValue('C2', $name_user);
+		
+		//General Peformance
+		if( $performance >= 0 && $performance <= 39 ) $spreadsheet->getActiveSheet()->setCellValue('D7', $performance);
+		else if( $performance >= 40 && $performance <= 60 ) $spreadsheet->getActiveSheet()->setCellValue('E7', $performance);
+		else if( $performance >= 61 && $performance <= 85 ) $spreadsheet->getActiveSheet()->setCellValue('F7', $performance);
+		else $spreadsheet->getActiveSheet()->setCellValue('G7', $performance);
+	
+		//Initiative & Creativity
+		if( $customs_job >= 0 && $customs_job <= 39 ) $spreadsheet->getActiveSheet()->setCellValue('D9', $customs_job);
+		else if( $customs_job >= 40 && $customs_job <= 60 ) $spreadsheet->getActiveSheet()->setCellValue('E9', $customs_job);
+		else if( $customs_job >= 61 && $customs_job <= 85 ) $spreadsheet->getActiveSheet()->setCellValue('F9', $customs_job);
+		else $spreadsheet->getActiveSheet()->setCellValue('G9', $customs_job);
+	
+		$spreadsheet->getActiveSheet()->setCellValue('B21', $good_performance);
+		$spreadsheet->getActiveSheet()->setCellValue('C21', $bad_performance);
+	
+
+		$url_ = plugin_dir_path(__FILE__) . 'worklog_evaluation/'. $date_worklog;
+		if( ! file_exists( $url_ ) ) {
+			mkdir( $url_ );
+		}
+		
+		$file_name = $url_save_file . $date_worklog . '/' . $name_user .'_worklog.xlsx';
+		if( ! file_exists( $file_name ) ){
+			$writer = new Xlsx($spreadsheet);
+			$writer->save($file_name);
+		}
+		
 	}
+}
+
+function evaluation_cp( $id_cp=null ){
+	$month =  date("m")/1;
+	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-cp-evaluation.xlsx';
+	$url_save_file = plugin_dir_path(__FILE__) . 'worklog_evaluation/';
 	
-	$performance = $chaine/$numberFiels;
-	$spreadsheet->getActiveSheet()->setCellValue('K1', $performance);
-
-	$customs_job = $custom / $numberFiels;
-
-	$good_performance = '';
-	$bad_performance = '';
-	if( ($criteria1/$numberFiels) >= 35 ) $good_performance .= ' Work quality | ';
-	else $bad_performance .= ' Work quality | ';
-
-	if( ($criteria2/$numberFiels) >= 10 ) $good_performance .= 'Deadline | ';
-	else $bad_performance .= 'Deadline | ';
-
-	if( ($criteria3/$numberFiels) >= 4 ) $good_performance .= 'Commit | ';
-	else $bad_performance .= 'Commit | ';
-
-	if( ($criteria4/($numberFiels-$numberFielsNormal)) >= 10 ) $good_performance .= 'Collaboration | ';
-	else $bad_performance .= 'Collaboration | ';
-
-	if( ($criteria5/($numberFiels-$numberFielsNormal)) >= 10 ) $good_performance .= 'Work consistency | ';
-	else $bad_performance .= 'Work consistency | ';
-
-	//Rapport d'évaluation
-
-	$spreadsheet->setActiveSheetIndex(1);
-	$spreadsheet->getActiveSheet()->setCellValue('C1', $date_evaluation. ' ' . date('Y'));
-	$spreadsheet->getActiveSheet()->setCellValue('C2', $name_user);
+	$reader = IOFactory::createReader('Xlsx');
+	$spreadsheet = $reader->load( $url_file );
 	
-	//General Peformance
-	if( $performance >= 0 && $performance <= 39 ) $spreadsheet->getActiveSheet()->setCellValue('D7', $performance);
-	else if( $performance >= 40 && $performance <= 60 ) $spreadsheet->getActiveSheet()->setCellValue('E7', $performance);
-	else if( $performance >= 61 && $performance <= 85 ) $spreadsheet->getActiveSheet()->setCellValue('F7', $performance);
-	else $spreadsheet->getActiveSheet()->setCellValue('G7', $performance);
-
-	//Initiative & Creativity
-	if( $customs_job >= 0 && $customs_job <= 39 ) $spreadsheet->getActiveSheet()->setCellValue('D9', $customs_job);
-	else if( $customs_job >= 40 && $customs_job <= 60 ) $spreadsheet->getActiveSheet()->setCellValue('E9', $customs_job);
-	else if( $customs_job >= 61 && $customs_job <= 85 ) $spreadsheet->getActiveSheet()->setCellValue('F9', $customs_job);
-	else $spreadsheet->getActiveSheet()->setCellValue('G9', $customs_job);
-
-	$spreadsheet->getActiveSheet()->setCellValue('B21', $good_performance);
-	$spreadsheet->getActiveSheet()->setCellValue('C21', $bad_performance);
-
-	$writer = new Xlsx($spreadsheet);
-	$file_name = $url_save_file . $name_user .'_worklog.xlsx';
-	return $writer->save($file_name);
+	if( $id_cp == null ){
+		$users = get_all_users();
+		$nemberRow=3;
+		$nemberRowMerge=3;
+		foreach( $users as $id => $user ){
+			$numberFiels = 1;
+			$name_user = get_userdata($id)->display_name;
+			$objective_month = get_objective_of_month($month, date('Y'), $id);
+			if( $objective_month != null ){
+				$objectives = unserialize( $objective_month->objective_section );
+				foreach( $objectives as $objective ){
+					if( $objective['status'] ) $status = 'YES';
+					else $status = 'NO';
+					
+					$spreadsheet->getActiveSheet()->insertNewRowBefore($nemberRow);
+					$spreadsheet->getActiveSheet()->setCellValue('B'.$nemberRow, $numberFiels);
+					$spreadsheet->getActiveSheet()->setCellValue('C'.$nemberRow, $objective['objective']);
+					$spreadsheet->getActiveSheet()->setCellValue('D'.$nemberRow, $status);
+					
+					$nemberRow++;
+					$numberFiels++;
+				}
+				$info_evaluation = unserialize( $objective_month->evaluation )['evaluation'];
+				$completed = $info_evaluation['completed'];
+				$moyenne = $info_evaluation['moyenne'];
+				$spreadsheet->getActiveSheet()->setCellValue('C'.$nemberRow, "MOYENNE : $moyenne");
+				$spreadsheet->getActiveSheet()->setCellValue('D'.$nemberRow, "COMPLETED : $completed");
+				$spreadsheet->getActiveSheet()->mergeCells('A'. $nemberRowMerge .':A'. $nemberRow .'');
+				$spreadsheet->getActiveSheet()->setCellValue('A'. $nemberRowMerge, $name_user);
+				if( $moyenne < 80 ){
+					$spreadsheet->getActiveSheet()->getStyle('B'.$nemberRow.':D'.$nemberRow)->getFill()
+						->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+						->getStartColor()->setARGB('FFFF0000');
+					$nemberRowMerge = $nemberRow+1;
+				}else{
+					$spreadsheet->getActiveSheet()->getStyle('B'.$nemberRow.':D'.$nemberRow)->getFill()
+						->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+						->getStartColor()->setARGB('40A497');
+					$nemberRowMerge = $nemberRow+1;
+				}
+			}
+			$nemberRow += 2;
+		}
+	}
+	$file_name = $url_save_file . '/' . $month. '-' . date('Y') .'_evaluation_cp.xlsx';
+	if( ! file_exists( $file_name ) ){
+		$writer = new Xlsx($spreadsheet);
+		$writer->save($file_name);
+	}
 }
 
 /**
@@ -317,7 +402,7 @@ function  mail_sending_form($destinataire, $subject, $message)
  */
 function get_evaluation_form($task_id, $type_task)
 {
-	$task = get_task_('id', $task_id, 'yes')[0];
+	$task = get_task_('id', $task_id)[0];
 	$get_criteria = get_option('_evaluation_criterias');
 	$criterias =  unserialize($get_criteria);
 	?>
@@ -352,11 +437,10 @@ function get_evaluation_form($task_id, $type_task)
 				if (!get_task_status($task_id, 'yes')) {
 				?>
 					<small id="emailHelp" class="form-text text-muted text-center">The task being evaluated is not yet marked as complete. <br>Make sure of that or take that into account. </small>
-					<button class="btn btn-outline-primary" data-toggle="modal" data-target="#detail_criteria">Readme before review </button>
-				<?php
+					<?php
 				}
 				?>
-				<hr>
+				<button class="btn btn-outline-primary" data-toggle="modal" data-target="#detail_criteria">Readme before review </button>
 			<?php
 			}
 		} else {

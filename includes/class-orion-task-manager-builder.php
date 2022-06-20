@@ -26,24 +26,6 @@ class Task_Manager_Builder
             '', 
         );
         
-        //Generate Task Admin Sub Pages
-        // add_submenu_page( 
-        //     'o_task_manager', 
-        //     'Task', 
-        //     'Projects', 
-        //     'manage_options', 
-        //     'o_task_manager', 
-        //     'Task_Manager_Builder::list_table_page'
-        // );
-
-        // add_submenu_page( 
-        //     'o_task_manager', 
-        //     'Task', 
-        //     'Settings', 
-        //     'manage_options', 
-        //     'o_task_manager', 
-        //     'Task_Manager_Builder::settings_page'
-        // );
     }
 
     public static function settings_page(){
@@ -60,7 +42,7 @@ class Task_Manager_Builder
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o_task_manager' ? 'nav-tab-active' : ''; ?>"><?php _e( 'TASK', 'task' ); ?></a>
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-worklog' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-worklog' ? 'nav-tab-active' : ''; ?>"><?php _e( 'WORKLOG', 'task' ); ?></a>
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-evaluation' ? 'nav-tab-active' : ''; ?>"><?php _e( 'EVALUATION', 'task' ); ?></a>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-rapport' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-rapport' ? 'nav-tab-active' : ''; ?>"><?php _e( 'RAPPORT', 'task' ); ?></a>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-rapport' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-rapport' ? 'nav-tab-active' : ''; ?>"><?php _e( 'REPORT', 'task' ); ?></a>
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-performance' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-performance' ? 'nav-tab-active' : ''; ?>"><?php _e( 'PERFORMANCE', 'task' ); ?></a>
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-active' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-active' ? 'nav-tab-active' : ''; ?>"><?php _e( 'INTEGRATION', 'task' ); ?></a>
             </nav>
@@ -91,175 +73,84 @@ class Task_Manager_Builder
     }
 
     /**
-     * Display the list table page
-     *
-     * @return Void
+     * Redirect users who arent logged in...
      */
-    public static function list_table_page()
+    public static function login_redirect()
     {
-        $TaskListTable = new Orion_Task_Manager_Table_List();
-        $TaskListTable->prepare_items();
-        ?>
-            <div class="wrap">
-                <div id="icon-users" class="icon32"></div>
-                <h2>Orion Task Manager</h2>
-                <?php $TaskListTable->display(); ?>
-            </div>
-        <?php
-    }
-}
+        //Current Page
+        global $pagenow;
 
-// WP_List_Table is not loaded automatically so we need to load it in our application
-if( ! class_exists( 'WP_List_Table' ) ) {
-    require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
-}
-
-/**
- * Create a new table class that will extend the WP_List_Table
- */
-class Orion_Task_Manager_Table_List extends WP_List_Table
-{
-    /**
-     * Prepare the items for the table to process
-     *
-     * @return Void
-     */
-    public function prepare_items()
-    {
-        $columns = $this->get_columns();
-        $hidden = $this->get_hidden_columns();
-        $sortable = $this->get_sortable_columns();
-
-        $data = $this->table_data();
-        
-        $perPage = 5;
-        $currentPage = $this->get_pagenum();
-        $totalItems = count($data);
-
-        $this->set_pagination_args( array(
-            'total_items' => $totalItems,
-            'per_page'    => $perPage
-        ) );
-
-        $data = array_slice($data,(($currentPage-1)*$perPage),$perPage);
-
-        $this->_column_headers = array($columns, $hidden, $sortable);
-        $this->items = $data;
+        if (!is_user_logged_in() && (is_page('orion-task') || is_page('task-evaluation') ))
+            auth_redirect();
     }
 
     /**
-     * Override the parent columns method. Defines the columns to use in your listing table
-     *
-     * @return Array
+     * Verification des formulaire wp_nonce
      */
-    public function get_columns()
-    {
-        $columns = array(
-            'cb'                => '<input type="checkbox" />',
-            'title'             => 'Project Title',
-            'project_manager'   => 'Project Manager',
-            'email'             => 'Email',
-        );
-
-        return $columns;
-    }
-
-    public function column_title($item) {
-        $actions = array(
-                  'edit'      => sprintf('<a href="?page=%s&action=%s&id=%s">Edit</a>',$_REQUEST['page'],'edit',$item['id']),
-                  'delete'    => sprintf('<a href="?page=%s&action=%s&id=%s">Delete</a>',$_REQUEST['page'],'delete',$item['id']),
-              );
-      
-        return sprintf('%1$s %2$s', $item['title'], $this->row_actions($actions) );
-    }
-
-    public function process_bulk_action(){
-
-        global $wpdb;
-        $table_name = $wpdb->prefix."project"; 
-    
-            if ('delete' === $this->current_action()) {
-    
-                $ids = isset($_REQUEST['id']) ? $_REQUEST['id'] : array();
-                if (is_array($ids)) $ids = implode(',', $ids);
-    
-                if (!empty($ids)) {
-                    $wpdb->query("DELETE FROM $table_name WHERE id IN($ids)");
+    public static function _taitement_form(){
+        if (isset($_POST['verifier_new_task_form']) ) {
+            if (wp_verify_nonce($_POST['verifier_new_task_form'], 'create_new_task')) {
+                $retour =  traite_form_public($_POST);
+                if (!$retour) {
+                    $url = add_query_arg('status', 'error', wp_get_referer());
+                    wp_safe_redirect($url);
+                    exit();
+                } else {
+                    $url = add_query_arg('status', 'success', wp_get_referer());
+                    wp_safe_redirect($url);
+                    exit();
                 }
-    
             }
-     }
-
-    function get_bulk_actions() {
-        $actions = array(
-          'delete'    => 'Delete'
-        );
-        return $actions;
-    }
-
-    function column_cb($item) {
-        return sprintf(
-            '<input type="checkbox" name="task[]" value="%s" />', $item['id']
-        );    
-    }
-
-    /**
-     * Define which columns are hidden
-     *
-     * @return Array
-     */
-    public function get_hidden_columns()
-    {
-        return array();
-    }
-
-    /**
-     * Define the sortable columns
-     *
-     * @return Array
-     */
-    public function get_sortable_columns()
-    {
-        return array('title' => array('title', false));
-    }
-
-    /**
-     * Get the table data
-     *
-     * @return Array
-     */
-    private function table_data()
-    {
-        $data = array();
-        foreach( get_project_(  ) as $projects ){
-            $data_format = (array) $projects;
-            $projec_manager = get_userdata( $data_format['project_manager'] )->display_name;
-            $project = array_replace( $data_format, array('project_manager' => $projec_manager) ) ;
-            $project += array('email' => get_userdata( $data_format['project_manager'] )->user_email);
-            $data[] = (array) $project;
-        }
-        return $data;
-    }
-
-    /**
-     * Define what data to show on each column of the table
-     *
-     * @param  Array $item        Data
-     * @param  String $column_name - Current column name
-     *
-     * @return Mixed
-     */
-    public function column_default( $item, $column_name )
-    {
-        switch( $column_name ) {
-            case 'title':
-            case 'project_manager':
-            case 'email':
-                return $item[ $column_name ];
-
-            default:
-                return print_r( $item, true ) ;
         }
     }
 
+    /**
+     * Créer les projets
+     */
+    public static function create_new_projet_(){
+        if( isset( $_POST['project_id'] ) && !empty( $_POST['project_id'] ) ){
+			$project_id = htmlentities( $_POST['project_id'] );
+			$post = wp_unslash($_POST);
+			$output =  sync_new_project($post, $project_id);
+		}else{
+			$post = wp_unslash($_POST);
+			$output = sync_new_project($post);
+		}
+		if( $output ) echo project_tab();
+		else echo false;
+        wp_die();
+    }
+
+    /**
+     * Créer un template
+     */
+    public static function create_template_(){
+        if (isset($_POST['updatetempplate_id']) && !empty($_POST['updatetempplate_id'])) {
+			$template_id = htmlentities($_POST['updatetempplate_id']);
+			$send = array_diff($_POST, array('action' => 'create_template', 'updatetempplate_id' => $template_id));
+		} else {
+			$send = array_diff($_POST, array('action' => 'create_template'));
+			$template_id = '';
+		}
+		$data = wp_unslash($send);
+		$sortir = save_new_templates($template_id, $data);
+		if( $sortir ) echo  get_list_template();
+		else echo false;
+        wp_die();
+    }
+
+    /**
+     * Optenir le formulaire du template choix par l'utilisateur
+     */
+    public static function get_template_choose_(){
+        $id_template = htmlentities($_POST['template_id']);
+		$istemplate = htmlentities($_POST['istemplate']);
+		if (!empty($id_template)) {
+			if ($istemplate == 'yes') echo get_template_form($id_template, true);
+			else echo get_template_form($id_template);
+		} else {
+			echo '';
+		}
+        wp_die();
+    }
 }

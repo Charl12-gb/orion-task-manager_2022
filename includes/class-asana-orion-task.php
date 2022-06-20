@@ -26,7 +26,8 @@ function task_cron_sync()
 	sync_projets();
 	sync_tasks();
 	sync_duedate_task();
-	automatique_send_mail( );
+	automatique_send_mail();
+	evaluation_project_manager();
 }
 
 if (!wp_next_scheduled('task_cron_hook')) {
@@ -38,10 +39,13 @@ if (!wp_next_scheduled('task_cron_hook')) {
 add_action('objective_cron_hook', 'objective_cron_sync');
 function objective_cron_sync(){
 	sync_objectives_month();
+	if( date('m-Y') == '01-'. date('Y') ){
+		evaluation_cp();
+	}
 }
 
 if (!wp_next_scheduled('objective_cron_hook')) {
-	wp_schedule_event(time(), 'weekly', 'objective_cron_hook');
+	wp_schedule_event(time(), 'daily', 'objective_cron_hook');
 }
 
 
@@ -220,7 +224,7 @@ function sync_projets()
  * les mails si la tache est terminée.
  */
 function automatique_send_mail( ){
-	$worklogs = get_all_worklog('mail_status', 'no'); 						// récupération des tâches dont mail n'est pas encore send
+	return $worklogs = get_all_worklog('mail_status', 'no'); 						// récupération des tâches dont mail n'est pas encore send
 	if( $worklogs != null ){
 		foreach( $worklogs as $worklog ){ 										//parcourir la list
 			$task = get_task_('id', $worklog->id_task);	   						// on récupère les infor de la tâche 
@@ -262,6 +266,22 @@ function sync_duedate_task()
 			else $mail_status = NULL;
 			
 			update_worklog( array('finaly_date' => $detail_task->completed_at, 'status' => $detail_task->completed, 'mail_status' => $mail_status), array('id_task' => $worklog->id_task), array('%s', '%s') );
+		}
+	}
+
+	//Synch objectives status
+	$users = get_all_users();
+	foreach( $users as $id => $user ){
+		$objective_array = array();
+		$objective_month = get_objective_of_month(date('m')/1, date('Y'), $id);
+		if( $objective_month != null ){
+			$objectives = unserialize( $objective_month->objective_section );
+			foreach( $objectives as $taskid => $objective ){
+				$asana->getTask($taskid);
+				$detail_task = $asana->getData();
+				$objective_array += array($taskid => array('objective' => $objective['objective'], 'status' => $detail_task->completed ));
+			}
+			update_objective( $objective_array, $objective_month->id_objective  );
 		}
 	}
 }
