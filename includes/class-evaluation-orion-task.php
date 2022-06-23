@@ -124,6 +124,7 @@ function evaluation_project_manager()
 	//}
 }
 
+
 /**
  * Function permettant de télécharger le worklog d'un membre
  * 
@@ -269,14 +270,15 @@ function download_worklog($user_id, $month=null)
 		$file_name = $url_save_file . $date_worklog . '/' . $name_user .'_worklog.xlsx';
 		if( ! file_exists( $file_name ) ){
 			$writer = new Xlsx($spreadsheet);
-			$writer->save($file_name);
+			return $writer->save($file_name);
 		}
 		
 	}
 }
 
 function evaluation_cp( $id_cp=null ){
-	$month =  date("m")/1;
+	$nxtm = strtotime("previous month");
+	$month =  date("m", $nxtm)/1;
 	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-cp-evaluation.xlsx';
 	$url_save_file = plugin_dir_path(__FILE__) . 'worklog_evaluation/';
 	

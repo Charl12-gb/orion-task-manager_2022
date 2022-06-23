@@ -28,13 +28,10 @@
      * Although scripts in the WordPress core, Plugins and Themes may be
      * practising this, we should strive to set a better example in our own work.
      */
-    console.log("Admin");
-
-
     $(document).ready(function() {
-
         var i = 0,
             z = 0,
+            y = 0,
             v = 0,
             u = 0;
         var val;
@@ -105,7 +102,7 @@
                 success: function(response) {
                     document.getElementById('categories_card').innerHTML = response;
                     document.getElementById('add_success_categories').innerHTML = '<div class="alert alert-success mt-4" role="alert">Successfully updated evaluation criteria</div>';
-                    setTimeout(function() { $('#add_success_categories').hide(); }, 1000);
+                    setTimeout(function() { $('#add_success_categories').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -122,6 +119,17 @@
                 }
             }
             $('#champadd').append('<div id="rm2' + z + '"><div class="form-row pt-2"><div class="col-sm-11"><input type="text" name="categorie' + z + '" id="categorie' + z + '" class="form-control" placeholder="Categorie Name"></div><div class="col-sm-1"><span name="remove" id="' + z + '" class="btn btn-outline-danger btn_remove_categorie">X</span></div></div></div>');
+        });
+
+        $(document).on('click', '#addsection', function() {
+            y++;
+            if (document.getElementById('nbresection')) {
+                val = $('#nbresection').val();
+                if (y < val) {
+                    y = val;
+                }
+            }
+            $('#addsectionchamp').append('<div id="rm2' + y + '"><div class="form-row pt-2"><div class="col-sm-11"><input type="text" name="section' + y + '" id="section' + y + '" class="form-control" placeholder="Section Name"></div><div class="col-sm-1"><span name="remove" id="' + y + '" class="btn btn-outline-danger btn_remove_section">X</span></div></div></div>');
         });
 
         $(document).on('submit', '#evaluation_criteria', function(e) {
@@ -177,7 +185,8 @@
                     success: function(response) {
                         document.getElementById('criteria_evaluation_tab').innerHTML = response;
                         document.getElementById('success_criteria_add').innerHTML = '<div class="alert alert-success mt-4" role="alert">Successfully updated evaluation criteria</div>';
-                        setTimeout(function() { $('#success_criteria_add').hide(); }, 3000);
+                        setTimeout(function() { $('#success_criteria_add').hide(); }, 5000);
+                        //console.log('igi');
                     },
                     error: function(errorThrown) {
                         console.log(errorThrown);
@@ -325,7 +334,7 @@
                 success: function(response) {
                     document.getElementById('template_card').innerHTML = response;
                     document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">Deletion completed successfully</div>';
-                    setTimeout(function() { $('#add_success').hide(); }, 3000);
+                    setTimeout(function() { $('#add_success').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -348,7 +357,7 @@
                 success: function(response) {
                     document.getElementById('evaluator_tab').innerHTML = response;
                     document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">Deletion completed successfully</div>';
-                    setTimeout(function() { $('#add_success').hide(); }, 1500);
+                    setTimeout(function() { $('#add_success').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -444,7 +453,7 @@
                         document.getElementById('add_success_time').innerHTML = '<div class="alert alert-success mt-4" role="alert"> Successfully ! </div>';
                     else
                         document.getElementById('add_success_time').innerHTML = '<div class="alert alert-danger mt-4" role="alert"> Error ! </div>';
-                    setTimeout(function() { $('#add_success_time').hide(); }, 1500);
+                    setTimeout(function() { $('#add_success_time').hide(); }, 5000);
                 }
             });
         });
@@ -467,7 +476,7 @@
                         document.getElementById('add_success_id').innerHTML = '<div class="alert alert-success mt-4" role="alert"> Successfully ! </div>';
                     else
                         document.getElementById('add_success_id').innerHTML = '<div class="alert alert-danger mt-4" role="alert"> Error ! </div>';
-                    setTimeout(function() { $('#add_success_id').hide(); }, 2000);
+                    setTimeout(function() { $('#add_success_id').hide(); }, 5000);
                 }
             });
         });
@@ -497,7 +506,7 @@
                         document.getElementById('add_success_id').innerHTML = '<div class="alert alert-success mt-4" role="alert"> Successfully ! </div>';
                     else
                         document.getElementById('add_success_id').innerHTML = '<div class="alert alert-danger mt-4" role="alert"> Error ! </div>';
-                    setTimeout(function() { $('#add_success_id').hide(); }, 2000);
+                    setTimeout(function() { $('#add_success_id').hide(); }, 5000);
                 }
             });
         });
@@ -538,6 +547,12 @@
             var button_id = $(this).attr("id");
             $('#rm2' + button_id + '').remove();
             z = z - 1
+        });
+
+        $(document).on('click', '.btn_remove_section', function() {
+            var button_id = $(this).attr("id");
+            $('#rm2' + button_id + '').remove();
+            y = y - 1
         });
         $(document).on('click', '.btn_remove_criteria1', function() {
             var button_id = $(this).attr("id");
@@ -600,7 +615,7 @@
                         document.getElementById('list_email').innerHTML = 'New Email Template';
                         $('#list_email').attr('id', 'new_email');
                     }
-                    setTimeout(function() { $('#add_success').hide(); }, 1500);
+                    setTimeout(function() { $('#add_success').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -629,7 +644,7 @@
                         document.getElementById('add_success').innerHTML = '<div class="alert alert-success mt-4" role="alert">Successfully. Save ? </div>';
                     else
                         document.getElementById('add_success').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Not send</div>';
-                    setTimeout(function() { $('#add_success').hide(); }, 1500);
+                    setTimeout(function() { $('#add_success').hide(); }, 5000);
                 }
             });
         });
@@ -652,7 +667,7 @@
                     } else {
                         document.getElementById('add_success').innerHTML = '<div class="alert alert-danger" role="alert">Error</div>';
                     }
-                    setTimeout(function() { $('#add_success').hide(); }, 3000);
+                    setTimeout(function() { $('#add_success').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -715,7 +730,7 @@
                         } else
                             document.getElementById('add_success').innerHTML = '<div class="alert alert-danger" role="alert">Error occurred during template creation</div>';
                     }
-                    setTimeout(function() { $('#add_success').hide(); }, 3000);
+                    setTimeout(function() { $('#add_success').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -729,9 +744,31 @@
             var multi_choix = $('#multichoix option:selected').toArray().map(item => item.value);
             var projectmanager = document.getElementById('projectmanager').value;
             var project_id = "";
+            var parametre = {};
             if (document.getElementById('project_id')) {
                 project_id = document.getElementById('project_id').value;
+                var section = "";
+            } else {
+                var section = "Untitled section";
+                parametre[0] = { section };
             }
+
+            if (document.getElementById('nbresection')) {
+                val = $('#nbresection').val();
+                if (y < val) {
+                    y = val - 1;
+                }
+            }
+
+            if (y > 0) {
+                for (var p = 1; p <= y; p++) {
+                    section = $('#section' + p).val();
+                    parametre[p] = { section };
+                }
+            }
+            y = 0;
+            //console.log(parametre);
+
             var title = $('#titleproject').val();
             var slug = $('#slug').val();
             var description = $('#description').val();
@@ -743,10 +780,11 @@
                     'action': 'create_new_projet',
                     'title': title,
                     'slug': slug,
-                    'description': description,
+                    'descriptionynchronization': description,
                     'project_manager': projectmanager,
                     'collaborator': multi_choix,
-                    'project_id': project_id
+                    'project_id': project_id,
+                    'section': parametre
                 },
                 beforeSend: function() {
                     document.getElementById('add_success1').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
@@ -758,7 +796,7 @@
                         document.getElementById('project_card').innerHTML = response;
                     } else
                         document.getElementById('add_success1').innerHTML = '<div class="alert alert-danger" role="alert">Error occurred during project creation</div>';
-                    setTimeout(function() { $('#add_success1').hide(); }, 3000);
+                    setTimeout(function() { $('#add_success1').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);

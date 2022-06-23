@@ -108,14 +108,34 @@ class Task_Manager_Builder
      * Créer les projets
      */
     public static function create_new_projet_(){
+        $asana = connect_asana();
         if( isset( $_POST['project_id'] ) && !empty( $_POST['project_id'] ) ){
 			$project_id = htmlentities( $_POST['project_id'] );
 			$post = wp_unslash($_POST);
 			$output =  sync_new_project($post, $project_id);
 		}else{
 			$post = wp_unslash($_POST);
-			$output = sync_new_project($post);
+			$project_id = sync_new_project($post);
+            $output = $project_id;
 		}
+        $sections = $_POST['section'];
+        foreach( $sections as $section ){
+            $name_section = htmlentities( $section['section'] );
+            if( ! section_exist( $name_section, $project_id) ){
+                $asana->createSection( $project_id, array( "name" => $name_section ) );
+                $result = $asana->getData();
+                if( $result != null ){
+                    $data = array(
+                        'id' 		=> $result->gid,
+                        'project_id' => $project_id,
+                        'section_name'		=> $result->name
+                    );
+                    // Sauvegarde des sections inexistante dans la bdd
+                    save_new_sections($data);
+                }
+            }
+        }
+
 		if( $output ) echo project_tab();
 		else echo false;
         wp_die();

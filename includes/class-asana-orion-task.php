@@ -24,6 +24,7 @@ add_action('task_cron_hook', 'task_cron_sync');
 function task_cron_sync()
 {
 	sync_projets();
+	sync_objectives_month();
 	sync_tasks();
 	sync_duedate_task();
 	automatique_send_mail();
@@ -38,7 +39,6 @@ if (!wp_next_scheduled('task_cron_hook')) {
 
 add_action('objective_cron_hook', 'objective_cron_sync');
 function objective_cron_sync(){
-	sync_objectives_month();
 	if( date('m-Y') == '01-'. date('Y') ){
 		evaluation_cp();
 	}
@@ -148,7 +148,9 @@ function sync_new_project($data, $project_id=null)
 				'project_manager' => $data['project_manager'],
 				'collaborator' => serialize($data['collaborator'])
 			);
-			return save_project($array);
+			$output = save_project($array);
+			if( $output ) return $result->gid;
+			else return false;
 		}
 	} else return false;
 }
@@ -219,12 +221,13 @@ function sync_projets()
 	}
 }
 
+
 /**
  * Fonction permettant d'envoyer automatiquement 
  * les mails si la tache est terminée.
  */
 function automatique_send_mail( ){
-	return $worklogs = get_all_worklog('mail_status', 'no'); 						// récupération des tâches dont mail n'est pas encore send
+	$worklogs = get_all_worklog('mail_status', 'no'); 						// récupération des tâches dont mail n'est pas encore send
 	if( $worklogs != null ){
 		foreach( $worklogs as $worklog ){ 										//parcourir la list
 			$task = get_task_('id', $worklog->id_task);	   						// on récupère les infor de la tâche 

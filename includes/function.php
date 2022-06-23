@@ -806,7 +806,17 @@ function page_task()
 							</div>
 							<div class="col-sm-6" style="text-align:right;">
 								<span><?php if ($download_worklog == 'true') {
-											echo '<a class="btn btn-outline-success" href="' . download_worklog(get_current_user_id()) . '" download="' . get_userdata(get_current_user_id())->display_name . 'worklog.xlsx">Download Worklog</a>';
+										$nxtm = strtotime("previous month");
+										$date_worklog = date("M-Y", $nxtm);
+										$name_worklog = $date_worklog. '/'.get_userdata(get_current_user_id())->display_name.'_worklog.xlsx';
+										$url_worklog_file = __DIR__ . '/worklog_evaluation/'.$name_worklog;
+										//if( file_exists( $url_worklog_file ) ){
+											?>
+											<a class="btn btn-outline-success" href="<?= ($url_worklog_file) ?>" download>Download Worklog</a>
+											<?php
+										//}
+										//echo '<a class="btn btn-outline-success" href="' . download_worklog(get_current_user_id()) . '" download="' . get_userdata(get_current_user_id())->display_name . 'worklog.xlsx">Download Worklog</a>';
+										
 										} ?></span>
 								<span>
 									<?php if (is_project_manager() != null) {
@@ -1119,11 +1129,42 @@ function project_form_add( $id_project=null ){
 						</div>
 					</div>
 				</div>
+				<hr>
+				<h5>Sections</h5>
+				<div id="addsectionchamp" class="pb-3">
+					<?php
+						if( $id_project != null ){
+							$sections = get_project_section( $id_project );
+							$i=1;
+							foreach( $sections as $key_section => $section ){
+								?>
+								<div id="rm2<?= $i ?>">
+									<div class="form-row pt-2">
+										<div class="col-sm-11">
+											<input type="text" name="section<?= $i ?>" id="section<?= $i ?>" class="form-control" value="<?= $section ?>">
+										</div>
+										<?php 
+										if( $section != 'Untitled section' ){
+											?>
+											<div class="col-sm-1">
+												<span name="remove" id="<?= $i ?>" class="btn btn-outline-danger btn_remove_section">X</span>
+											</div>
+											<?php 
+										}
+										?>
+									</div>
+								</div>
+								<?php
+								$i++;
+							}
+							?>
+							<input type="hidden" name="nbresection" id="nbresection" value="<?= $i ?>">
+							<?php
+						}
+					?>
+				</div>
 				<div class="form-group">
-					<label for="inputState">Collaborators :</label>
-					<select class="selectpicker form-control" id="multichoix" name="multichoix" multiple data-live-search="true">
-					<?= option_select(get_all_users()) ?>
-					</select>
+					<span id="addsection" name="addsection" class="btn btn-outline-success">+ Add Section</span>
 				</div>
 				<div class="form-group">
 					<button type="submit" name="valide" class="btn btn-primary btn-sm btn-block"> <?php if( $id_project != null ) echo 'UPDATE PROJECT'; else echo 'CREATE PROJECT'; ?> </button>
@@ -1132,10 +1173,55 @@ function project_form_add( $id_project=null ){
 	<?php
 }
 
+function create_new_project(){
+	?>
+		<h3>New Project<button class="btn btn-outline-success collapsed" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">List Projects</button> </h3>
+			<hr>
+			<form id="create_new_projet" name="create_new_projet" action="" method="post">
+				<div class="form-group">
+					<label for="InputTitle">Project Name </label>
+					<input type="text" name="titleproject" id="titleproject" class="form-control" placeholder="Project Name">
+				</div>
+				<div class="form-group">
+					<textarea class="form-control" id="description" name="description" rows="3" placeholder="Description ..."></textarea>
+				</div>
+				<div class="form-group">
+					<div class="form-row">
+						<div class="col">
+							<label for="InputTitle">Slug </label>
+							<input type="text" name="slug" id="slug" class="form-control" placeholder="Slug">
+						</div>
+						<div class="col">
+							<label for="inputState">Project Manager :</label>
+							<select id="projectmanager" name="projectmanager" class="form-control">
+								<option value="">Choose...</option>
+							</select>
+						</div>
+					</div>
+				</div>
+				<div class="form-group">
+					<label for="inputState">Collaborators :</label>
+					<select class="selectpicker form-control" id="multichoix" name="multichoix" multiple data-live-search="true">
+					<?= option_select(get_all_users()) ?>
+					</select>
+				</div>
+				<hr>
+				<h5>Sections</h5>
+				<div id="addsectionchamp" class="pb-3"></div>
+				<div class="form-group">
+					<span id="addsection" name="addsection" class="btn btn-outline-success">+ Add Section</span>
+				</div>
+				<div class="form-group">
+					<button type="submit" name="valide" class="btn btn-primary btn-sm btn-block"> CREATE PROJECT </button>
+				</div>
+			</form>
+	<?php
+}
+
 function project_tab( ){
 	$projects = get_project_();
 	?>
-		<h3>List Projects <button class="btn btn-outline-success btn_list_project" id="project_btn_add">Add New Project</button> </h3>
+		<h3>List Projects <button class="btn btn-outline-success collapsed" data-toggle="collapse" data-target="#collapseFour1" aria-expanded="false" aria-controls="collapseFour1">Add New Project</button> </h3>
 		<table class="table table-hover table-responsive-lg">
 			<thead>
 				<tr>
@@ -1173,7 +1259,6 @@ function project_tab( ){
 		</table>
 	<?php
 }
-
 function get_list_template()
 {
 	$tab_templates = get_templates_();
@@ -1550,6 +1635,11 @@ function taches_tab()
 					<div id="add_success1"></div>
 					<div class="card-body" id="project_card">
 					<?= project_tab() ?>
+					</div>
+				</div>
+				<div id="collapseFour1" class="collapse" aria-labelledby="headingFour1" data-parent="#accordion">
+					<div class="card-body">
+						<?= create_new_project() ?>
 					</div>
 				</div>
 			</div>
@@ -2597,16 +2687,16 @@ function settings_function()
 				//return send_rapport( $email_manager, $report_send );
 			}else{
 				$array = serialize( array( 'email_manager' => $email_manager, 'send_date' => $date_report_sent, 'sent_cp' => $sent_cp) );
-				return update_option( '_report_sent_info', $array );
+				echo update_option( '_report_sent_info', $array );
 			}
 		}
 		if( isset( $_POST['id_project_manager'] ) ){
 			$id_project_manager = htmlentities( $_POST['id_project_manager'] );
-			$output = update_option('_project_manager_id', $id_project_manager);
+			echo $output = update_option('_project_manager_id', $id_project_manager);
 		}
 		if( isset( $_POST['sync_time'] ) ){
 			$time = htmlentities( $_POST['sync_time'] );
-			$output = update_option('_synchronisation_time', $time);
+			echo $output = update_option('_synchronisation_time', $time);
 		}else echo false;
 		//echo $output;
 	}

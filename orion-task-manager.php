@@ -142,6 +142,13 @@ function orion_task_manager_create_db()
 			FOREIGN KEY  (id_task_parent) REFERENCES $table_task(id), 
 			PRIMARY KEY  (id)
 		);
+		CREATE TABLE $table_mail(
+			id bigint AUTO_INCREMENT,
+			type_task varchar(255) UNIQUE,
+			subject varchar(255),
+			content text,
+			PRIMARY KEY  (id)
+		);
 		CREATE TABLE $table_worklog(
 			id_task bigint NOT NULL,
 			finaly_date datetime,
@@ -151,13 +158,6 @@ function orion_task_manager_create_db()
 			mail_status varchar(10) NULL,
 			FOREIGN KEY  (id_task) REFERENCES $table_task(id), 
 			PRIMARY KEY  (id_task)
-		);
-		CREATE TABLE $table_mail(
-			id bigint AUTO_INCREMENT,
-			type_task varchar(255) UNIQUE,
-			subject varchar(255),
-			content text,
-			PRIMARY KEY  (id)
 		)$charset_collate;";
 
 	require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
