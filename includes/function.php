@@ -1105,7 +1105,7 @@ function project_form_add( $id_project=null ){
 					<input type="text" name="titleproject" id="titleproject" class="form-control" <?php if( $id_project != null ) { ?> value="<?= $project->title ?>" <?php } ?> placeholder="Project Name">
 				</div>
 				<div class="form-group">
-					<textarea class="form-control" id="description" name="description" rows="3" placeholder="Description ..."><?php if( $id_project != null ) { echo $project->description; }?>  </textarea>
+					<textarea class="form-control" id="description" name="description" rows="3" placeholder="Description ..."><?php if( $id_project != null ){ echo $project->description;}?></textarea>
 				</div>
 				<div class="form-group">
 					<div class="form-row">
@@ -1175,7 +1175,7 @@ function project_form_add( $id_project=null ){
 
 function create_new_project(){
 	?>
-		<h3>New Project<button class="btn btn-outline-success collapsed" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">List Projects</button> </h3>
+		<h3>New Project <button class="btn btn-outline-success collapsed" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree"> List Projects </button> </h3>
 			<hr>
 			<form id="create_new_projet" name="create_new_projet" action="" method="post">
 				<div class="form-group">
@@ -1195,6 +1195,7 @@ function create_new_project(){
 							<label for="inputState">Project Manager :</label>
 							<select id="projectmanager" name="projectmanager" class="form-control">
 								<option value="">Choose...</option>
+								<?= option_select(get_all_users()) ?>
 							</select>
 						</div>
 					</div>

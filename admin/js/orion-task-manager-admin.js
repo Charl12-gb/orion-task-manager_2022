@@ -767,11 +767,12 @@
                 }
             }
             y = 0;
-            //console.log(parametre);
 
             var title = $('#titleproject').val();
             var slug = $('#slug').val();
             var description = $('#description').val();
+            $("#collapseFour1").removeClass("show");
+            $("#collapseThree").addClass("show");
             //console.log(project_id);
             $.ajax({
                 url: ajaxurl,
@@ -780,7 +781,7 @@
                     'action': 'create_new_projet',
                     'title': title,
                     'slug': slug,
-                    'descriptionynchronization': description,
+                    'description': description,
                     'project_manager': projectmanager,
                     'collaborator': multi_choix,
                     'project_id': project_id,
