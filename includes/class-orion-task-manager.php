@@ -167,6 +167,8 @@ class Orion_Task_Manager {
 		$this->loader->add_action('wp_ajax_create_template',  'Task_Manager_Builder','create_template_');
 		$this->loader->add_action('wp_ajax_nopriv_get_template_choose', 'Task_Manager_Builder', 'get_template_choose_');
 		$this->loader->add_action('wp_ajax_get_template_choose', 'Task_Manager_Builder', 'get_template_choose_');
+		$this->loader->add_action('wp_ajax_nopriv_sent_worklog_mail', 'Task_Manager_Builder', 'sent_worklog_mail_');
+		$this->loader->add_action('wp_ajax_sent_worklog_mail', 'Task_Manager_Builder', 'sent_worklog_mail_');
 
 		add_shortcode('orion_task', 'orion_task_shortcode');
 		add_shortcode('task_evaluation', 'orion_task_evaluation_shortcode');

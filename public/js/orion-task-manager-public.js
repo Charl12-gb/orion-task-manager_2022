@@ -33,7 +33,31 @@
         var y = 0,
             z = 0,
             i = 1;
-        //$(document).on('click', '#addobject', function() {
+        $(document).on('submit', '#sent_worklog_mail', function(e) {
+            e.preventDefault();
+            var link_file = document.getElementById('link_file').value;
+            var user_id = document.getElementById('user_id').value;
+
+            $.ajax({
+                url: task_manager.ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'sent_worklog_mail',
+                    'link_file': link_file,
+                    'user_id': user_id,
+                },
+                beforeSend: function() {
+                    console.log('En cours');
+                },
+                success: function(response) {
+                    console.log(response);
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
+
         $(document).on('click', '.add_more', function() {
             var choix = $(this).attr("id");
             if (choix == 'addobject') {

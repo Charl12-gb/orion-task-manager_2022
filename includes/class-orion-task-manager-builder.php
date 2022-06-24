@@ -173,4 +173,66 @@ class Task_Manager_Builder
 		}
         wp_die();
     }
+
+    public static function sent_worklog_mail_( $filemane=null, $type=null, $month = null ){
+        if( $type == 'report' ){
+	        $m =  date("M", strtotime("previous month"));
+            $subject = 'REPORT OF ' . $m;
+            $sent_info = unserialize( get_option('_report_sent_info') );
+            $to = $sent_info['email_manager'];
+        }else{
+            $filemane = htmlentities($_POST['link_file']);
+            $user_id = htmlentities($_POST['user_id']);
+            $name_user = get_userdata($user_id)->display_name;
+            $to = get_userdata($user_id)->user_email;  
+            $subject = 'WORKLOG ORION';
+        }
+        
+        $sender_info = unserialize(get_option('_sender_mail_info'));      
+        // clé aléatoire de limite
+        $boundary = md5(uniqid(microtime(), TRUE));
+        
+        // Headers
+        $headers = 'From: "' . $sender_info['sender_name'] . '"<' . $sender_info['sender_email'] . '>'."\r\n";
+        $headers .= 'Mime-Version: 1.0'."\r\n";
+        $headers .= 'Content-Type: multipart/mixed;boundary='.$boundary."\r\n";
+        $headers .= "\r\n";
+        
+        // Message
+        $msg = 'This is a multipart/mixed message.'."\r\n\r\n";
+        
+        // Texte
+        $msg .= '--'.$boundary."\r\n";
+        $msg .= 'Content-type:text/plain;charset=utf-8'."\r\n";
+        $msg .= 'Content-transfer-encoding:8bit'."\r\n";
+        if( $type == 'report' ) $msg .= 'Project Managers evaluation report for the month of .'. $m ."\r\n";
+        else $msg .= 'Here is your Worklog.'."\r\n";;
+        
+        // Pièce jointe
+        $file_name = $filemane;
+        if (file_exists($file_name))
+        {
+            $file_type = filetype($file_name);
+            $file_size = filesize($file_name);
+        
+            $handle = fopen($file_name, 'r') or die('File '.$file_name.'can t be open');
+            $content = fread($handle, $file_size);
+            $content = chunk_split(base64_encode($content));
+            $f = fclose($handle);
+        
+            $msg .= '--'.$boundary."\r\n";
+            if( $type == 'report' ) $file_name = 'Report_' . $m . '.xlsx';
+            else $file_name = $name_user .'_worklog.xlsx';
+            $msg .= 'Content-type:'.$file_type.';name='.$file_name."\r\n";
+            $msg .= 'Content-transfer-encoding:base64'."\r\n";
+            $msg .= $content."\r\n";
+        }
+        
+        // Fin
+        $msg .= '--'.$boundary."\r\n";
+        
+        // Function mail()
+        echo mail($to, $subject, $msg, $headers);
+        wp_die();
+    }
 }

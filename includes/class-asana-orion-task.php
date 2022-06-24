@@ -41,6 +41,7 @@ add_action('objective_cron_hook', 'objective_cron_sync');
 function objective_cron_sync(){
 	if( date('m-Y') == '01-'. date('Y') ){
 		evaluation_cp();
+		worklog_file();
 	}
 }
 
@@ -134,8 +135,7 @@ function sync_new_project($data, $project_id=null)
 				'description' => $data['description'],
 				'permalink'	=> $result->permalink_url,
 				'slug' => $data['slug'],
-				'project_manager' => $data['project_manager'],
-				'collaborator' => serialize($data['collaborator'])
+				'project_manager' => $data['project_manager']
 			);
 			return save_project($array, $project_id);
 		}else{
@@ -280,6 +280,7 @@ function sync_duedate_task()
 		if( $objective_month != null ){
 			$objectives = unserialize( $objective_month->objective_section );
 			foreach( $objectives as $taskid => $objective ){
+				echo 1;
 				$asana->getTask($taskid);
 				$detail_task = $asana->getData();
 				$objective_array += array($taskid => array('objective' => $objective['objective'], 'status' => $detail_task->completed ));

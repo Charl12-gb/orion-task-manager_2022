@@ -105,7 +105,7 @@ function save_project($data, $project_id=null)
 	global $wpdb;
 	$table = $wpdb->prefix . 'project';
 	if( $project_id != null ){
-		$format = array('%s', '%s', '%s', '%s', '%d', '%s');
+		$format = array('%s', '%s', '%s', '%s', '%d');
 		return $wpdb->update($table, $data, array('id' => $project_id), $format);
 	}else{
 		$format = array('%d', '%s', '%s', '%s', '%s', '%d', '%s');
@@ -810,13 +810,15 @@ function page_task()
 										$date_worklog = date("M-Y", $nxtm);
 										$name_worklog = $date_worklog. '/'.get_userdata(get_current_user_id())->display_name.'_worklog.xlsx';
 										$url_worklog_file = __DIR__ . '/worklog_evaluation/'.$name_worklog;
-										//if( file_exists( $url_worklog_file ) ){
+										if( file_exists( $url_worklog_file ) ){
 											?>
-											<a class="btn btn-outline-success" href="<?= ($url_worklog_file) ?>" download>Download Worklog</a>
+											<form method="post" id="sent_worklog_mail" name="sent_worklog_mail">
+												<input type="hidden" name="link_file" id="link_file" value="<?= $url_worklog_file ?>">
+												<input type="hidden" name="user_id" id="user_id" value="<?= get_current_user_id() ?>">
+												<button type="submit" class="btn btn-outline-success">Download Worklog</button>
+											</form>
 											<?php
-										//}
-										//echo '<a class="btn btn-outline-success" href="' . download_worklog(get_current_user_id()) . '" download="' . get_userdata(get_current_user_id())->display_name . 'worklog.xlsx">Download Worklog</a>';
-										
+										}
 										} ?></span>
 								<span>
 									<?php if (is_project_manager() != null) {
@@ -1102,7 +1104,7 @@ function project_form_add( $id_project=null ){
 			<?php if( $id_project != null ) { ?> <input type="hidden" name="project_id" id="project_id" value="<?= $id_project ?>"> <?php } ?>
 				<div class="form-group">
 					<label for="InputTitle">Project Name </label>
-					<input type="text" name="titleproject" id="titleproject" class="form-control" <?php if( $id_project != null ) { ?> value="<?= $project->title ?>" <?php } ?> placeholder="Project Name">
+					<input type="text" name="titleproject" id="titleproject" class="form-control" <?php if( $id_project != null ) { ?> value="<?= $project->title ?>" <?php } ?> placeholder="Project Name" required>
 				</div>
 				<div class="form-group">
 					<textarea class="form-control" id="description" name="description" rows="3" placeholder="Description ..."><?php if( $id_project != null ){ echo $project->description;}?></textarea>
@@ -1115,7 +1117,7 @@ function project_form_add( $id_project=null ){
 						</div>
 						<div class="col">
 							<label for="inputState">Project Manager :</label>
-							<select id="projectmanager" name="projectmanager" class="form-control">
+							<select id="projectmanager" name="projectmanager" class="form-control" required>
 								<?php 
 								if( $id_project != null ) echo option_select(get_all_users(), $project->project_manager );
 								else { 

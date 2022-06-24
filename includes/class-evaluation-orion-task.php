@@ -94,8 +94,8 @@ function evaluation_project_manager()
 	$evaluation_date = strtotime($date1);
 	$today_date = strtotime($date2);
 
-	//if ($evaluation_date == $today_date) {
-		$objectives = get_objective_of_month((date('m') / 1), date('Y'));
+	if ($evaluation_date == $today_date) {
+		$objectives = get_objective_of_month(date('m')/1, date('Y'));
 		$tab_rapport_month = array();
 		foreach ($objectives as $objective) {
 			$total = 0;
@@ -121,7 +121,14 @@ function evaluation_project_manager()
 			$output = save_evaluation_info($array_evaluation, $objective->id_objective);
 			if ($output) array_push($tab_rapport_month, $objective->id_objective);
 		}
-	//}
+	}
+}
+
+function worklog_file(){
+	$users = get_all_users();
+	foreach( $users as $user_id => $user ){
+		download_worklog( $user_id );
+	}
 }
 
 
@@ -182,8 +189,7 @@ function download_worklog($user_id, $month=null)
 					->setCellValue('I'.$nemberRow, $this_task[3]['note'])
 					->setCellValue('J'.$nemberRow, $this_task[4]['note'])
 					->setCellValue('K'.$nemberRow, $this_task[5]['note'])
-					->setCellValue('E1', $numberFiels)
-					->setCellValue('L'.$nemberRow, '=(G'. $nemberRow .'+H'. $nemberRow .')/2');
+					->setCellValue('E1', $numberFiels);
 				$chaine += (($this_task[1]['note'])+($this_task[2]['note'])+($this_task[3]['note'])+($this_task[4]['note'])+($this_task[5]['note']));
 				$criteria1 += $this_task[1]['note']; $criteria2 += $this_task[2]['note']; $criteria3 += $this_task[3]['note']; $criteria4 += $this_task[4]['note']; $criteria5 += $this_task[5]['note'];
 			}
@@ -329,10 +335,11 @@ function evaluation_cp( $id_cp=null ){
 			$nemberRow += 2;
 		}
 	}
-	$file_name = $url_save_file . '/' . $month. '-' . date('Y') .'_evaluation_cp.xlsx';
+	$file_name = $url_save_file . $month. '-' . date('Y') .'_evaluation_cp.xlsx';
 	if( ! file_exists( $file_name ) ){
 		$writer = new Xlsx($spreadsheet);
 		$writer->save($file_name);
+		echo Task_Manager_Builder::sent_worklog_mail_( $file_name, 'report', $month );
 	}
 }
 

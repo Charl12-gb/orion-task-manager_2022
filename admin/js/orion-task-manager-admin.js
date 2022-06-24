@@ -102,7 +102,7 @@
                 success: function(response) {
                     document.getElementById('categories_card').innerHTML = response;
                     document.getElementById('add_success_categories').innerHTML = '<div class="alert alert-success mt-4" role="alert">Successfully updated evaluation criteria</div>';
-                    setTimeout(function() { $('#add_success_categories').hide(); }, 5000);
+                    //setTimeout(function() { $('#add_success_categories').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -185,8 +185,7 @@
                     success: function(response) {
                         document.getElementById('criteria_evaluation_tab').innerHTML = response;
                         document.getElementById('success_criteria_add').innerHTML = '<div class="alert alert-success mt-4" role="alert">Successfully updated evaluation criteria</div>';
-                        setTimeout(function() { $('#success_criteria_add').hide(); }, 5000);
-                        //console.log('igi');
+                        //setTimeout(function() { $('#success_criteria_add').hide(); }, 5000);
                     },
                     error: function(errorThrown) {
                         console.log(errorThrown);
@@ -227,6 +226,7 @@
 
         $(document).on('click', '.btn_list_project', function() {
             document.getElementById('add_success').innerHTML = '';
+            document.getElementById('add_success1').innerHTML = '';
             var action_template = $(this).attr('id');
             $.ajax({
                 url: ajaxurl,
@@ -253,6 +253,7 @@
         });
 
         $(document).on('click', '.project_edit', function() {
+            document.getElementById('add_success1').innerHTML = '';
             var id_proeject = $(this).attr('id');
             $.ajax({
                 url: ajaxurl,
@@ -334,7 +335,7 @@
                 success: function(response) {
                     document.getElementById('template_card').innerHTML = response;
                     document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">Deletion completed successfully</div>';
-                    setTimeout(function() { $('#add_success').hide(); }, 5000);
+                    //setTimeout(function() { $('#add_success').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -357,7 +358,7 @@
                 success: function(response) {
                     document.getElementById('evaluator_tab').innerHTML = response;
                     document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">Deletion completed successfully</div>';
-                    setTimeout(function() { $('#add_success').hide(); }, 5000);
+                    //setTimeout(function() { $('#add_success').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -368,7 +369,7 @@
         $(document).on('click', '.edit_categorie', function() {
             var id_categorie = $(this).attr('id');
 
-            $('#name' + id_categorie).removeAttr("disabled");
+            $('#name' + id_categorie).removeAttr("readonly");
             var valeur = $('#name' + id_categorie).val();
 
             if ($(this).attr('update' + id_categorie)) {
@@ -453,7 +454,7 @@
                         document.getElementById('add_success_time').innerHTML = '<div class="alert alert-success mt-4" role="alert"> Successfully ! </div>';
                     else
                         document.getElementById('add_success_time').innerHTML = '<div class="alert alert-danger mt-4" role="alert"> Error ! </div>';
-                    setTimeout(function() { $('#add_success_time').hide(); }, 5000);
+                    //setTimeout(function() { $('#add_success_time').hide(); }, 5000);
                 }
             });
         });
@@ -476,7 +477,7 @@
                         document.getElementById('add_success_id').innerHTML = '<div class="alert alert-success mt-4" role="alert"> Successfully ! </div>';
                     else
                         document.getElementById('add_success_id').innerHTML = '<div class="alert alert-danger mt-4" role="alert"> Error ! </div>';
-                    setTimeout(function() { $('#add_success_id').hide(); }, 5000);
+                    //setTimeout(function() { $('#add_success_id').hide(); }, 5000);
                 }
             });
         });
@@ -506,7 +507,7 @@
                         document.getElementById('add_success_id').innerHTML = '<div class="alert alert-success mt-4" role="alert"> Successfully ! </div>';
                     else
                         document.getElementById('add_success_id').innerHTML = '<div class="alert alert-danger mt-4" role="alert"> Error ! </div>';
-                    setTimeout(function() { $('#add_success_id').hide(); }, 5000);
+                    //setTimeout(function() { $('#add_success_id').hide(); }, 5000);
                 }
             });
         });
@@ -615,7 +616,7 @@
                         document.getElementById('list_email').innerHTML = 'New Email Template';
                         $('#list_email').attr('id', 'new_email');
                     }
-                    setTimeout(function() { $('#add_success').hide(); }, 5000);
+                    //setTimeout(function() { $('#add_success').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -644,7 +645,7 @@
                         document.getElementById('add_success').innerHTML = '<div class="alert alert-success mt-4" role="alert">Successfully. Save ? </div>';
                     else
                         document.getElementById('add_success').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Not send</div>';
-                    setTimeout(function() { $('#add_success').hide(); }, 5000);
+                    //setTimeout(function() { $('#add_success').hide(); }, 5000);
                 }
             });
         });
@@ -667,7 +668,7 @@
                     } else {
                         document.getElementById('add_success').innerHTML = '<div class="alert alert-danger" role="alert">Error</div>';
                     }
-                    setTimeout(function() { $('#add_success').hide(); }, 5000);
+                    //setTimeout(function() { $('#add_success').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -730,7 +731,7 @@
                         } else
                             document.getElementById('add_success').innerHTML = '<div class="alert alert-danger" role="alert">Error occurred during template creation</div>';
                     }
-                    setTimeout(function() { $('#add_success').hide(); }, 5000);
+                    //setTimeout(function() { $('#add_success').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -740,6 +741,7 @@
 
         $(document).on('submit', '#create_new_projet', function(e) {
             e.preventDefault();
+            document.getElementById('add_success1').innerHTML = '';
             console.log('Le clic sur le bouton a été pris en compte');
             var multi_choix = $('#multichoix option:selected').toArray().map(item => item.value);
             var projectmanager = document.getElementById('projectmanager').value;
@@ -791,13 +793,12 @@
                     document.getElementById('add_success1').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
                 },
                 success: function(response) {
-                    //console.log(response);
                     if (response) {
                         document.getElementById('add_success1').innerHTML = '<div class="alert alert-success" role="alert">New project created successfully</div>';
                         document.getElementById('project_card').innerHTML = response;
                     } else
                         document.getElementById('add_success1').innerHTML = '<div class="alert alert-danger" role="alert">Error occurred during project creation</div>';
-                    setTimeout(function() { $('#add_success1').hide(); }, 5000);
+                    //setTimeout(function() { $('#add_success1').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
