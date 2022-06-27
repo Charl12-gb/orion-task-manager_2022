@@ -767,10 +767,11 @@ function page_task()
 	if( isset( $_GET['status'] ) ){
 		if( $_GET['status'] == 'success' ){
 			?> <div class="alert alert-success" role="alert">Successfuly ! </div> <?php }
-	   else{ ?> <div class="alert alert-danger" role="alert">Error ! </div> <?php }
+	   else{ ?> <div class="alert alert-danger" role="alert">Failed operation try again ! </div> <?php }
 	}
 	if ($post_author != 0) {
 ?>
+	<span id="worklog_msg"></span>
 		<div class="container card">
 			<div class="row text-center card-header">
 				<div class="col-sm-4"><a class="button text-dark" data-toggle="collapse" data-target="#collapse5" aria-expanded="false" aria-controls="collapse5" href="" class="nav-tab">
@@ -979,7 +980,7 @@ function modal_event_calendar($date_event, $array)
 								$task = get_task_( 'id', $data['id'] ); 
 								?>
 								<div class="alert alert-primary" role="alert">
-								<p class="row text-center ml-3 mt-0 mb-1"><?php if( get_task_main( $data['id'] ) != null ) echo get_task_main( $data['id'] ) . '<--'; ?> <strong><?= $data['title'] ?></strong> </p>
+								<p class="row text-center ml-3 mt-0 mb-1"><?php if( get_task_main( $data['id'] ) != null ) echo stripslashes(get_task_main( $data['id'] )) . '<--'; ?> <strong><?= stripslashes($data['title']) ?></strong> </p>
 								<small id="emailHelp" class="form-text text-muted"><strong style="text-decoration: underline;">Status:</strong> <?= ' '.get_task_status( $data['id'] ) ?><?php if( get_userdata(  $data['assign'] ) ) { ?> | <strong style="text-decoration: underline;"> Assigne:</strong><?= ' '.get_userdata(  $data['assign'] )->display_name ?> <?php } ?></small>  
 							</div>
 							<?php
@@ -1503,7 +1504,7 @@ function get_user_task()
 									?>
 											<tr>
 												<td><?= $k + 1 ?></td>
-												<td><?php if (get_task_main( $task->id ) != null) echo $main_task; ?><a href="<?= $task->permalink_url ?>" class="btn-link"><?= $task->title ?></a></td>
+												<td><?php if (get_task_main( $task->id ) != null) echo stripslashes($main_task); ?><a href="<?= $task->permalink_url ?>" class="btn-link"><?= stripslashes($task->title) ?></a></td>
 												<?php 
 													if( $task->duedate != NULL ){
 														?>

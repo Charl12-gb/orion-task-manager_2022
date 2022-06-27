@@ -38,6 +38,7 @@
             var link_file = document.getElementById('link_file').value;
             var user_id = document.getElementById('user_id').value;
 
+            setTimeout(function() { $('#sent_worklog_mail').toggle(); });
             $.ajax({
                 url: task_manager.ajaxurl,
                 type: "POST",
@@ -47,10 +48,12 @@
                     'user_id': user_id,
                 },
                 beforeSend: function() {
-                    console.log('En cours');
+                    document.getElementById('worklog_msg').innerHTML = '<div class="alert alert-warning mt-4" role="alert">Loading ... </div>';
                 },
                 success: function(response) {
-                    console.log(response);
+                    if (response) document.getElementById('worklog_msg').innerHTML = '<div class="alert alert-success mt-4" role="alert">Check your email ! Your Worklog has emailed you.</div>';
+                    else document.getElementById('worklog_msg').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Try again ! A problem occurred during processing</div>';
+                    setTimeout(function() { $('#worklog_msg').hide(); }, 60000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -202,6 +205,10 @@
                         if (document.getElementById('sub_assign' + t))
                             document.getElementById('sub_assign' + t).innerHTML = response;
                     }
+                    for (var t = 0; t < 10; t++) {
+                        if (document.getElementById('assign' + t))
+                            document.getElementById('assign' + t).innerHTML = response;
+                    }
                     for (var t = 0; t < 20; t++) {
                         if (document.getElementById('manuel_assign' + t))
                             document.getElementById('manuel_assign' + t).innerHTML = response;
@@ -259,6 +266,10 @@
                             for (var t = 0; t < 10; t++) {
                                 if (document.getElementById('sub_assign' + t))
                                     document.getElementById('sub_assign' + t).innerHTML = response;
+                            }
+                            for (var t = 0; t < 10; t++) {
+                                if (document.getElementById('assign' + t))
+                                    document.getElementById('assign' + t).innerHTML = response;
                             }
                             for (var t = 0; t < 10; t++) {
                                 if (document.getElementById('manuel_assign' + t))
@@ -342,6 +353,10 @@
                             for (var t = 0; t < 10; t++) {
                                 if (document.getElementById('sub_assign' + t))
                                     document.getElementById('sub_assign' + t).innerHTML = response;
+                            }
+                            for (var t = 0; t < 10; t++) {
+                                if (document.getElementById('assign' + t))
+                                    document.getElementById('assign' + t).innerHTML = response;
                             }
                             for (var t = 0; t < 10; t++) {
                                 if (document.getElementById('manuel_assign' + t))

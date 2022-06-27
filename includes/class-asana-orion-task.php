@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Connexion à l'api de asana
  */
@@ -27,8 +26,6 @@ function task_cron_sync()
 	sync_objectives_month();
 	sync_tasks();
 	sync_duedate_task();
-	automatique_send_mail();
-	evaluation_project_manager();
 }
 
 if (!wp_next_scheduled('task_cron_hook')) {
@@ -36,9 +33,10 @@ if (!wp_next_scheduled('task_cron_hook')) {
 	wp_schedule_event(time(), $time_def, 'task_cron_hook');
 }
 
-
 add_action('objective_cron_hook', 'objective_cron_sync');
 function objective_cron_sync(){
+	automatique_send_mail();
+	evaluation_project_manager();
 	if( date('m-Y') == '01-'. date('Y') ){
 		evaluation_cp();
 		worklog_file();
@@ -48,8 +46,6 @@ function objective_cron_sync(){
 if (!wp_next_scheduled('objective_cron_hook')) {
 	wp_schedule_event(time(), 'daily', 'objective_cron_hook');
 }
-
-
 
 add_action('report_cron_hook', 'report__cron_sync');
 if (!wp_next_scheduled('report__cron_hook')) {
@@ -156,6 +152,33 @@ function sync_new_project($data, $project_id=null)
 }
 
 /**
+ * Function permettant de faire la synchronisation des sections d'un projet.
+ */
+function sync_project_section( $project_id ){
+	$asana = connect_asana();
+	$sections_asana = $asana->getProjectSections($project_asana->gid);
+	if ($asana->getData() != null) {
+		foreach ($asana->getData() as $sections) {
+			$sync = true;
+			foreach ($sections_all as $section) {
+				if ($sections->gid == $section->id) {
+					$sync = false;
+				}
+			}
+			if ($sync) {
+				$data2 = array(
+					'id' 		=> $sections->gid,
+					'project_id' => $project_asana->gid,
+					'section_name'		=> $sections->name
+				);
+				// Sauvegarde des sections inexistante dans la bdd
+				save_new_sections($data2);
+			}
+		}
+	}
+}
+
+/**
  * Sync des projects et sections
  */
 function sync_projets()
@@ -172,9 +195,7 @@ function sync_projets()
 			else {
 				if( $project_asana->gid == get_option('_project_manager_id') ) $sync = false;
 				foreach ($projects as $project) {
-					if ($project_asana->gid == $project->id) {
-						$sync = false;
-					}
+					if ($project_asana->gid == $project->id) { $sync = false; }
 				}
 			}
 			if ($sync) {
@@ -196,27 +217,7 @@ function sync_projets()
 				// Sauvegarde des projets inexistant dans la bdd
 				save_project($data1);
 			}
-
-			$sections_asana = $asana->getProjectSections($project_asana->gid);
-			if ($asana->getData() != null) {
-				foreach ($asana->getData() as $sections) {
-					$sync = true;
-					foreach ($sections_all as $section) {
-						if ($sections->gid == $section->id) {
-							$sync = false;
-						}
-					}
-					if ($sync) {
-						$data2 = array(
-							'id' 		=> $sections->gid,
-							'project_id' => $project_asana->gid,
-							'section_name'		=> $sections->name
-						);
-						// Sauvegarde des sections inexistante dans la bdd
-						save_new_sections($data2);
-					}
-				}
-			}
+			sync_project_section( $project_asana->gid );
 		}
 	}
 }
@@ -242,7 +243,7 @@ function automatique_send_mail( ){
 							
 							$destinataire = get_userdata( $task[0]->assigne )->user_email ;
 							$title_main_task = get_task_main( $worklog->id_task );
-							$msg = content_msg($dependant[0]->id, $title_main_task, $task[0]->type_task, $mail_content);
+							echo $msg = content_msg($dependant[0]->id, $title_main_task, $task[0]->type_task, $mail_content);
 							mail_sending_form($destinataire, $subject, $msg);
 							update_worklog( array( 'mail_status'=> 'yes' ),array('id_task' => $worklog->id_task), array('%s') );
 						}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
@@ -266,8 +267,7 @@ function sync_duedate_task()
 		$detail_task = $asana->getData();
 		if ($worklog->status != $detail_task->completed){
 			if( $detail_task->completed ) $mail_status = 'no';
-			else $mail_status = NULL;
-			
+			else $mail_status = NULL;			
 			update_worklog( array('finaly_date' => $detail_task->completed_at, 'status' => $detail_task->completed, 'mail_status' => $mail_status), array('id_task' => $worklog->id_task), array('%s', '%s') );
 		}
 	}
@@ -321,11 +321,8 @@ function sync_objectives_month(){
 				$sync = true; $exist = false;
 				if( $objectives != null ){
 					foreach( $objectives as $objective ){
-						if( $objective->id_objective == $task->gid ){
-							$sync = false; $exist = true;
-							if( $objective->modify_date != $task_detail->modified_at ){
-								$sync = true;
-							}
+						if( $objective->id_objective == $task->gid ){ $sync = false; $exist = true;
+							if( $objective->modify_date != $task_detail->modified_at ){ $sync = true; }
 						}
 					}
 				}
@@ -336,9 +333,8 @@ function sync_objectives_month(){
 					foreach( $subtasks as $subtask ){
 						$objective_array += array($subtask->gid => array('objective' => $subtask->name, 'status' => ''));
 					}
-					if( $exist ){
-						update_objective( $objective_array, $task->gid );
-					}else{
+					if( $exist ){ update_objective( $objective_array, $task->gid ); }
+					else{
 						$id_user = get_user_asana_id( $task_detail->assignee->gid );
 						$id_section = $task_detail->memberships[0]->section->gid;
 						$objective_tab_save = array(
