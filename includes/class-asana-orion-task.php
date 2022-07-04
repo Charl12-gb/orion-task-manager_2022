@@ -156,7 +156,8 @@ function sync_new_project($data, $project_id=null)
  */
 function sync_project_section( $project_id ){
 	$asana = connect_asana();
-	$sections_asana = $asana->getProjectSections($project_asana->gid);
+	$sections_all = get_all_sections();
+	$sections_asana = $asana->getProjectSections($project_id);
 	if ($asana->getData() != null) {
 		foreach ($asana->getData() as $sections) {
 			$sync = true;
@@ -168,7 +169,7 @@ function sync_project_section( $project_id ){
 			if ($sync) {
 				$data2 = array(
 					'id' 		=> $sections->gid,
-					'project_id' => $project_asana->gid,
+					'project_id' => $project_id,
 					'section_name'		=> $sections->name
 				);
 				// Sauvegarde des sections inexistante dans la bdd
@@ -185,7 +186,6 @@ function sync_projets()
 {
 	// See class comments and Asana API for full info
 	$projects = get_project_();
-	$sections_all = get_all_sections();
 	$asana = connect_asana();
 	$asana->getProjects();
 	if ($asana->getData() != null) {

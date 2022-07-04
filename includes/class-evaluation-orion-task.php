@@ -2,6 +2,9 @@
 require 'file_modele/vendor/autoload.php';
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+$upload = wp_upload_dir();
+$worklog_evaluation = $upload['basedir'];
+$worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation';
 /**
  * Page d'évaluation des tâches
  */
@@ -142,8 +145,9 @@ function worklog_file(){
  */
 function download_worklog($user_id, $month=null)
 {
+	global $worklog_evaluation_file;
 	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-worklog.xlsx';
-	$url_save_file = plugin_dir_path(__FILE__) . 'worklog_evaluation/';
+	$url_save_file = plugin_dir_path(__FILE__) . $worklog_evaluation_file .'/';
 	
 	$reader = IOFactory::createReader('Xlsx');
 	$spreadsheet = $reader->load( $url_file );
@@ -152,7 +156,11 @@ function download_worklog($user_id, $month=null)
 		$nxtm = strtotime("previous month");
 		$date_evaluation =  date("m-Y", $nxtm);
 		$date_worklog = date("M-Y", $nxtm);
-	}else $date_evaluation = $month;
+	}else{
+		$strMont = mktime(0, 0, 0, $month, 1, date('Y'));
+		$date_evaluation = date("m-Y", $strMont);
+		$date_worklog = date("M-Y", $strMont);
+	}
 	$tasks = get_task_('assigne', $user_id, 'worklog', $date_evaluation);
 
 	//Worklog
@@ -268,7 +276,7 @@ function download_worklog($user_id, $month=null)
 		$spreadsheet->getActiveSheet()->setCellValue('C21', $bad_performance);
 	
 
-		$url_ = plugin_dir_path(__FILE__) . 'worklog_evaluation/'. $date_worklog;
+		$url_ = plugin_dir_path(__FILE__) . $worklog_evaluation_file . '/'. $date_worklog;
 		if( ! file_exists( $url_ ) ) {
 			mkdir( $url_ );
 		}
@@ -285,8 +293,9 @@ function download_worklog($user_id, $month=null)
 function evaluation_cp( $id_cp=null ){
 	$nxtm = strtotime("previous month");
 	$month =  date("m", $nxtm)/1;
+	global $worklog_evaluation_file;
 	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-cp-evaluation.xlsx';
-	$url_save_file = plugin_dir_path(__FILE__) . 'worklog_evaluation/';
+	$url_save_file = plugin_dir_path(__FILE__) . $worklog_evaluation_file . '/';
 	
 	$reader = IOFactory::createReader('Xlsx');
 	$spreadsheet = $reader->load( $url_file );

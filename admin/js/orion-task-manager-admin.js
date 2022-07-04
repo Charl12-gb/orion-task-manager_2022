@@ -624,32 +624,6 @@
             });
         });
 
-        $(document).on('submit', '#test_send_mail', function(e) {
-            e.preventDefault();
-            var type_task = $('#task_name').val();
-            var subject = $('#subject_mail').val();
-            var content = $('#content_mail').val();
-            var email = $('#input_email').val();
-            $.ajax({
-                url: ajaxurl,
-                type: "POST",
-                data: {
-                    'action': 'send_mail_test',
-                    'type_task': type_task,
-                    'subject': subject,
-                    'content': content,
-                    'email': email,
-                },
-                success: function(response) {
-                    if (response)
-                        document.getElementById('add_success').innerHTML = '<div class="alert alert-success mt-4" role="alert">Successfully. Save ? </div>';
-                    else
-                        document.getElementById('add_success').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Not send</div>';
-                    //setTimeout(function() { $('#add_success').hide(); }, 5000);
-                }
-            });
-        });
-
         $(document).on('submit', '#add_sender_info', function(e) {
             e.preventDefault();
             var sender_name = $('#sender_name').val();

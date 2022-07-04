@@ -153,92 +153,68 @@ class Orion_Task_Manager {
 	private function define_admin_hooks() {
 
 		$plugin_admin = new Orion_Task_Manager_Admin( $this->get_plugin_name(), $this->get_version() );
+		$buildclass = new Task_Manager_Builder();
 
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
 		
-		$this->loader->add_action( 'admin_menu', 'Task_Manager_Builder', 'add_menu_Task_Table_List_page' );
+		$this->loader->add_action( 'admin_menu', $buildclass, 'add_menu_Task_Table_List_page' );
 		
-		$this->loader->add_action('wp', 'Task_Manager_Builder', 'login_redirect');
-		$this->loader->add_action('template_redirect', 'Task_Manager_Builder', '_taitement_form');
-		$this->loader->add_action('wp_ajax_nopriv_create_new_projet', 'Task_Manager_Builder', 'create_new_projet_');
-		$this->loader->add_action('wp_ajax_create_new_projet', 'Task_Manager_Builder', 'create_new_projet_');
-		$this->loader->add_action('wp_ajax_nopriv_create_template', 'Task_Manager_Builder', 'create_template_');
-		$this->loader->add_action('wp_ajax_create_template',  'Task_Manager_Builder','create_template_');
-		$this->loader->add_action('wp_ajax_nopriv_get_template_choose', 'Task_Manager_Builder', 'get_template_choose_');
-		$this->loader->add_action('wp_ajax_get_template_choose', 'Task_Manager_Builder', 'get_template_choose_');
-		$this->loader->add_action('wp_ajax_nopriv_sent_worklog_mail', 'Task_Manager_Builder', 'sent_worklog_mail_');
-		$this->loader->add_action('wp_ajax_sent_worklog_mail', 'Task_Manager_Builder', 'sent_worklog_mail_');
+		$this->loader->add_action('wp', $buildclass, 'login_redirect');
+		$this->loader->add_action('template_redirect', $buildclass, '_taitement_form');
+		$this->loader->add_action('wp_ajax_nopriv_create_new_projet', $buildclass, 'create_new_projet_');
+		$this->loader->add_action('wp_ajax_create_new_projet', $buildclass, 'create_new_projet_');
+		$this->loader->add_action('wp_ajax_nopriv_create_template', $buildclass, 'create_template_');
+		$this->loader->add_action('wp_ajax_create_template',  $buildclass,'create_template_');
+		$this->loader->add_action('wp_ajax_nopriv_get_template_choose', $buildclass, 'get_template_choose_');
+		$this->loader->add_action('wp_ajax_get_template_choose', $buildclass, 'get_template_choose_');
+		$this->loader->add_action('wp_ajax_nopriv_sent_worklog_mail', $buildclass, 'sent_worklog_mail_');
+		$this->loader->add_action('wp_ajax_sent_worklog_mail', $buildclass, 'sent_worklog_mail_');
+		$this->loader->add_action('wp_ajax_nopriv_get_user_role', $buildclass, 'update_sender_mail');
+		$this->loader->add_action('wp_ajax_get_user_role', $buildclass, 'update_sender_mail');
+		$this->loader->add_action('wp_ajax_nopriv_get_option_add', $buildclass, 'getOptionTemplate');
+		$this->loader->add_action('wp_ajax_get_option_add', $buildclass, 'getOptionTemplate');
+		$this->loader->add_action('wp_ajax_nopriv_get_option_add_template', $buildclass, 'addCollaboratorOrSectionForOption');
+		$this->loader->add_action('wp_ajax_get_option_add_template', $buildclass, 'addCollaboratorOrSectionForOption');
+		$this->loader->add_action('wp_ajax_nopriv_get_first_form', $buildclass, 'getUserFirstChoose');
+		$this->loader->add_action('wp_ajax_get_first_form', $buildclass, 'getUserFirstChoose');
+		$this->loader->add_action('wp_ajax_create_new_task', $buildclass, 'createNewTask');
+		$this->loader->add_action('wp_ajax_nopriv_create_new_task', $buildclass, 'createNewTask');
+		$this->loader->add_action('wp_ajax_get_template_card', $buildclass, 'getListOrFormTemplate');
+		$this->loader->add_action('wp_ajax_nopriv_get_template_card', $buildclass, 'getListOrFormTemplate');
+		$this->loader->add_action('wp_ajax_delete_template_', $buildclass, 'deleteTemplateOrCategorie');
+		$this->loader->add_action('wp_ajax_nopriv_delete_template_', $buildclass, 'deleteTemplateOrCategorie');
+		$this->loader->add_action('wp_ajax_update_template', $buildclass, 'getTemplateHasUpdate');
+		$this->loader->add_action('wp_ajax_nopriv_update_template', $buildclass, 'getTemplateHasUpdate');
+		$this->loader->add_action('wp_ajax_worklog_update', $buildclass, 'autorizedDonwloadWorklog');
+		$this->loader->add_action('wp_ajax_nopriv_worklog_update', $buildclass, 'autorizedDonwloadWorklog');
+		$this->loader->add_action('wp_ajax_get_calendar', $buildclass, 'getUserCalendar');
+		$this->loader->add_action('wp_ajax_nopriv_get_calendar', $buildclass, 'getUserCalendar');
+		$this->loader->add_action('wp_ajax_save_mail_form', $buildclass, 'saveAndUpdateTemplateEmail');
+		$this->loader->add_action('wp_ajax_nopriv_save_mail_form', $buildclass, 'saveAndUpdateTemplateEmail');
+		$this->loader->add_action('wp_ajax_get_email_card', $buildclass, 'getListOrFormTemplate');
+		$this->loader->add_action('wp_ajax_nopriv_get_email_card', $buildclass, 'getListOrFormTemplate');
+		$this->loader->add_action('wp_ajax_save_criteria_evaluation', $buildclass, 'updateEvaluationCriteria');
+		$this->loader->add_action('wp_ajax_nopriv_save_criteria_evaluation', $buildclass, 'updateEvaluationCriteria');
+		$this->loader->add_action('wp_ajax_save_categories', $buildclass, 'saveTaskCategorie');
+		$this->loader->add_action('wp_ajax_nopriv_save_categories', $buildclass, 'saveTaskCategorie');
+		$this->loader->add_action('wp_ajax_edit_template_mail', $buildclass, 'getEditTemplateEmailForm');
+		$this->loader->add_action('wp_ajax_nopriv_edit_template_mail', $buildclass, 'getEditTemplateEmailForm');
+		$this->loader->add_action('wp_ajax_delete_email_', $buildclass, 'deleteTemplateOrCategorie');
+		$this->loader->add_action('wp_ajax_nopriv_delete_email_', $buildclass, 'deleteTemplateOrCategorie');
+		$this->loader->add_action('wp_ajax_update_categorie_', $buildclass, 'updateTaskCategorie');
+		$this->loader->add_action('wp_ajax_nopriv_update_categorie_', $buildclass, 'updateTaskCategorie');
+		$this->loader->add_action('wp_ajax_delete_categorie_', $buildclass, 'deleteTemplateOrCategorie');
+		$this->loader->add_action('wp_ajax_nopriv_delete_categorie_', $buildclass, 'deleteTemplateOrCategorie');
+		$this->loader->add_action('wp_ajax_get_option_section', $buildclass, 'addCollaboratorOrSectionForOption');
+		$this->loader->add_action('wp_ajax_nopriv_get_option_section', $buildclass, 'addCollaboratorOrSectionForOption');
+		$this->loader->add_action('wp_ajax_synchronisation_time', $buildclass, 'parameterSendTimeReport');
+		$this->loader->add_action('wp_ajax_nopriv_synchronisation_time', $buildclass, 'parameterSendTimeReport');
+		$this->loader->add_action('wp_ajax_project_card', $buildclass, 'getListOrFormTemplate');
+		$this->loader->add_action('wp_ajax_nopriv_project_card', $buildclass, 'getListOrFormTemplate');
 
-		add_shortcode('orion_task', 'orion_task_shortcode');
-		add_shortcode('task_evaluation', 'orion_task_evaluation_shortcode');
-		
-		
-		add_action('wp_ajax_nopriv_get_user_role', 'settings_function');
-		add_action('wp_ajax_get_user_role', 'settings_function');
-		
-		add_action('wp_ajax_nopriv_get_option_add', 'settings_function');
-		add_action('wp_ajax_get_option_add', 'settings_function');
-		
-		add_action('wp_ajax_nopriv_get_option_add_template', 'settings_function');
-		add_action('wp_ajax_get_option_add_template', 'settings_function');
-		
-		add_action('wp_ajax_nopriv_get_first_form', 'settings_function');
-		add_action('wp_ajax_get_first_form', 'settings_function');
-		
-		add_action('wp_ajax_create_new_task', 'settings_function');
-		add_action('wp_ajax_nopriv_create_new_task', 'settings_function');
-		
-		add_action('wp_ajax_get_template_card', 'settings_function');
-		add_action('wp_ajax_nopriv_get_template_card', 'settings_function');
-		
-		add_action('wp_ajax_delete_template_', 'settings_function');
-		add_action('wp_ajax_nopriv_delete_template_', 'settings_function');
-		
-		add_action('wp_ajax_update_template', 'settings_function');
-		add_action('wp_ajax_nopriv_update_template', 'settings_function');
-		
-		add_action('wp_ajax_worklog_update', 'settings_function');
-		add_action('wp_ajax_nopriv_worklog_update', 'settings_function');
-		
-		add_action('wp_ajax_get_calendar', 'settings_function');
-		add_action('wp_ajax_nopriv_get_calendar', 'settings_function');
-		
-		add_action('wp_ajax_save_mail_form', 'settings_function');
-		add_action('wp_ajax_nopriv_save_mail_form', 'settings_function');
-		
-		add_action('wp_ajax_get_email_card', 'settings_function');
-		add_action('wp_ajax_nopriv_get_email_card', 'settings_function');
-		
-		add_action('wp_ajax_save_criteria_evaluation', 'settings_function');
-		add_action('wp_ajax_nopriv_save_criteria_evaluation', 'settings_function');
-
-		add_action('wp_ajax_save_categories', 'settings_function');
-		add_action('wp_ajax_nopriv_save_categories', 'settings_function');
-
-		add_action('wp_ajax_edit_template_mail', 'settings_function');
-		add_action('wp_ajax_nopriv_edit_template_mail', 'settings_function');
-
-		add_action('wp_ajax_delete_email_', 'settings_function');
-		add_action('wp_ajax_nopriv_delete_email_', 'settings_function');
-
-		add_action('wp_ajax_update_categorie_', 'settings_function');
-		add_action('wp_ajax_nopriv_update_categorie_', 'settings_function');
-
-		add_action('wp_ajax_delete_categorie_', 'settings_function');
-		add_action('wp_ajax_nopriv_delete_categorie_', 'settings_function');
-
-		add_action('wp_ajax_send_mail_test', 'settings_function');
-		add_action('wp_ajax_nopriv_send_mail_test', 'settings_function');
-
-		add_action('wp_ajax_get_option_section', 'settings_function');
-		add_action('wp_ajax_nopriv_get_option_section', 'settings_function');
-
-		add_action('wp_ajax_synchronisation_time', 'settings_function');
-		add_action('wp_ajax_nopriv_synchronisation_time', 'settings_function');
-
-		add_action('wp_ajax_project_card', 'settings_function');
-		add_action('wp_ajax_nopriv_project_card', 'settings_function');
+		add_shortcode('orion_task', 'Task_Manager_Builder::orion_task_shortcode');
+		add_shortcode('task_evaluation', 'Task_Manager_Builder::orion_task_evaluation_shortcode');
 		
 	}
 

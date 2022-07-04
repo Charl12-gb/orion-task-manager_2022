@@ -163,11 +163,12 @@ function orion_task_manager_create_db()
 	require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 	dbDelta($sql);
 
-	add_role( 'developper', 'developper', array( 'read' => true, 'level_0' => true ) );
-	add_role( 'tester', 'Tester', array( 'read' => true, 'level_0' => true ) );
-	add_role( 'project_manager', 'Project Manager', array( 'read' => true, 'level_0' => true ) );
-	add_role( 'macketer', 'Macketer', array( 'read' => true, 'level_0' => true ) );
-	add_role( 'supporter', 'Supporter', array( 'read' => true, 'level_0' => true ) );
+	$upload = wp_upload_dir();
+    $upload_dir = $upload['basedir'];
+    $upload_dir = $upload_dir . '/worklog_evaluation';
+    if (! is_dir($upload_dir)) {
+       mkdir( $upload_dir, 0700 );
+    }
 }
 
 /**
