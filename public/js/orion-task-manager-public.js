@@ -33,6 +33,9 @@
         var y = 0,
             z = 0,
             i = 1;
+        $(document).on('submit', '#sent_worklog_mail', function(e) {
+            setTimeout(function() { $('#sent_worklog_mail').toggle(); });
+        });
 
         $(document).on('click', '.add_more', function() {
             var choix = $(this).attr("id");

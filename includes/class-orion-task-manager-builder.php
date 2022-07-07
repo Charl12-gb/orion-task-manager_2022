@@ -941,7 +941,7 @@ class Task_Manager_Builder
                                             //download_worklog(get_current_user_id());
                                             if( file_exists( $worklog_evaluation_file ) ){
                                                 ?>
-                                                <form method="post" action="">
+                                                <form method="post" action="" id="sent_worklog_mail">
                                                     <input type="hidden" name="link_file" id="link_file" value="<?= $worklog_evaluation_file ?>">
                                                     <input type="hidden" name="file_name" id="file_name" value="<?= get_userdata(get_current_user_id())->display_name.'_worklog.xlsx' ?>">
                                                     <button type="submit" class="btn btn-outline-success">Download Worklog</button>
