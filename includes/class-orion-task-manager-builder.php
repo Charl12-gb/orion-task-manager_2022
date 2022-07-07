@@ -190,16 +190,36 @@ class Task_Manager_Builder
         wp_die();
     }
 
-    public static function sent_worklog_mail_( $filemane=null ){
+    /**
+     * Envoi des rapports d'évaluation par mois et des plans de performance
+     */
+    public static function sent_worklog_mail_( $filemane, $datas=null, $user_id=null ){
 	    $m =  date("M", strtotime("previous month"));
-        $subject = 'REPORT OF ' . $m;
-        $sent_info = unserialize( get_option('_report_sent_info') );
-        $to = $sent_info['email_manager'];
         
         $sender_info = unserialize(get_option('_sender_mail_info'));      
-        // clé aléatoire de limite
+        $sent_info = unserialize( get_option('_report_sent_info') );
+        if( $user_id != null ){
+            $performanceParameter = unserialize( get_option('_performance_parameters') );
+            $to = $performanceParameter['email_rh']; 
+            $snbreSubPeroformance = $performanceParameter['nbreSubPeroformance']; 
+            $subject = 'Under performance plan';
+            $name_user = get_userdata($user_id)->display_name;
+
+            if( get_user_meta( $user_id, '_nbreSubPeroformance' ) != null ){
+                $subperformance = get_user_meta( $user_id, '_nbreSubPeroformance' )[0];
+                $newSubperformance = $subperformance+1;
+                update_user_meta( $user_id, '_nbreSubPeroformance', $newSubperformance ); 
+            }else{
+                update_user_meta( $user_id, '_nbreSubPeroformance', 1 ); 
+                $newSubperformance = 1;
+            }
+        }else{
+            if( $datas != null) $subject = 'Performance review of the month ' . $m;
+            else $subject = 'REPORT OF ' . $m;
+            $to = $sent_info['email_manager'];
+            
+        }
         $boundary = md5(uniqid(microtime(), TRUE));
-        
         // Headers
         $headers = 'From: "' . $sender_info['sender_name'] . '"<' . $sender_info['sender_email'] . '>'."\r\n";
         $headers .= 'Mime-Version: 1.0'."\r\n";
@@ -208,40 +228,86 @@ class Task_Manager_Builder
         
         // Message
         $msg = 'This is a multipart/mixed message.'."\r\n\r\n";
-        
-        // Texte
         $msg .= '--'.$boundary."\r\n";
         $msg .= 'Content-type:text/plain;charset=utf-8'."\r\n";
         $msg .= 'Content-transfer-encoding:8bit'."\r\n";
-        if( $type == 'report' ) $msg .= 'Project Managers evaluation report for the month of .'. $m ."\r\n";
-        else $msg .= 'Here is your Worklog.'."\r\n";;
-        
-        // Pièce jointe
-        $file_name = $filemane;
-        if (file_exists($file_name))
-        {
-            $file_type = filetype($file_name);
-            $file_size = filesize($file_name);
-        
-            $handle = fopen($file_name, 'r') or die('File '.$file_name.'can t be open');
-            $content = fread($handle, $file_size);
-            $content = chunk_split(base64_encode($content));
-            $f = fclose($handle);
-        
-            $msg .= '--'.$boundary."\r\n";
-            if( $type == 'report' ) $file_name = 'Report_' . $m . '.xlsx';
-            else $file_name = $name_user .'_worklog.xlsx';
-            $msg .= 'Content-type:'.$file_type.';name='.$file_name."\r\n";
-            $msg .= 'Content-transfer-encoding:base64'."\r\n";
-            $msg .= $content."\r\n";
+        if( $user_id != null ){
+            if( $newSubperformance == $snbreSubPeroformance ){
+                //Sous plan de performance
+                update_user_meta( $user_id, '_nbreSubPeroformance', 0 );
+                $msg .= 'Employee performance report.'."\r\n";
+            }else{
+                //Avertissement
+                $msg .= 'For this month, employee ' . $name_user . ' is under performance plan '. $newSubperformance .'/' . $snbreSubPeroformance . '. Warning.'."\r\n";
+            }
+        }else if( $datas != null ) $msg .= 'Employee performance report.'."\r\n";
+        else $msg .= 'Project manager performance report.'."\r\n";
+
+        //Plan de performance
+        if( $user_id != null ){
+                $file_url = $filemane;
+                if (file_exists($file_url))
+                {
+                    $file_type = filetype($file_url);
+                    $file_size = filesize($file_url);
+                
+                    $handle = fopen($file_url, 'r') or die('File '.$file_url.'can t be open');
+                    $content = fread($handle, $file_size);
+                    $content = chunk_split(base64_encode($content));
+                    $f = fclose($handle);
+                
+                    $msg .= '--'.$boundary."\r\n";
+                    $filename = $name_user . '_Worklog.xlsx';
+                    $msg .= 'Content-type:'.$file_type.';name='.$filename."\r\n";
+                    $msg .= 'Content-transfer-encoding:base64'."\r\n";
+                    $msg .= $content."\r\n";
+                }
+        }else{
+            // Pièce jointe
+            if( $datas != null){
+                foreach( $datas as $filename => $file_url ){
+                    if (file_exists($file_url))
+                    {
+                        $file_type = filetype($file_url);
+                        $file_size = filesize($file_url);
+                    
+                        $handle = fopen($file_url, 'r') or die('File '.$file_url.'can t be open');
+                        $content = fread($handle, $file_size);
+                        $content = chunk_split(base64_encode($content));
+                        $f = fclose($handle);
+                    
+                        $msg .= '--'.$boundary."\r\n";
+                        $msg .= 'Content-type:'.$file_type.';name='.$filename."\r\n";
+                        $msg .= 'Content-transfer-encoding:base64'."\r\n";
+                        $msg .= $content."\r\n";
+                    }
+                }
+            }else{
+                $file_url = $filemane;
+                if (file_exists($file_url))
+                {
+                    $file_type = filetype($file_url);
+                    $file_size = filesize($file_url);
+                
+                    $handle = fopen($file_url, 'r') or die('File '.$file_url.'can t be open');
+                    $content = fread($handle, $file_size);
+                    $content = chunk_split(base64_encode($content));
+                    $f = fclose($handle);
+                
+                    $msg .= '--'.$boundary."\r\n";
+                    $filename = 'Report_' . $m . '.xlsx';
+                    $msg .= 'Content-type:'.$file_type.';name='.$filename."\r\n";
+                    $msg .= 'Content-transfer-encoding:base64'."\r\n";
+                    $msg .= $content."\r\n";
+                }
+            }
         }
         
         // Fin
         $msg .= '--'.$boundary."\r\n";
         
         // Function mail()
-        echo mail($to, $subject, $msg, $headers);
-        wp_die();
+        mail($to, $subject, $msg, $headers);
     }
 
     /**
@@ -498,6 +564,7 @@ class Task_Manager_Builder
      */
     public static function taches_tab()
     {
+        worklog_file();
         ?>
         <div class="container-fluid pt-3">
             <div class="row" id="accordion">
@@ -937,8 +1004,7 @@ class Task_Manager_Builder
                                             $worklog_evaluation = $upload['basedir'];
                                             $name_worklog = $date_worklog. '/'.get_userdata(get_current_user_id())->display_name.'_worklog.xlsx';
                                             $worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation/'.$name_worklog;
-                                        
-                                            //download_worklog(get_current_user_id());
+                                    
                                             if( file_exists( $worklog_evaluation_file ) ){
                                                 ?>
                                                 <form method="post" action="" id="sent_worklog_mail">

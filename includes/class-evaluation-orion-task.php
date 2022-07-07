@@ -129,8 +129,13 @@ function evaluation_project_manager()
 
 function worklog_file(){
 	$users = get_all_users();
+	$report = array();
 	foreach( $users as $user_id => $user ){
-		download_worklog( $user_id );
+		$output = download_worklog( $user_id );
+		$report += $output;
+	}
+	if( $report != null ){
+		Task_Manager_Builder::sent_worklog_mail_( 'report', $report );
 	}
 }
 
@@ -286,9 +291,19 @@ function download_worklog($user_id, $month=null)
 		$file_name = $url_save_file . $date_worklog . '/' . $name_user .'_worklog.xlsx';
 		if( ! file_exists( $file_name ) ){
 			$writer = new Xlsx($spreadsheet);
-			return $writer->save($file_name);
+			$writer->save($file_name);
+
+			//Plan de perdormance
+			$minMoyenne = unserialize( get_option('_performance_parameters') )['moyenne'];
+			if( $performance < $minMoyenne ){
+				Task_Manager_Builder::sent_worklog_mail_( $file_name, array(), $user_id );
+			}
+
+			return array( $name_user .'_worklog.xlsx' => $file_name );
 		}
+		return array();
 	}
+	return array();
 }
 
 function evaluation_cp( $id_cp=null ){
