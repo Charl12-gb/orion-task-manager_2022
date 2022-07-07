@@ -145,9 +145,11 @@ function worklog_file(){
  */
 function download_worklog($user_id, $month=null)
 {
-	global $worklog_evaluation_file;
+	$upload = wp_upload_dir();
+	$worklog_evaluation = $upload['basedir'];
+	$worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation';
 	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-worklog.xlsx';
-	$url_save_file = plugin_dir_path(__FILE__) . $worklog_evaluation_file .'/';
+	$url_save_file = $worklog_evaluation_file .'/';
 	
 	$reader = IOFactory::createReader('Xlsx');
 	$spreadsheet = $reader->load( $url_file );
@@ -276,7 +278,7 @@ function download_worklog($user_id, $month=null)
 		$spreadsheet->getActiveSheet()->setCellValue('C21', $bad_performance);
 	
 
-		$url_ = plugin_dir_path(__FILE__) . $worklog_evaluation_file . '/'. $date_worklog;
+		$url_ = $worklog_evaluation_file . '/'. $date_worklog;
 		if( ! file_exists( $url_ ) ) {
 			mkdir( $url_ );
 		}
@@ -286,16 +288,18 @@ function download_worklog($user_id, $month=null)
 			$writer = new Xlsx($spreadsheet);
 			return $writer->save($file_name);
 		}
-		
 	}
 }
 
 function evaluation_cp( $id_cp=null ){
 	$nxtm = strtotime("previous month");
 	$month =  date("m", $nxtm)/1;
-	global $worklog_evaluation_file;
 	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-cp-evaluation.xlsx';
-	$url_save_file = plugin_dir_path(__FILE__) . $worklog_evaluation_file . '/';
+
+	$upload = wp_upload_dir();
+	$worklog_evaluation = $upload['basedir'];
+	$worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation';
+	$url_save_file = $worklog_evaluation_file .'/';
 	
 	$reader = IOFactory::createReader('Xlsx');
 	$spreadsheet = $reader->load( $url_file );
@@ -323,13 +327,14 @@ function evaluation_cp( $id_cp=null ){
 					$numberFiels++;
 				}
 				$info_evaluation = unserialize( $objective_month->evaluation )['evaluation'];
+				$minMoyenne = unserialize( get_option('_performance_parameters') )['moyenne'];
 				$completed = $info_evaluation['completed'];
 				$moyenne = $info_evaluation['moyenne'];
 				$spreadsheet->getActiveSheet()->setCellValue('C'.$nemberRow, "MOYENNE : $moyenne");
 				$spreadsheet->getActiveSheet()->setCellValue('D'.$nemberRow, "COMPLETED : $completed");
 				$spreadsheet->getActiveSheet()->mergeCells('A'. $nemberRowMerge .':A'. $nemberRow .'');
 				$spreadsheet->getActiveSheet()->setCellValue('A'. $nemberRowMerge, $name_user);
-				if( $moyenne < 80 ){
+				if( $moyenne < $minMoyenne ){
 					$spreadsheet->getActiveSheet()->getStyle('B'.$nemberRow.':D'.$nemberRow)->getFill()
 						->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
 						->getStartColor()->setARGB('FFFF0000');
@@ -348,7 +353,7 @@ function evaluation_cp( $id_cp=null ){
 	if( ! file_exists( $file_name ) ){
 		$writer = new Xlsx($spreadsheet);
 		$writer->save($file_name);
-		echo Task_Manager_Builder::sent_worklog_mail_( $file_name, 'report', $month );
+		Task_Manager_Builder::sent_worklog_mail_( $file_name );
 	}
 }
 

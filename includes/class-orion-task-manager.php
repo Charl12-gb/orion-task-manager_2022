@@ -168,8 +168,6 @@ class Orion_Task_Manager {
 		$this->loader->add_action('wp_ajax_create_template',  $buildclass,'create_template_');
 		$this->loader->add_action('wp_ajax_nopriv_get_template_choose', $buildclass, 'get_template_choose_');
 		$this->loader->add_action('wp_ajax_get_template_choose', $buildclass, 'get_template_choose_');
-		$this->loader->add_action('wp_ajax_nopriv_sent_worklog_mail', $buildclass, 'sent_worklog_mail_');
-		$this->loader->add_action('wp_ajax_sent_worklog_mail', $buildclass, 'sent_worklog_mail_');
 		$this->loader->add_action('wp_ajax_nopriv_get_user_role', $buildclass, 'update_sender_mail');
 		$this->loader->add_action('wp_ajax_get_user_role', $buildclass, 'update_sender_mail');
 		$this->loader->add_action('wp_ajax_nopriv_get_option_add', $buildclass, 'getOptionTemplate');

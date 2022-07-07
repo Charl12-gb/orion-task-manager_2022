@@ -84,7 +84,7 @@ class Task_Manager_Builder
             Task_Manager_Builder::rapport_tab();
         }
         if ( $active_tableau == 'o-performance' ) {
-            
+            Task_Manager_Builder::performance_tab();
         }
     }
 
@@ -190,19 +190,11 @@ class Task_Manager_Builder
         wp_die();
     }
 
-    public static function sent_worklog_mail_( $filemane=null, $type=null, $month = null ){
-        if( $type == 'report' ){
-	        $m =  date("M", strtotime("previous month"));
-            $subject = 'REPORT OF ' . $m;
-            $sent_info = unserialize( get_option('_report_sent_info') );
-            $to = $sent_info['email_manager'];
-        }else{
-            $filemane = htmlentities($_POST['link_file']);
-            $user_id = htmlentities($_POST['user_id']);
-            $name_user = get_userdata($user_id)->display_name;
-            $to = get_userdata($user_id)->user_email;  
-            $subject = 'WORKLOG ORION';
-        }
+    public static function sent_worklog_mail_( $filemane=null ){
+	    $m =  date("M", strtotime("previous month"));
+        $subject = 'REPORT OF ' . $m;
+        $sent_info = unserialize( get_option('_report_sent_info') );
+        $to = $sent_info['email_manager'];
         
         $sender_info = unserialize(get_option('_sender_mail_info'));      
         // clé aléatoire de limite
@@ -482,9 +474,15 @@ class Task_Manager_Builder
 			$sent_cp = htmlentities( $_POST['sent_cp'] );
 			$array = serialize( array( 'email_manager' => $email_manager, 'send_date' => $date_report_sent, 'sent_cp' => $sent_cp) );
 			echo update_option( '_report_sent_info', $array );
-			
 		}
-		if( isset( $_POST['id_project_manager'] ) ){
+        if( isset( $_POST['email_rh'] ) && !empty( $_POST['email_rh'] )){
+            $email_rh = htmlentities( $_POST['email_rh'] );
+			$nbreSubPeroformance = htmlentities( $_POST['nbreSubPeroformance'] );
+			$moyenne = htmlentities( $_POST['moyenne'] );
+            $array = serialize( array( 'email_rh' => $email_rh, 'nbreSubPeroformance' => $nbreSubPeroformance, 'moyenne' => $moyenne) );
+			echo update_option( '_performance_parameters', $array );
+        }
+		if( isset( $_POST['id_project_manager'] ) && !empty( $_POST['id_project_manager'] ) ){
 			$id_project_manager = htmlentities( $_POST['id_project_manager'] );
 			echo $output = update_option('_project_manager_id', $id_project_manager);
 		}
@@ -793,7 +791,7 @@ class Task_Manager_Builder
                 <div class="col-sm-4 card bg-light">
                     <div class="card-header" id="headingEvaluation1">
                         <h5 class="mb-0">
-                            <button class="btn btn-link" data-toggle="collapse" data-target="#collapseEvaluationRP" aria-expanded="true" aria-controls="collapseEvaluationRP">
+                            <button class="btn btn-link" data-toggle="collapse" data-target="#" aria-expanded="true" aria-controls="">
                                 Send Report
                             </button>
                         </h5>
@@ -801,10 +799,10 @@ class Task_Manager_Builder
                     </div>
                 </div>
                 <div class="col-sm-8 card">
-                    <div id="collapseEvaluationRP" class="collapse show" aria-labelledby="headingEvaluationRP" data-parent="#accordion">
-                        <div class="card-body" id="criteria_evaluation_tab">
+                    <div id="" class="collapse show" aria-labelledby="" data-parent="#accordion">
+                        <div class="card-body" id="">
                         <span id="add_success_id"></span>
-                        <form id="report_send_save" method="post" action="">
+                        <form id="report_send_save" class="reportPerformance" method="post" action="">
                             <div class="form-row">
                                 <div class="col">
                                     <label for="">Email Manager</label>
@@ -825,6 +823,55 @@ class Task_Manager_Builder
                                 </div>
                             </div><hr>
                             <button class="btn btn-outline-primary mt-3" type="submit">Submit</button>
+                        </form>
+                        <hr>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
+    public static function performance_tab(){
+        $sent_info = unserialize( get_option('_performance_parameters') );
+        if( $sent_info == null ) { $sent_info['email_rh'] = null; $sent_info['nbreSubPeroformance'] = null; $sent_info['moyenne'] = null;  }
+        ?>
+    <div class="container-fluid pt-3">
+            <div class="row" id="accordion">
+                <div class="col-sm-4 card bg-light">
+                    <div class="card-header" id="headingEvaluation1">
+                        <h5 class="mb-0">
+                            <button class="btn btn-link" data-toggle="" data-target="#" aria-expanded="true" aria-controls="">
+                                Performance Parameter
+                            </button>
+                        </h5>
+                        <p class="mt-0 mb-0">Set performance parameters</p>
+                    </div>
+                </div>
+                <div class="col-sm-8 card">
+                    <div id="" class="collapse show" aria-labelledby="" data-parent="#accordion">
+                        <div class="card-body" id="">
+                        <span id="add_success_id"></span>
+                        <form id="performance_parameter" class="reportPerformance" method="post" action="">
+                            <div class="form-row">
+                                <div class="col">
+                                    <label for="">Human resources department email</label>
+                                    <input type="email" name="email_rh" id="email_rh" class="form-control" placeholder="Human resources department email" value="<?= $sent_info['email_rh'] ?>" required>
+                                </div>
+                            </div>
+                            <div class="form-row mt-4">
+                                <div class="col">
+                                    <label for="">Number of underperformance</label>
+                                    <input type="number" min="0" name="nbreSubPeroformance" id="nbreSubPeroformance" class="form-control" placeholder="Number of underperformance" value="<?= $sent_info['nbreSubPeroformance'] ?>" required >
+                                </div>
+                                <div class="col">
+                                    <label for="">Minimum average</label>
+                                    <input type="number" min="0" max="100" name="moyenne" id="moyenne" class="form-control" placeholder="Minimum average" value="<?= $sent_info['moyenne'] ?>" required>
+                                </div>
+                            </div>
+                            <hr>
+                            <button class="btn btn-outline-primary" type="submit">Submit</button>
                         </form>
                         <hr>
                         </div>
@@ -884,13 +931,19 @@ class Task_Manager_Builder
                                     <span><?php if ($download_worklog == 'true') {
                                             $nxtm = strtotime("previous month");
                                             $date_worklog = date("M-Y", $nxtm);
+
+
+                                            $upload = wp_upload_dir();
+                                            $worklog_evaluation = $upload['basedir'];
                                             $name_worklog = $date_worklog. '/'.get_userdata(get_current_user_id())->display_name.'_worklog.xlsx';
-                                            $url_worklog_file = __DIR__ . '/worklog_evaluation/'.$name_worklog;
-                                            if( file_exists( $url_worklog_file ) ){
+                                            $worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation/'.$name_worklog;
+                                        
+                                            //download_worklog(get_current_user_id());
+                                            if( file_exists( $worklog_evaluation_file ) ){
                                                 ?>
-                                                <form method="post" id="sent_worklog_mail" name="sent_worklog_mail">
-                                                    <input type="hidden" name="link_file" id="link_file" value="<?= $url_worklog_file ?>">
-                                                    <input type="hidden" name="user_id" id="user_id" value="<?= get_current_user_id() ?>">
+                                                <form method="post" action="">
+                                                    <input type="hidden" name="link_file" id="link_file" value="<?= $worklog_evaluation_file ?>">
+                                                    <input type="hidden" name="file_name" id="file_name" value="<?= get_userdata(get_current_user_id())->display_name.'_worklog.xlsx' ?>">
                                                     <button type="submit" class="btn btn-outline-success">Download Worklog</button>
                                                 </form>
                                                 <?php

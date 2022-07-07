@@ -482,23 +482,36 @@
             });
         });
 
-        $(document).on('submit', '#report_send_save', function(e) {
+        $(document).on('submit', '.reportPerformance', function(e) {
             e.preventDefault();
-            var email_manager = $('#email_manager').val();
-            var date_report_sent = $('#date_report_sent').val();
-            var report_send = $('#report_send').val();
-            var sent_cp = $('#sent_cp:checked').val();
-            if (sent_cp == undefined) sent_cp = false;
-            $.ajax({
-                url: ajaxurl,
-                type: "POST",
-                data: {
+            var operation = $(this).attr('id');
+            if( operation =='report_send_save' ){
+                var email_manager = $('#email_manager').val();
+                var date_report_sent = $('#date_report_sent').val();
+                var sent_cp = $('#sent_cp:checked').val();
+                if (sent_cp == undefined) sent_cp = false;
+                var data = {
                     'action': 'synchronisation_time',
                     'email_manager': email_manager,
                     'date_report_sent': date_report_sent,
-                    'report_send': report_send,
                     'sent_cp': sent_cp,
-                },
+                }
+            }
+            if(operation =='performance_parameter'){
+                var email_rh = $('#email_rh').val();
+                var nbreSubPeroformance = $('#nbreSubPeroformance').val();
+                var moyenne = $('#moyenne').val();
+                var data = {
+                    'action': 'synchronisation_time',
+                    'email_rh': email_rh,
+                    'nbreSubPeroformance': nbreSubPeroformance,
+                    'moyenne': moyenne,
+                }
+            }
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: data,
                 beforeSend: function() {
                     document.getElementById('add_success_id').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
                 },
@@ -507,7 +520,7 @@
                         document.getElementById('add_success_id').innerHTML = '<div class="alert alert-success mt-4" role="alert"> Successfully ! </div>';
                     else
                         document.getElementById('add_success_id').innerHTML = '<div class="alert alert-danger mt-4" role="alert"> Error ! </div>';
-                    //setTimeout(function() { $('#add_success_id').hide(); }, 5000);
+                    setTimeout(function() { $('#add_success_id').hide(); }, 5000);
                 }
             });
         });

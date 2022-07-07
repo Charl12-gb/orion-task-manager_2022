@@ -1,9 +1,27 @@
 <?php
+require 'file_modele/vendor/autoload.php';
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 require_once('class-asana-orion-task.php');
 require_once('class-evaluation-orion-task.php');
+
 if (isset($_POST['tokens']) && !empty($_POST['tokens'])) {
 	$data_post   = wp_unslash($_POST['tokens']);
 	update_option('access_token', $data_post);
+}
+
+if( isset( $_POST['link_file'] ) ){
+	$file_name = htmlentities( $_POST['file_name'] );
+	$url_file = htmlentities( $_POST['link_file'] );
+	$reader = IOFactory::createReader('Xlsx');
+	$spreadsheet = $reader->load($url_file);
+
+	header('Content-Type: application/vnd-openxmlformats-officedocument.spreadsheetml.sheet');
+	header('Content-Disposition: attachment;filename="'. $file_name .'"');
+
+	$writer = new Xlsx($spreadsheet);
+	$writer->save('php://output');
+	exit;
 }
 
 /**
