@@ -15,7 +15,7 @@
  * @wordpress-plugin
  * Plugin Name:       Task Manager
  * Plugin URI:        https://orionorigin.com
- * Description:       This is a short description of what the plugin does. It's displayed in the WordPress admin area.
+ * Description:       This plugin allows you to more effectively manage the performance of your employees through the tasks they perform each month. It allows project managers to create and manage the creation of tasks more easily.
  * Version:           1.0.0
  * Author:            Charles GBOYOU - Orion
  * Author URI:        https://orionorigin.com
@@ -162,6 +162,19 @@ function orion_task_manager_create_db()
 
 	require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 	dbDelta($sql);
+
+	//Période de synchronisation
+	$syn = get_option( '_synchronisation_time' );
+	if( $syn == null){
+		update_option('_synchronisation_time', 'twicedaily');
+	}
+
+	//Période d'envoi des mails
+	$sent_info = get_option('_report_sent_info');
+	if( $sent_info == null ){
+		$array = serialize( array( 'email_manager' => '', 'send_date' => 'last_day_month', 'sent_cp' => '') );
+		update_option( '_report_sent_info', $array );
+	}
 
 	$upload = wp_upload_dir();
     $upload_dir = $upload['basedir'];

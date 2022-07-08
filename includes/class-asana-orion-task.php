@@ -22,6 +22,7 @@ function connect_asana()
 add_action('task_cron_hook', 'task_cron_sync');
 function task_cron_sync()
 {
+	sync_tag();
 	sync_projets();
 	sync_objectives_month();
 	sync_tasks();
@@ -174,6 +175,32 @@ function sync_project_section( $project_id ){
 				);
 				// Sauvegarde des sections inexistante dans la bdd
 				save_new_sections($data2);
+			}
+		}
+	}
+}
+
+/**
+ * Sync des tags en catégorie
+ */
+function sync_tag(){
+	$asana = connect_asana();
+	$categories = get_categories_task();
+	$asana->getTags();
+	if( $asana->getData() != null ){
+		foreach ($asana->getData() as $categorie_asana) {
+			$sync = true;
+			if ($categories == null) $sync = true;
+			else{
+				foreach ($categories as $categorie) {
+					$key_asana = str_replace(" ", "_", strtolower($categorie_asana->name));
+					if ( $key_asana == $categorie->categories_key) { $sync = false; }
+				}
+			}
+			if( $sync ){
+				$key_asana = str_replace(" ", "_", strtolower($categorie_asana->name));
+				$datas = array('id' => $categorie_asana->gid, 'categories_key' => $key_asana, 'categories_name' => ucfirst( $categorie_asana->name ));
+				save_new_categories( $datas, null, true );
 			}
 		}
 	}

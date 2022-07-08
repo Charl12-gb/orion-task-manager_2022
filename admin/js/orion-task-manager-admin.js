@@ -579,7 +579,9 @@
 
         $(document).on('change', '#task_name', function() {
             var select = document.getElementById('task_name').value;
-            document.getElementById('subject_mail').value = "Evaluation de " + select;
+            if( select == 'performance' ) document.getElementById('subject_mail').value = "Performance plan email";
+            else if( select == 'subperformance' ) document.getElementById('subject_mail').value = "Performance sub-plan email";
+            else document.getElementById('subject_mail').value = "Evaluation de " + select;
         });
 
         $(document).on('click', '#project_name_msg', function() {

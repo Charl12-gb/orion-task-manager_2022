@@ -44,6 +44,42 @@ class Task_Manager_Builder
         $var = wp_nonce_field('orion_task_manager', 'task_manager');
         return evaluator_page();
     }
+ 
+    public static function independence_notice() {
+        $token = get_option('access_token'); // Access token
+        $projetIdCp = get_option( '_project_manager_id' ); //Project for cp objectif add
+        $sender_info = get_option('_sender_mail_info'); // Mail and Name user for send evaluation message
+        $sent_info = get_option('_report_sent_info'); // Send report
+        $send_subperformance = get_option('_performance_parameters') ;  // Send Sub performance
+        $get_criteria = get_option('_evaluation_criterias'); // Critère
+        $emails = get_email_(); // Email
+        $tab_templates = get_templates_(); // Template
+
+        if( ($token == null) || ($projetIdCp == null) || ($sender_info == null) || ($sent_info == null) || ($send_subperformance == null) || ($get_criteria == null) || ($emails == null) || ($tab_templates == null) ){
+            ?>
+            <div class="notice notice-warning is-dismissible">
+                <h5 style="text-decoration: underline"><strong class="text-danger">Incomplete configuration</strong></h5>
+                <h6>
+                    To use this plugins plainly, be sure to configure:
+                    <ol>
+                        <?php 
+                        if( $token == null ){ ?> <li>The ASANA Access Token (in ASANA access token): <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-active' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                        if( $projetIdCp == null ){ ?> <li>Adding the identifier of the project containing the CP objectives for evaluation (in Project Manager) : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                        if( ($sender_info == null) || ( unserialize( $sender_info )['sender_name'] == '' ) ){ ?> <li>Information for sending evaluation emails (in mail template) : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                        if( ($sent_info == null) || ( unserialize( $sent_info )['email_manager'] == '' ) ){ ?> <li>The send report parameter : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-rapport' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                        if( ($send_subperformance == null) ){ ?> <li>Performance plan parameters : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-performance' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                        if( $get_criteria == null ){ ?> <li>Adding evaluation criteria (in Task Evaluation Criteria) : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                        if( $emails == null ){ ?> <li> Adding mail sending templates (in Mail template) : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                        if( $tab_templates == null ){ ?> <li> Adding templates for creating tasks (in Template) : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                        ?>
+                    </ol>
+                </h6>
+            </div>
+            <?php
+        }
+        ?>
+        <?php
+    }
 
     public static function settings_page(){
         ?>
@@ -176,7 +212,7 @@ class Task_Manager_Builder
     }
 
     /**
-     * Optenir le formulaire du template choix par l'utilisateur
+     * Optenir le formulaire du template choisir par l'utilisateur
      */
     public static function get_template_choose_(){
         $id_template = htmlentities($_POST['template_id']);
@@ -564,7 +600,6 @@ class Task_Manager_Builder
      */
     public static function taches_tab()
     {
-        worklog_file();
         ?>
         <div class="container-fluid pt-3">
             <div class="row" id="accordion">
@@ -612,6 +647,7 @@ class Task_Manager_Builder
                         <div class="card-body">
                             <div>
                                 <h3><span id="template_label">List Categories</span> </h3>
+                                <span>The default categories are: implementation, revue, test and integration</span>
                                 <div id="add_success_categories"></div>
                                 <hr>
                                 <div id="categories_card">
@@ -727,11 +763,11 @@ class Task_Manager_Builder
                                     <form class="form-inline" id="add_sender_info" method="POST" action="">
                                         <div class="form-group mx-sm-3 mb-2">
                                             <label for="inputPassword2" class="sr-only">Name Sender</label>
-                                            <input class="form-control" type="text" id="sender_name" value="<?= $sender_info['sender_name'] ?>">
+                                            <input class="form-control" type="text" id="sender_name" placeholder="Name Sender" value="<?php if( $sender_info != null ) echo $sender_info['sender_name']; ?>" required>
                                         </div>
                                         <div class="form-group mb-2">
                                             <label for="staticEmail2" class="sr-only">Email Sender</label>
-                                            <input class="form-control-plaintext" type="text" id="sender_email" value="<?= $sender_info['sender_email'] ?>">
+                                            <input class="form-control-plaintext" type="text" id="sender_email" placeholder="Email Sender" value="<?php if( $sender_info != null ) echo $sender_info['sender_email']; ?>" required>
                                         </div>
                                         <button type="submit" class="btn btn-outline-primary mb-2">UPDATE</button>
                                     </form>

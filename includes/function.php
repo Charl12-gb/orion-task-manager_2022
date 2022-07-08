@@ -162,21 +162,26 @@ function save_new_sections($data)
 
 /**
  * Save or Update categorie in bdd
- * @param array $datas
+ * @param array|string $datas
  * @param int|null $id
+ * @param bool $syn
  */
-function save_new_categories($datas, $id = null)
+function save_new_categories($datas, $id = null, $syn=false)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'categories';
 	$format = array('%d','%s', '%s');
 	if ($id == null) {
-		foreach ($datas['valeur'] as $data) {
-			$form = str_replace(" ", "_", strtolower($data['categorie']));
-			$id_categorie = create_tag( $form );
-			if( $id_categorie != null ){
-				$data_format = array('id' => $id_categorie, 'categories_key' => $form, 'categories_name' => $data['categorie']);
-				$wpdb->insert($table, $data_format, $format);
+		if( $syn ){
+			$wpdb->insert($table, $datas, $format);
+		}else{
+			foreach ($datas['valeur'] as $data) {
+				$form = str_replace(" ", "_", strtolower($data['categorie']));
+				$id_categorie = create_tag( $form );
+				if( $id_categorie != null ){
+					$data_format = array('id' => $id_categorie, 'categories_key' => $form, 'categories_name' => $data['categorie']);
+					$wpdb->insert($table, $data_format, $format);
+				}
 			}
 		}
 	} else {
@@ -1683,6 +1688,12 @@ function get_email_task_tab($id_template = null)
 					<option value="normal" <?php if ($vrai) {
 												if ($template_email->type_task == 'normal') echo 'selected';
 											} ?>>Normal</option>
+					<!-- <option value="performance" <?php //if ($vrai) {
+												// if ($template_email->type_task == 'performance') echo 'selected';
+											// } ?>>Plan Performance</option>
+					<option value="subperformance" <?php //if ($vrai) {
+												// if ($template_email->type_task == 'subperformance') echo 'selected';
+											// } ?>>Sub-Plan Performance</option> -->
 				</select>
 			</div>
 			<div class="form-group col-md-6">
@@ -1752,40 +1763,45 @@ function create_task_criteria()
 		<div id="11111" class="row" style="display:block">
 			<h5>Developpment Criteria</h5>
 			<div>
-				<?php $u = 1;
-				foreach ($criterias['developper'] as $criteria_dev) {
-				?>
-					<div id="rmu2<?= $u ?>">
-						<div class="form-row pt-2">
-							<div class="col-sm-11">
-								<div class="row">
-									<div class="col-sm-3">
-										<div class="form-group">
-											<input type="text" class="form-control" id="critere1_<?= $u ?>" value="<?= $criteria_dev['criteria'] ?>">
+				<?php
+				if( $criterias != null ){
+					$u = 1;
+					foreach ($criterias['developper'] as $criteria_dev) {
+					?>
+						<div id="rmu2<?= $u ?>">
+							<div class="form-row pt-2">
+								<div class="col-sm-11">
+									<div class="row">
+										<div class="col-sm-3">
+											<div class="form-group">
+												<input type="text" class="form-control" id="critere1_<?= $u ?>" value="<?= $criteria_dev['criteria'] ?>">
+											</div>
 										</div>
-									</div>
-									<div class="col-sm-2 p-0 m-0">
-										<div class="form-group">
-											<input type="number" min="0" max="100" class="form-control" id="note1_<?= $u ?>" value="<?= $criteria_dev['note'] ?>">
+										<div class="col-sm-2 p-0 m-0">
+											<div class="form-group">
+												<input type="number" min="0" max="100" class="form-control" id="note1_<?= $u ?>" value="<?= $criteria_dev['note'] ?>">
+											</div>
 										</div>
-									</div>
-									<div class="col-sm-7">
-										<div class="form-group">
-											<textarea class="form-control" id="description1_<?= $u ?>" rows="1" placeholder="Description ..."><?= $criteria_dev['description'] ?></textarea>
+										<div class="col-sm-7">
+											<div class="form-group">
+												<textarea class="form-control" id="description1_<?= $u ?>" rows="1" placeholder="Description ..."><?= $criteria_dev['description'] ?></textarea>
+											</div>
 										</div>
 									</div>
 								</div>
-							</div>
-							<div class="col-sm-1">
-								<span name="remove" id="<?= $u ?>" class="btn btn-outline-danger btn_remove_criteria1">X</span>
+								<div class="col-sm-1">
+									<span name="remove" id="<?= $u ?>" class="btn btn-outline-danger btn_remove_criteria1">X</span>
+								</div>
 							</div>
 						</div>
-					</div>
-				<?php
-					$u++;
-				}
+					<?php
+						$u++;
+					}
+					?>
+					<input type="hidden" id="nbre1" name="nbre1" value="<?= $u ?>">
+					<?php
+				} 
 				?>
-				<input type="hidden" id="nbre1" name="nbre1" value="<?= $u ?>">
 			</div>
 			<div id="criteriaadd1" class="pb-3"></div>
 			<div class="form-group">
@@ -1795,39 +1811,44 @@ function create_task_criteria()
 		<div id="22222" class="row" style="display:none">
 			<h5>Normal Criteria</h5>
 			<div>
-				<?php $v = 1;
-				foreach ($criterias['normal'] as $criteria_normal) {
-				?>
-					<div id="rmv2<?= $v ?>">
-						<div class="form-row pt-2">
-							<div class="col-sm-11">
-								<div class="row">
-									<div class="col-sm-3">
-										<div class="form-group">
-											<input type="text" class="form-control" id="critere2_<?= $v ?>" value="<?= $criteria_normal['criteria'] ?>">
+				<?php 
+				if( $criterias != null ){
+					$v = 1;
+					foreach ($criterias['normal'] as $criteria_normal) {
+					?>
+						<div id="rmv2<?= $v ?>">
+							<div class="form-row pt-2">
+								<div class="col-sm-11">
+									<div class="row">
+										<div class="col-sm-3">
+											<div class="form-group">
+												<input type="text" class="form-control" id="critere2_<?= $v ?>" value="<?= $criteria_normal['criteria'] ?>">
+											</div>
 										</div>
-									</div>
-									<div class="col-sm-2 p-0 m-0">
-										<div class="form-group">
-											<input type="number" min="0" max="100" class="form-control" id="note2_<?= $v ?>" value="<?= $criteria_normal['note'] ?>">
+										<div class="col-sm-2 p-0 m-0">
+											<div class="form-group">
+												<input type="number" min="0" max="100" class="form-control" id="note2_<?= $v ?>" value="<?= $criteria_normal['note'] ?>">
+											</div>
 										</div>
-									</div>
-									<div class="col-sm-7">
-										<div class="form-group">
-											<textarea class="form-control" id="description2_<?= $v ?>" rows="1" placeholder="Description ..."><?= $criteria_normal['description'] ?></textarea>
+										<div class="col-sm-7">
+											<div class="form-group">
+												<textarea class="form-control" id="description2_<?= $v ?>" rows="1" placeholder="Description ..."><?= $criteria_normal['description'] ?></textarea>
+											</div>
 										</div>
 									</div>
 								</div>
-							</div>
-							<div class="col-sm-1">
-								<span name="remove" id="<?= $v ?>" class="btn btn-outline-danger btn_remove_criteria2">X</span>
+								<div class="col-sm-1">
+									<span name="remove" id="<?= $v ?>" class="btn btn-outline-danger btn_remove_criteria2">X</span>
+								</div>
 							</div>
 						</div>
-					</div>
-				<?php $v++;
+					<?php $v++;
+					}
+					?>
+					<input type="hidden" id="nbre2" name="nbre2" value="<?= $v ?>">
+					<?php
 				}
 				?>
-				<input type="hidden" id="nbre2" name="nbre2" value="<?= $v ?>">
 			</div>
 			<div id="criteriaadd2" class="pb-3"></div>
 			<div class="form-group">

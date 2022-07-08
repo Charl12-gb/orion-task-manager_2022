@@ -210,6 +210,7 @@ class Orion_Task_Manager {
 		$this->loader->add_action('wp_ajax_nopriv_synchronisation_time', $buildclass, 'parameterSendTimeReport');
 		$this->loader->add_action('wp_ajax_project_card', $buildclass, 'getListOrFormTemplate');
 		$this->loader->add_action('wp_ajax_nopriv_project_card', $buildclass, 'getListOrFormTemplate');
+		$this->loader->add_action( 'admin_notices', $buildclass, 'independence_notice' );
 
 		add_shortcode('orion_task', 'Task_Manager_Builder::orion_task_shortcode');
 		add_shortcode('task_evaluation', 'Task_Manager_Builder::orion_task_evaluation_shortcode');
