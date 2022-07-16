@@ -204,6 +204,7 @@ function sync_tag(){
 			}
 		}
 	}
+	return 'tag';
 }
 
 /**
@@ -247,6 +248,7 @@ function sync_projets()
 			sync_project_section( $project_asana->gid );
 		}
 	}
+	return 'projet';
 }
 
 
@@ -315,6 +317,7 @@ function sync_duedate_task()
 			update_objective( $objective_array, $objective_month->id_objective  );
 		}
 	}
+	return 'duedate';
 }
 
 /**
@@ -405,7 +408,7 @@ function sync_objectives_month(){
 			}
 		}
 	}
-
+	return 'objectif';
 }
 
 
@@ -579,6 +582,7 @@ function sync_tasks()
 			}
 		}
 	}
+	return 'task';
 }
 
 /**

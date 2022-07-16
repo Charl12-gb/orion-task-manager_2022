@@ -1699,7 +1699,7 @@ function get_email_task_tab($id_template = null)
 			<div class="form-group col-md-6">
 				<label for="subject_email">Subject</label>
 				<input type="text" class="form-control" id="subject_mail" value="<?php if ($vrai) echo $template_email->subject;
-																					else echo 'Evaluation de developper';  ?>">
+																					else echo 'Evaluation developper';  ?>">
 			</div>
 		</div>
 		<div class="form-group">

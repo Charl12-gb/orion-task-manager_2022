@@ -13,9 +13,9 @@
  * @package           Orion_Task_Manager
  *
  * @wordpress-plugin
- * Plugin Name:       Task Manager
+ * Plugin Name:       Tasks And Performances Manager
  * Plugin URI:        https://orionorigin.com
- * Description:       This plugin allows you to more effectively manage the performance of your employees through the tasks they perform each month. It allows project managers to create and manage the creation of tasks more easily.
+ * Description:       Performance management plugin
  * Version:           1.0.0
  * Author:            Charles GBOYOU - Orion
  * Author URI:        https://orionorigin.com
@@ -167,6 +167,11 @@ function orion_task_manager_create_db()
 	$syn = get_option( '_synchronisation_time' );
 	if( $syn == null){
 		update_option('_synchronisation_time', 'twicedaily');
+	}
+
+	$using = get_option( '_first_user_plugin' );
+	if( $using == null){
+		update_option('_first_user_plugin', 'on');
 	}
 
 	//Période d'envoi des mails

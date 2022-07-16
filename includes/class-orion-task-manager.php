@@ -162,6 +162,7 @@ class Orion_Task_Manager {
 		
 		$this->loader->add_action('wp', $buildclass, 'login_redirect');
 		$this->loader->add_action('template_redirect', $buildclass, '_taitement_form');
+		$this->loader->add_action('admin_init', $buildclass, 'parameter_plugin_');
 		$this->loader->add_action('wp_ajax_nopriv_create_new_projet', $buildclass, 'create_new_projet_');
 		$this->loader->add_action('wp_ajax_create_new_projet', $buildclass, 'create_new_projet_');
 		$this->loader->add_action('wp_ajax_nopriv_create_template', $buildclass, 'create_template_');
@@ -210,6 +211,10 @@ class Orion_Task_Manager {
 		$this->loader->add_action('wp_ajax_nopriv_synchronisation_time', $buildclass, 'parameterSendTimeReport');
 		$this->loader->add_action('wp_ajax_project_card', $buildclass, 'getListOrFormTemplate');
 		$this->loader->add_action('wp_ajax_nopriv_project_card', $buildclass, 'getListOrFormTemplate');
+		$this->loader->add_action('wp_ajax_manuellySync', $buildclass, 'manuellySync_');
+		$this->loader->add_action('wp_ajax_nopriv_manuellySync', $buildclass, 'manuellySync_');
+		$this->loader->add_action('wp_ajax_set_first_parameter_plugin', $buildclass, 'set_first_parameter_plugin_');
+		$this->loader->add_action('wp_ajax_nopriv_set_first_parameter_plugin', $buildclass, 'set_first_parameter_plugin_');
 		$this->loader->add_action( 'admin_notices', $buildclass, 'independence_notice' );
 
 		add_shortcode('orion_task', 'Task_Manager_Builder::orion_task_shortcode');

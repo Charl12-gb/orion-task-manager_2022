@@ -35,6 +35,111 @@
             v = 0,
             u = 0;
         var val;
+
+        $(document).on('click', '.syncNow', function() {
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'manuellySync',
+                    'valeur': 'tag'
+                },
+                beforeSend: function() {
+                    document.getElementById('msg_manuel_syn').innerHTML = '<div class="alert alert-info mt-4" id="msg_first" role="alert">Synchronization in progress ... </div>';
+                },
+                success: function(response) {
+                    $('#msg_manuel_syn').append('<h5><input type="checkbox"checked >Category synchronization completed</h5>');
+                    $.ajax({
+                        url: ajaxurl,
+                        type: "POST",
+                        data: {
+                            'action': 'manuellySync',
+                            'valeur': 'projet'
+                        },
+                        success: function(response) {
+                            $('#msg_manuel_syn').append('<h5><input type="checkbox"checked >Synchronization of projects completed</h5>');
+                            $.ajax({
+                                url: ajaxurl,
+                                type: "POST",
+                                data: {
+                                    'action': 'manuellySync',
+                                    'valeur': 'objectif'
+                                },
+                                success: function(response) {
+                                    $('#msg_manuel_syn').append('<h5><input type="checkbox"checked >Synchronization of goals completed </h5>');
+                                    $.ajax({
+                                        url: ajaxurl,
+                                        type: "POST",
+                                        data: {
+                                            'action': 'manuellySync',
+                                            'valeur': 'task'
+                                        },
+                                        success: function(response) {
+                                            $('#msg_manuel_syn').append('<h5><input type="checkbox"checked >Synchronization of tasks completed</h5>');
+                                            $.ajax({
+                                                url: ajaxurl,
+                                                type: "POST",
+                                                data: {
+                                                    'action': 'manuellySync',
+                                                    'valeur': 'duedate'
+                                                },
+                                                success: function(response) {
+                                                    $('#msg_manuel_syn').append('<h5><input type="checkbox"checked >Synchronization of due dates completed</h5>');
+                                                    document.getElementById('msg_first').innerHTML = '<h5 class="text-success">Synchronization completed. Thanks!</h5>';
+                                                    setTimeout(function() { $('#msg_manuel_syn').hide(); }, 10000);
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        });
+
+        $(document).on('click', '.form__btn', function() {
+            var action = $(this).attr('id');
+            var isAction = false;
+            if (action == 'btn-1') {
+                isAction = true;
+                var data = {
+                    'action': 'set_first_parameter_plugin',
+                    'accessToken': $('#accessToken').val(),
+                    'projetId': $('#projetId').val()
+                }
+            }
+            if (action == 'btn-2-next') {
+                isAction = true;
+                var data = {
+                    'action': 'set_first_parameter_plugin',
+                    'sender_name': $('#sender_name').val(),
+                    'sender_email': $('#sender_email').val(),
+                    'email_manager': $('#email_manager').val(),
+                    'date_report_sent': $('#date_report_sent').val()
+                }
+            }
+            if (action == 'btn-3') {
+                isAction = true;
+                var data = {
+                    'action': 'set_first_parameter_plugin',
+                    'email_rh': $('#email_rh').val(),
+                    'nbreSubPeroformance': $('#nbreSubPeroformance').val(),
+                    'moyenne': $('#moyenne').val()
+                }
+                document.getElementById('msg_first_config').style.display = 'block';
+            }
+            if( isAction ){
+                $.ajax({
+                    url: ajaxurl,
+                    type: "POST",
+                    data: data,
+                    success: function(response) {}
+                });
+            }
+        })
+
         $(document).on('click', '#addchamp', function() {
             i++;
             if (document.getElementById('nbresubtask')) {
@@ -102,7 +207,7 @@
                 success: function(response) {
                     document.getElementById('categories_card').innerHTML = response;
                     document.getElementById('add_success_categories').innerHTML = '<div class="alert alert-success mt-4" role="alert">Successfully updated evaluation criteria</div>';
-                    //setTimeout(function() { $('#add_success_categories').hide(); }, 5000);
+                    setTimeout(function() { $('#add_success_categories').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -485,7 +590,7 @@
         $(document).on('submit', '.reportPerformance', function(e) {
             e.preventDefault();
             var operation = $(this).attr('id');
-            if( operation =='report_send_save' ){
+            if (operation == 'report_send_save') {
                 var email_manager = $('#email_manager').val();
                 var date_report_sent = $('#date_report_sent').val();
                 var sent_cp = $('#sent_cp:checked').val();
@@ -497,7 +602,7 @@
                     'sent_cp': sent_cp,
                 }
             }
-            if(operation =='performance_parameter'){
+            if (operation == 'performance_parameter') {
                 var email_rh = $('#email_rh').val();
                 var nbreSubPeroformance = $('#nbreSubPeroformance').val();
                 var moyenne = $('#moyenne').val();
@@ -579,8 +684,8 @@
 
         $(document).on('change', '#task_name', function() {
             var select = document.getElementById('task_name').value;
-            if( select == 'performance' ) document.getElementById('subject_mail').value = "Performance plan email";
-            else if( select == 'subperformance' ) document.getElementById('subject_mail').value = "Performance sub-plan email";
+            if (select == 'performance') document.getElementById('subject_mail').value = "Performance plan email";
+            else if (select == 'subperformance') document.getElementById('subject_mail').value = "Performance sub-plan email";
             else document.getElementById('subject_mail').value = "Evaluation de " + select;
         });
 

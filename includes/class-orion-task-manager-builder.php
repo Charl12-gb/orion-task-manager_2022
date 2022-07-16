@@ -12,7 +12,7 @@ class Task_Manager_Builder
         //Generate Task Admin Page
         add_menu_page( 
             'Task', 
-            'Tasks Manager', 
+            'T&P Manager', 
             'manage_options', 
             'o_task_manager', 
             'Task_Manager_Builder::settings_page',
@@ -54,74 +54,129 @@ class Task_Manager_Builder
         $get_criteria = get_option('_evaluation_criterias'); // Critère
         $emails = get_email_(); // Email
         $tab_templates = get_templates_(); // Template
-
-        if( ($token == null) || ($projetIdCp == null) || ($sender_info == null) || ($sent_info == null) || ($send_subperformance == null) || ($get_criteria == null) || ($emails == null) || ($tab_templates == null) ){
-            ?>
-            <div class="notice notice-warning is-dismissible">
-                <h5 style="text-decoration: underline"><strong class="text-danger">Incomplete configuration</strong></h5>
-                <h6>
-                    To use this plugins plainly, be sure to configure:
-                    <ol>
-                        <?php 
-                        if( $token == null ){ ?> <li>The ASANA Access Token (in ASANA access token): <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-active' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
-                        if( $projetIdCp == null ){ ?> <li>Adding the identifier of the project containing the CP objectives for evaluation (in Project Manager) : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
-                        if( ($sender_info == null) || ( unserialize( $sender_info )['sender_name'] == '' ) ){ ?> <li>Information for sending evaluation emails (in mail template) : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
-                        if( ($sent_info == null) || ( unserialize( $sent_info )['email_manager'] == '' ) ){ ?> <li>The send report parameter : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-rapport' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
-                        if( ($send_subperformance == null) ){ ?> <li>Performance plan parameters : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-performance' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
-                        if( $get_criteria == null ){ ?> <li>Adding evaluation criteria (in Task Evaluation Criteria) : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
-                        if( $emails == null ){ ?> <li> Adding mail sending templates (in Mail template) : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
-                        if( $tab_templates == null ){ ?> <li> Adding templates for creating tasks (in Template) : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+        $using = get_option( '_first_user_plugin' );
+            
+        if( $using != 'on' ){
+            if( isset( $_REQUEST['page'] ) ){
+                if( $_REQUEST['page'] == 'o_task_manager' ){
+                    if( ($token == null) || ($projetIdCp == null) || ($sender_info == null) || ($sent_info == null) || ($send_subperformance == null) || ($get_criteria == null) || ($emails == null) || ($tab_templates == null) ){
                         ?>
-                    </ol>
-                </h6>
-            </div>
-            <?php
+                        <div class="notice notice-warning is-dismissible">
+                            <h5 style="text-decoration: underline"><strong class="text-danger">Incomplete configuration</strong></h5>
+                            <h6>
+                                To use this plugins plainly, be sure to configure:
+                                <ol>
+                                    <?php 
+                                    if( $token == null ){ ?> <li>The ASANA Access Token (in ASANA access token): <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-active' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                                    if( $projetIdCp == null ){ ?> <li>Adding the identifier of the project containing the CP objectives for evaluation (in Project Manager) : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                                    if( ($sender_info == null) || ( unserialize( $sender_info )['sender_name'] == '' ) ){ ?> <li>Information for sending evaluation emails (in mail template) : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                                    if( ($sent_info == null) || ( unserialize( $sent_info )['email_manager'] == '' ) ){ ?> <li>The send report parameter : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-rapport' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                                    if( ($send_subperformance == null) ){ ?> <li>Performance plan parameters : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-performance' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                                    if( $get_criteria == null ){ ?> <li>Adding evaluation criteria (in Task Evaluation Criteria) : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                                    if( $emails == null ){ ?> <li> Adding mail sending templates (in Mail template) : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                                    if( $tab_templates == null ){ ?> <li> Adding templates for creating tasks (in Template) : <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager' ) ); ?>"><?php _e( 'Here', 'task' ); ?></a></li> <?php }
+                                    ?>
+                                </ol>
+                            </h6>
+                        </div>
+                        <?php
+                    }
+                }
+            }
         }
-        ?>
-        <?php
+
+    }
+
+    /**
+     * Synchronisation automatique des données
+     */
+    public static function manuellySync_(){
+        if( $_POST['valeur'] == 'tag' )
+            echo sync_tag();
+        if( $_POST['valeur'] == 'projet' )
+            echo sync_projets();
+        if( $_POST['valeur'] == 'objectif' )
+            echo sync_objectives_month();
+        if( $_POST['valeur'] == 'task' )
+            echo sync_tasks();
+        if( $_POST['valeur'] == 'duedate' )
+            echo sync_duedate_task();
+        wp_die();
+    }
+
+    /**
+     * Définition des premiers paramètre.
+     */
+    public static function set_first_parameter_plugin_(){
+        if( isset( $_POST['accessToken'] ) ){
+            update_option('access_token', htmlentities( $_POST['accessToken'] ));
+            update_option('_project_manager_id', htmlentities( $_POST['projetId'] ));
+        }
+        if( isset( $_POST['sender_email'] ) ){
+            $sender_name = htmlentities($_POST['sender_name']);
+			$sender_email = htmlentities($_POST['sender_email']);
+			$variable = serialize(array('sender_name' => $sender_name, 'sender_email' => $sender_email));
+			update_option('_sender_mail_info', $variable);
+
+            $email_manager = htmlentities( $_POST['email_manager'] );
+			$date_report_sent = htmlentities( $_POST['date_report_sent'] );
+			$array = serialize( array( 'email_manager' => $email_manager, 'send_date' => $date_report_sent, 'sent_cp' => '') );
+			update_option( '_report_sent_info', $array );
+        }
+        if( isset( $_POST['email_rh'] ) ){
+            $email_rh = htmlentities( $_POST['email_rh'] );
+			$nbreSubPeroformance = htmlentities( $_POST['nbreSubPeroformance'] );
+			$moyenne = htmlentities( $_POST['moyenne'] );
+            $array = serialize( array( 'email_rh' => $email_rh, 'nbreSubPeroformance' => $nbreSubPeroformance, 'moyenne' => $moyenne) );
+			update_option( '_performance_parameters', $array );
+        }
+
     }
 
     public static function settings_page(){
-        ?>
-        <h3 class="pt-2">
-        <?php _e( 'Configuration Task Manager', 'task' ); ?>
-        </h3>
-            <?php
-            $active_tableau = isset( $_GET[ 'set' ] ) ? $_GET[ 'set' ] : 'o_task_manager';
+        $using = get_option( '_first_user_plugin' );
+        if( $using != 'on' ){
             ?>
-        <div class="wrap woocommerce wc_addons_wrap">
-            <nav class="nav-tab-wrapper woo-nav-tab-wrapper">
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o_task_manager' ? 'nav-tab-active' : ''; ?>"><?php _e( 'TASK', 'task' ); ?></a>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-worklog' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-worklog' ? 'nav-tab-active' : ''; ?>"><?php _e( 'WORKLOG', 'task' ); ?></a>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-evaluation' ? 'nav-tab-active' : ''; ?>"><?php _e( 'EVALUATION', 'task' ); ?></a>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-rapport' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-rapport' ? 'nav-tab-active' : ''; ?>"><?php _e( 'REPORT', 'task' ); ?></a>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-performance' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-performance' ? 'nav-tab-active' : ''; ?>"><?php _e( 'PERFORMANCE', 'task' ); ?></a>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-active' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-active' ? 'nav-tab-active' : ''; ?>"><?php _e( 'INTEGRATION', 'task' ); ?></a>
-            </nav>
+            <h3 class="pt-2">
+                <?php _e( 'Configuration T&P Manager', 'task' ); ?>
+            </h3>
+            <?php $active_tableau = isset( $_GET[ 'set' ] ) ? $_GET[ 'set' ] : 'o_task_manager'; ?>
+            <div class="wrap woocommerce wc_addons_wrap">
+                <nav class="nav-tab-wrapper woo-nav-tab-wrapper">
+                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o_task_manager' ? 'nav-tab-active' : ''; ?>"><?php _e( 'TASK', 'task' ); ?></a>
+                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-worklog' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-worklog' ? 'nav-tab-active' : ''; ?>"><?php _e( 'WORKLOG', 'task' ); ?></a>
+                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-evaluation' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-evaluation' ? 'nav-tab-active' : ''; ?>"><?php _e( 'EVALUATION', 'task' ); ?></a>
+                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-rapport' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-rapport' ? 'nav-tab-active' : ''; ?>"><?php _e( 'REPORT', 'task' ); ?></a>
+                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-performance' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-performance' ? 'nav-tab-active' : ''; ?>"><?php _e( 'PERFORMANCE', 'task' ); ?></a>
+                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=o_task_manager&set=o-active' ) ); ?>" class="nav-tab <?php echo $active_tableau == 'o-active' ? 'nav-tab-active' : ''; ?>"><?php _e( 'INTEGRATION', 'task' ); ?></a>
+                </nav>
             <div class="o_task_manager addons-featured">
-        <?php
-        if ( $active_tableau == 'o_task_manager' ) {
-            Task_Manager_Builder::taches_tab();
-        }
-        if ( $active_tableau == 'o-worklog' ) {
-            ?>
-            <div id="worklog_card">
-                <?php Task_Manager_Builder::worklog_tab(); ?>
-            </div>
             <?php
-        }
-        if ( $active_tableau == 'o-evaluation' ) {
-            Task_Manager_Builder::evaluation_tab();
-        }
-        if ( $active_tableau == 'o-active' ) {
-            Task_Manager_Builder::active_tab();
-        }
-        if ( $active_tableau == 'o-rapport' ) {
-            Task_Manager_Builder::rapport_tab();
-        }
-        if ( $active_tableau == 'o-performance' ) {
-            Task_Manager_Builder::performance_tab();
-        }
+            if ( $active_tableau == 'o_task_manager' ) {
+                Task_Manager_Builder::taches_tab();
+            }
+            if ( $active_tableau == 'o-worklog' ) {
+            ?>
+                <div id="worklog_card">
+                    <?php Task_Manager_Builder::worklog_tab(); ?>
+                </div>
+            <?php
+            }
+            if ( $active_tableau == 'o-evaluation' ) {
+                Task_Manager_Builder::evaluation_tab();
+            }
+            if ( $active_tableau == 'o-active' ) {
+                Task_Manager_Builder::active_tab();
+            }
+            if ( $active_tableau == 'o-rapport' ) {
+                Task_Manager_Builder::rapport_tab();
+            }
+            if ( $active_tableau == 'o-performance' ) {
+                Task_Manager_Builder::performance_tab();
+            }
+        }else{
+            include_once('configuration-first-active.php');
+        }   
     }
 
     /**
@@ -152,6 +207,42 @@ class Task_Manager_Builder
                     wp_safe_redirect($url);
                     exit();
                 }
+            }
+        }
+        
+    }
+
+    public static function parameter_plugin_(){
+        if (isset($_POST['verify_plugin_first_parameter']) ) {
+            if (wp_verify_nonce($_POST['verify_plugin_first_parameter'], 'plugin_first_parameter')) {
+                // Create public task page with short code.
+                $task_page = array(
+                    'post_title'    => 'T&P Manager',
+                    'post_content'  => '
+                        <!-- wp:paragraph -->
+                        <p>[orion_task]</p>
+                        <!-- /wp:paragraph -->',
+                    'post_status'   => 'publish',
+                    'post_name'   => 'task-manager',
+                    'post_author'   => 1,
+                    'post_type' => 'page'
+                );
+                wp_insert_post( $task_page );
+
+                // Create public evaluation page with short code.
+                $evaluation_page = array(
+                    'post_title'    => 'Evaluation T&P Manager',
+                    'post_content'  => '
+                        <!-- wp:paragraph -->
+                        <p>[task_evaluation]</p>
+                        <!-- /wp:paragraph -->',
+                    'post_status'   => 'publish',
+                    'post_name'   => 'task-evaluation',
+                    'post_author'   => 1,
+                    'post_type' => 'page'
+                );
+                wp_insert_post( $evaluation_page );
+                update_option('_first_user_plugin', 'off');
             }
         }
     }
@@ -604,13 +695,13 @@ class Task_Manager_Builder
         <div class="container-fluid pt-3">
             <div class="row" id="accordion">
                 <div class="col-sm-4 card bg-light">
-                    <div class="card-header" id="headingOne">
+                <div class="card-header" id="headingFour">
                         <h5 class="mb-0">
-                            <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                                Template
+                            <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                                Categories
                             </button>
                         </h5>
-                        <p class="mt-0 mb-0">Create and modify templates to facilitate the creation of tasks for project managers</p>
+                        <p class="mt-0 mb-0">Add more task categories</p>
                     </div>
                     <div class="card-header" id="headingThree">
                         <h5 class="mb-0">
@@ -620,13 +711,13 @@ class Task_Manager_Builder
                         </h5>
                         <p class="mt-0 mb-0">Create and edit projects from here</p>
                     </div>
-                    <div class="card-header" id="headingFour">
+                    <div class="card-header" id="headingOne">
                         <h5 class="mb-0">
-                            <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
-                                Categories
+                            <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                Template
                             </button>
                         </h5>
-                        <p class="mt-0 mb-0">Add more task categories</p>
+                        <p class="mt-0 mb-0">Create and modify templates to facilitate the creation of tasks for project managers</p>
                     </div>
                 </div>
                 <div class="col-sm-8 card">
@@ -877,6 +968,10 @@ class Task_Manager_Builder
                                     </div>
                                 </div>
                             </form>
+                            <hr>
+                            <span><button class="btn btn-outline-primary syncNow">Sync Now</button> <strong class="btn" title="Start data synchronisation manually">?</strong><span><br>
+                            <span id="msg_manuel_syn"></span>
+                            <hr>
                         </div>
                     </div>
                 </div>
@@ -965,12 +1060,12 @@ class Task_Manager_Builder
                             </div>
                             <div class="form-row mt-4">
                                 <div class="col">
-                                    <label for="">Number of underperformance</label>
-                                    <input type="number" min="0" name="nbreSubPeroformance" id="nbreSubPeroformance" class="form-control" placeholder="Number of underperformance" value="<?= $sent_info['nbreSubPeroformance'] ?>" required >
+                                    <label for="">Total allowed underperformance <strong data-toggle="tooltip" data-placement="top" title="The total number of times an employee must be underperformed during the year.">?</strong></label>
+                                    <input type="number" min="3" max="6" name="nbreSubPeroformance" id="nbreSubPeroformance" class="form-control" placeholder="Number of underperformance" value="<?= $sent_info['nbreSubPeroformance'] ?>" required >
                                 </div>
                                 <div class="col">
                                     <label for="">Minimum average</label>
-                                    <input type="number" min="0" max="100" name="moyenne" id="moyenne" class="form-control" placeholder="Minimum average" value="<?= $sent_info['moyenne'] ?>" required>
+                                    <input type="number" min="50" max="100" name="moyenne" id="moyenne" class="form-control" placeholder="Minimum average" value="<?= $sent_info['moyenne'] ?>" required>
                                 </div>
                             </div>
                             <hr>
