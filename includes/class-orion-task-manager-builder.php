@@ -691,6 +691,8 @@ class Task_Manager_Builder
      */
     public static function taches_tab()
     {
+        echo time() . '<br>';
+        echo strtotime(date('Y-m-d H:m:s'));
         ?>
         <div class="container-fluid pt-3">
             <div class="row" id="accordion">

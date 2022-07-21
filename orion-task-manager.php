@@ -174,6 +174,10 @@ function orion_task_manager_create_db()
 		update_option('_first_user_plugin', 'on');
 	}
 
+	if( get_option('_orion_tandp_date') == null ){
+		update_option('_orion_tandp_date', time());
+	}
+
 	//Période d'envoi des mails
 	$sent_info = get_option('_report_sent_info');
 	if( $sent_info == null ){

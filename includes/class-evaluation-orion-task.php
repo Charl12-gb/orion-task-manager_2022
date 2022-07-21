@@ -146,7 +146,6 @@ function worklog_file(){
  * @param int $user_id
  * @param string $month
  * 
- * @return void
  */
 function download_worklog($user_id, $month=null)
 {
@@ -298,7 +297,6 @@ function download_worklog($user_id, $month=null)
 			if( $performance < $minMoyenne ){
 				Task_Manager_Builder::sent_worklog_mail_( $file_name, array(), $user_id );
 			}
-
 			return array( $name_user .'_worklog.xlsx' => $file_name );
 		}
 		return array();

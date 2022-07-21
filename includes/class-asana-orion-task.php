@@ -257,28 +257,36 @@ function sync_projets()
  * les mails si la tache est terminée.
  */
 function automatique_send_mail( ){
-	$worklogs = get_all_worklog('mail_status', 'no'); 						// récupération des tâches dont mail n'est pas encore send
-	if( $worklogs != null ){
-		foreach( $worklogs as $worklog ){ 										//parcourir la list
-			$task = get_task_('id', $worklog->id_task);	   						// on récupère les infor de la tâche 
-			if( $task[0]->categorie == 'revue' ){ 								// si categorie = revue
-				if( $task[0]->dependancies != NULL ){ 							// si dependance est != null
-					$dependant = get_task_('id', $task[0]->dependancies); 		//On récupere la dependance
-					if( $dependant[0]->categorie == 'implementation' ){
-						if( $task[0]->assigne != NULL ){
-							$mail_template = get_email_( "0", $task[0]->type_task )[0];
-							$mail_content = $mail_template->content;
-							$subject = $mail_template->subject;
-							
-							$destinataire = get_userdata( $task[0]->assigne )->user_email ;
-							$title_main_task = get_task_main( $worklog->id_task );
-							echo $msg = content_msg($dependant[0]->id, $title_main_task, $task[0]->type_task, $mail_content);
-							mail_sending_form($destinataire, $subject, $msg);
-							update_worklog( array( 'mail_status'=> 'yes' ),array('id_task' => $worklog->id_task), array('%s') );
+	$worklogs = get_all_worklog('mail_status', 'no'); 	
+	$tandp_date = get_option('_orion_tandp_date');								// récupération des tâches dont mail n'est pas encore send
+	$emails = get_email_(); // Email
+	if( $emails != null ){
+		if( $worklogs != null ){
+			foreach( $worklogs as $worklog ){ 										//parcourir la list
+				$task = get_task_('id', $worklog->id_task);	   						// on récupère les infor de la tâche 
+				if( $task[0]->categorie == 'revue' ){ 								// si categorie = revue
+					if( strtotime( $task[0]->created_at ) >= $tandp_date ){
+						if( $task[0]->dependancies != NULL ){ 							// si dependance est != null
+							$dependant = get_task_('id', $task[0]->dependancies); 		//On récupere la dependance
+							if( $dependant[0]->categorie == 'implementation' ){
+								if( $task[0]->assigne != NULL ){
+									$mail_template = get_email_( "0", $task[0]->type_task )[0];
+									if( $mail_template != null ){
+										$mail_content = $mail_template->content;
+										$subject = $mail_template->subject;
+										
+										$destinataire = get_userdata( $task[0]->assigne )->user_email ;
+										$title_main_task = get_task_main( $worklog->id_task );
+										$msg = content_msg($dependant[0]->id, $title_main_task, $task[0]->type_task, $mail_content);
+										mail_sending_form($destinataire, $subject, $msg);
+										update_worklog( array( 'mail_status'=> 'yes' ),array('id_task' => $worklog->id_task), array('%s') );
+									}
+								}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
+							}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
 						}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
 					}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
 				}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
-			}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
+			}
 		}
 	}
 }
