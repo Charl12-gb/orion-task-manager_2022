@@ -7,7 +7,7 @@ require_once('class-evaluation-orion-task.php');
 
 if (isset($_POST['tokens']) && !empty($_POST['tokens'])) {
 	$data_post   = wp_unslash($_POST['tokens']);
-	update_option('access_token', $data_post);
+	update_option('_asana_access_token', $data_post);
 }
 
 if( isset( $_POST['link_file'] ) ){

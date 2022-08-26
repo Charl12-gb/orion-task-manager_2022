@@ -107,6 +107,7 @@
                 var data = {
                     'action': 'set_first_parameter_plugin',
                     'accessToken': $('#accessToken').val(),
+                    'asana_workspace_id': $('#asana_workspace_id').val(),
                     'projetId': $('#projetId').val()
                 }
             }
@@ -130,7 +131,7 @@
                 }
                 document.getElementById('msg_first_config').style.display = 'block';
             }
-            if( isAction ){
+            if (isAction) {
                 $.ajax({
                     url: ajaxurl,
                     type: "POST",
@@ -544,17 +545,20 @@
         $(document).on('submit', '#synchronisation_asana', function(e) {
             e.preventDefault();
             var sync_time = document.getElementById('synchonisation_time').value;
+            var asana_workspace_id = document.getElementById('asana_workspace_id').value;
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
                 data: {
                     'action': 'synchronisation_time',
-                    'sync_time': sync_time
+                    'sync_time': sync_time,
+                    'asana_workspace_id': asana_workspace_id
                 },
                 beforeSend: function() {
                     document.getElementById('add_success_time').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
                 },
                 success: function(response) {
+                    console.log(response);
                     if (response)
                         document.getElementById('add_success_time').innerHTML = '<div class="alert alert-success mt-4" role="alert"> Successfully ! </div>';
                     else

@@ -46,7 +46,7 @@ class Task_Manager_Builder
     }
  
     public static function independence_notice() {
-        $token = get_option('access_token'); // Access token
+        $token = get_option('_asana_access_token'); // Access token
         $projetIdCp = get_option( '_project_manager_id' ); //Project for cp objectif add
         $sender_info = get_option('_sender_mail_info'); // Mail and Name user for send evaluation message
         $sent_info = get_option('_report_sent_info'); // Send report
@@ -109,7 +109,8 @@ class Task_Manager_Builder
      */
     public static function set_first_parameter_plugin_(){
         if( isset( $_POST['accessToken'] ) ){
-            update_option('access_token', htmlentities( $_POST['accessToken'] ));
+            update_option('_asana_access_token', htmlentities( $_POST['accessToken'] ));
+            update_option('_asana_workspace_id', htmlentities( $_POST['asana_workspace_id'] ));
             update_option('_project_manager_id', htmlentities( $_POST['projetId'] ));
         }
         if( isset( $_POST['sender_email'] ) ){
@@ -681,7 +682,9 @@ class Task_Manager_Builder
 		}
 		if( isset( $_POST['sync_time'] ) ){
 			$time = htmlentities( $_POST['sync_time'] );
-			echo $output = update_option('_synchronisation_time', $time);
+            $asana_workspace_id = htmlentities( $_POST['asana_workspace_id'] );
+			update_option('_synchronisation_time', $time);
+			echo $output = update_option('_asana_workspace_id', $asana_workspace_id);
 		}else echo false;
         wp_die();
     }
@@ -721,7 +724,7 @@ class Task_Manager_Builder
                     </div>
                 </div>
                 <div class="col-sm-8 card">
-                    <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
+                    <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordion">
                         <div class="card-body">
                             <div>
                                 <div id="add_success"></div>
@@ -734,7 +737,7 @@ class Task_Manager_Builder
                             </div>
                         </div>
                     </div>
-                    <div id="collapseFour" class="collapse" aria-labelledby="headingFour" data-parent="#accordion">
+                    <div id="collapseFour" class="collapse show" aria-labelledby="headingFour" data-parent="#accordion">
                         <div class="card-body">
                             <div>
                                 <h3><span id="template_label">List Categories</span> </h3>
@@ -878,7 +881,7 @@ class Task_Manager_Builder
 
     public static function active_tab()
     {
-        $token = get_option('access_token');
+        $token = get_option('_asana_access_token');
     ?>
         <div class="container-fluid pt-3">
             <div class="row" id="accordion">
@@ -957,16 +960,20 @@ class Task_Manager_Builder
                         <div class="card-body">
                             <span id="add_success_time"></span>
                             <form id="synchronisation_asana" method="post" action="">
-                                <label for="synchonisation">Synchronization frequency</label>
-                                <div class="input-group mb-3">
-                                    <select class="custom-select" id="synchonisation_time">
-                                        <option value="daily" <?php if( get_option( '_synchronisation_time' ) == 'daily' ) echo 'selected' ?> >1 time / day</option>
-                                        <option value="twicedaily" <?php if( get_option( '_synchronisation_time' ) == 'twicedaily' ) echo 'selected' ?>>2 times / day</option>
-                                    </select>
-                                    <div class="input-group-append">
-                                        <button type="submit" class="input-group-text btn btn-outline-primary" for="synchonisation">UPDATE</button>
+                                <div class="form-row mt-4 mb-2">
+                                    <div class="col">
+                                        <label for="synchonisation">Synchronization frequency</label>
+                                        <select class="custom-select" id="synchonisation_time">
+                                            <option value="daily" <?php if( get_option( '_synchronisation_time' ) == 'daily' ) echo 'selected' ?> >1 time / day</option>
+                                            <option value="twicedaily" <?php if( get_option( '_synchronisation_time' ) == 'twicedaily' ) echo 'selected' ?>>2 times / day</option>
+                                        </select>
+                                    </div>
+                                    <div class="col">
+                                        <label>Asana Workspace Id</label>
+                                        <input class="form-control" type="text" name="asana_workspace_id" id="asana_workspace_id" placeholder="Asana Workspace Id" value="<?php if( get_option('_asana_workspace_id') != null ) echo get_option('_asana_workspace_id'); ?>">
                                     </div>
                                 </div>
+                                <button type="submit" class="input-group-text btn btn-outline-primary" for="synchonisation">UPDATE</button>
                             </form>
                             <hr>
                             <span><button class="btn btn-outline-primary syncNow">Sync Now</button> <strong class="btn" title="Start data synchronisation manually">?</strong><span><br>

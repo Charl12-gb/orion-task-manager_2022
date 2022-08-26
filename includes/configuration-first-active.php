@@ -5,7 +5,7 @@
     $perf_info = unserialize( get_option('_performance_parameters') );
     if( $perf_info == null ) { $perf_info['email_rh'] = null; $perf_info['nbreSubPeroformance'] = null; $perf_info['moyenne'] = null;  }
 
-    $token = get_option('access_token'); // Access token
+    $token = get_option('_asana_access_token'); // Access token
     $projetIdCp = get_option( '_project_manager_id' ); //Project for cp objectif add
     $set1 = false; $set2 = false; $set3 = false;
     if( ($token != null) && ( $projetIdCp != null ) ) $set1 = true;
@@ -33,8 +33,13 @@
        <div class="pr-5 pl-5">
            <div class="form-group mt-3">
                 <label for="exampleInputText">ASANA access token</label>
-                <input type="text" class="form-control" id="accessToken" name="accessToken" placeholder="Enter access token" required>
+                <input type="text" class="form-control" id="accessToken" <?php if( get_option('_asana_access_token') != null ) echo get_option('_asana_access_token'); ?> name="accessToken" placeholder="Enter access token" required>
                 <small id="emailHelp" class="form-text text-muted">The access token will sync data with ASANA.</small>
+            </div>
+           <div class="form-group mt-3">
+                <label for="exampleInputText">Asana Workspace Id</label>
+                <input class="form-control" type="text" name="asana_workspace_id" id="asana_workspace_id" placeholder="Asana Workspace Id" required value="<?php if( get_option('_asana_workspace_id') != null ) echo get_option('_asana_workspace_id'); ?>">
+                <small id="emailHelp" class="form-text text-muted">The Asana workspace you want to sync tasks to</small>
             </div>
             <div class="form-group">
                 <label for="exampleInputText1">ASANA Project ID for CP evaluation</label>
