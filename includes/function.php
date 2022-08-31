@@ -891,8 +891,7 @@ function get_categorie_format()
  * Save cp objective
  * @param array $array
  */
-function traite_form_public($array)
-{
+function traite_form_public($array){
 	if ( $array['type_task'] == 'objective' ) {
 		$nbre = htmlentities($array['nbreobj']);
 		$mois = htmlentities($array['mois']);

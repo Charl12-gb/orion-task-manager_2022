@@ -906,7 +906,7 @@ class Task_Manager_Builder
                 <div class="col-sm-8 card">
                     <div id="collapseInter1" class="collapse show" aria-labelledby="headingInter1" data-parent="#accordion">
                         <div class="card-body">
-                            <div class="container pt-2">
+                        <div class="container pt-2">
                                 <?php
                                 if ($token != '') {
                                     $submit = 'UPDATE';
