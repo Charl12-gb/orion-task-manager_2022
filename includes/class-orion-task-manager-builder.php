@@ -911,10 +911,10 @@ class Task_Manager_Builder
                                 if ($token != '') {
                                     $submit = 'UPDATE';
                                     $token = 'XXXX-XXXX-XXXX-XXX';
-                                    _e('ASANA ACTIVE', 'task');
+                                    ?><div class="alert alert-success">ASANA ACTIVE <input type="checkbox"checked readonly></div><?php
                                 } else {
                                     $submit = 'SAVE';
-                                    _e('Activated ASANA <a href="https://app.asana.com/" target="_blank">https://app.asana.com/</a>', 'task');
+                                    ?><div class="alert alert-danger">Activated ASANA <a href="https://app.asana.com/" target="_blank">https://app.asana.com/</a></div><?php
                                 }
                                 ?>
                             </div>

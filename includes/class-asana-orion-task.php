@@ -78,9 +78,13 @@ function report__cron_sync(){
  */
 function get_workspace()
 {
-	$asana = connect_asana();
-	$asana->getWorkspaces();
-	return $asana->getData()[0]->gid;
+	$workspace = get_option('_asana_workspace_id');
+	if( $workspace == null ){
+		$asana = connect_asana();
+		$asana->getWorkspaces();
+		$workspace = $asana->getData()[0]->gid;
+	}
+	return $workspace;
 }
 
 /**
@@ -186,7 +190,8 @@ function sync_project_section( $project_id ){
 function sync_tag(){
 	$asana = connect_asana();
 	$categories = get_categories_task();
-	$asana->getTags();
+	// $asana->getTags();
+	$asana->getWorkspaceTags(get_workspace());
 	if( $asana->getData() != null ){
 		foreach ($asana->getData() as $categorie_asana) {
 			$sync = true;

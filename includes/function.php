@@ -893,9 +893,7 @@ function get_categorie_format()
  */
 function traite_form_public($array)
 {
-	if (
-		$array['type_task'] == 'objective'
-	) {
+	if ( $array['type_task'] == 'objective' ) {
 		$nbre = htmlentities($array['nbreobj']);
 		$mois = htmlentities($array['mois']);
 		$annee = date('Y');
@@ -907,14 +905,14 @@ function traite_form_public($array)
 				$id_section = section_exist(get_current_user_id());
 				if ($id_section == null) return false;
 				else {
-					//Savegarde du mois comme une tâche
+					//Sauvegarde du mois comme une tâche
 					$month = date('F', mktime(0, 0, 0, $mois, 10)) . " ( $annee ) ";
 					$project_name = get_project_title($project);
 					$string = 'last friday of ' . date('F', mktime(0, 0, 0, $mois, 10)) . ' this year';
 					$duedate = gmdate('Y-m-d', strtotime($string)) . ' 23:59:00';
 					$asana = connect_asana();
 					$result = $asana->createTask(array(
-						'workspace' => get_workspace(),
+						//'workspace' => get_workspace(), // a revoir
 						'name' => $month,
 						'notes' => "Objectives of the month ( $month )",
 						'assignee_section' 	=> $id_section,
