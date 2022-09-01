@@ -896,7 +896,8 @@ function traite_form_public($array){
 		$nbre = htmlentities($array['nbreobj']);
 		$mois = htmlentities($array['mois']);
 		$annee = date('Y');
-		$project = htmlentities($array['project_select']);
+		$workspace = get_workspace();
+		// $project = htmlentities($array['project_select']);
 		if (get_objective_of_month($mois,  $annee, get_current_user_id()) != null ) return false;
 		else {
 			if ($nbre == 0) return false;
@@ -906,23 +907,24 @@ function traite_form_public($array){
 				else {
 					//Sauvegarde du mois comme une tâche
 					$month = date('F', mktime(0, 0, 0, $mois, 10)) . " ( $annee ) ";
-					$project_name = get_project_title($project);
+					// $project_name = get_project_title($project);
 					$string = 'last friday of ' . date('F', mktime(0, 0, 0, $mois, 10)) . ' this year';
 					$duedate = gmdate('Y-m-d', strtotime($string)) . ' 23:59:00';
 					$asana = connect_asana();
 					$result = $asana->createTask(array(
-						//'workspace' => get_workspace(), // a revoir
+						'workspace' => "$workspace", // a revoir
 						'name' => $month,
 						'notes' => "Objectives of the month ( $month )",
 						'assignee_section' 	=> $id_section,
 						'assignee' 			=> get_userdata(get_current_user_id())->user_email,
 						'due_on' 			=> $duedate,
 					));
-					$objective_id = $asana->getData()->gid;
-					$asana->addProjectToTask($objective_id, get_option('_project_manager_id'));
+					print_r($asana->getData());
 					if ($asana->hasError()) {
 						return false;
 					} else {
+						$objective_id = $asana->getData()->gid;
+						$asana->addProjectToTask($objective_id, get_option('_project_manager_id'));
 						$task_asana = json_decode($result)->data;
 						$permalink_objective = $task_asana->permalink_url;
 						
@@ -1390,11 +1392,11 @@ function add_task_form()
 			<div class="row text-center card-header">
 				<div class="col-sm-6">
 					<input type="radio" class="form-check-input" name="show" value="userTemplate" id="userTemplate">
-					<label class="form-check-label" for="template">Use Template</label>
+					<label class="form-check-label" for="template"><strong>Use Template</strong></label>
 				</div>
 				<div class="col-sm-6">
 					<input type="radio" class="form-check-input" name="show" value="manuelTemplate" id="manuelTemplate">
-					<label class="form-check-label" for="template">Create manually</label>
+					<label class="form-check-label" for="template"><strong>Create manually</strong></label>
 				</div>
 			</div>
 			<span id="task_success"></span>
@@ -1404,16 +1406,16 @@ function add_task_form()
 		<div id="manuel_get" style="display:none ;">
 			<div class="form-check">
 				<input type="checkbox" class="form-check-input" name="AddSubtask" id="AddSubtask">
-				<label class="form-check-label" for="exampleCheck1">Add subtasks</label>
+				<label class="form-check-label" for="exampleCheck1"><strong>Add subtasks</strong></label>
 			</div>
 			<div class="row text-center card-header" id="choix_check" style="display:none;">
 				<div class="col-sm-6">
 					<input type="radio" class="form-check-input" name="show1" id="userTemplate1" value="userTemplate1">
-					<label class="form-check-label" for="exampleCheck1">Use Templates</label>
+					<label class="form-check-label" for="exampleCheck1"><strong>Use Templates</strong></label>
 				</div>
 				<div class="col-sm-6">
 					<input type="radio" class="form-check-input" name="show1" id="manuelTemplate1" value="manuelTemplate1">
-					<label class="form-check-label" for="exampleCheck1">Create manually</label>
+					<label class="form-check-label" for="exampleCheck1"><strong>Create manually</strong></label>
 				</div>
 			</div>
 			<span id="second_choix"></span>
@@ -1427,7 +1429,7 @@ function add_task_form()
 			</div>
 			</div>
 		<div class="pt-1" id="hidden_submit" style="display:none">
-			<button type="submit" name="validetash">Submit</button>
+			<button type="submit" class="btn btn-primary" name="validetash">Submit</button>
 		</div>
 	</form>
 	<?php
@@ -1962,7 +1964,7 @@ function get_form(array $array, $istemplate)
 				}  ?>
 				<div class="col">
 					<label for="assigne">Assigne : </label>
-					<select class="form-control assign_option" id="<?php if ($istemplate) echo 'sub_'  ?>assign" name="<?php if ($istemplate) echo 'sub_'  ?>assign"><option value="" selected></option></select>
+					<select required class="form-control assign_option" id="<?php if ($istemplate) echo 'sub_'  ?>assign" name="<?php if ($istemplate) echo 'sub_'  ?>assign"><option value="" selected></option></select>
 				</div>
 			</div>
 		</div>

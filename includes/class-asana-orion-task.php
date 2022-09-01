@@ -38,6 +38,7 @@ add_action('objective_cron_hook', 'objective_cron_sync');
 function objective_cron_sync(){
 	automatique_send_mail();
 	syncEmployeesFromAsana();
+	save_objective_section();
 	evaluation_project_manager();
 	if( date('m-Y') == '01-'. date('Y') ){
 		evaluation_cp();
@@ -392,7 +393,7 @@ function sync_objectives_month(){
 							'id_objective' 			=> $task->gid,
 							'id_user' 				=> $id_user,
 							'id_section'			=> $id_section,
-							'month_section' 		=> (date('m')/1),
+							'month_section' 		=> (date('m', strtotime($task_detail->due_on))/1),
 							'year_section'			=> date('Y'),
 							'duedate_section'		=> $task_detail->due_on,
 							'objective_section'		=> serialize($objective_array),
@@ -724,27 +725,32 @@ function traite_task_and_save($data)
  * 
  * @return bool
  */
-function save_objective_section($projectmanager_id)
+function save_objective_section()
 {
-	$section_name =  get_userdata($projectmanager_id)->display_name;
-	$project = get_option('_project_manager_id');
-	$sectionExist = section_exist($section_name, $project);
-	if ($sectionExist) return false;
-	else {
-		$asana = connect_asana();
-		$asana->createSection(
-			$project,
-			array("name" => $section_name)
-		);
-		$asana_output = $asana->getData();
-		if (isset($asana_output->gid)) {
-			$data2 = array(
-				'id' 		=> $asana_output->gid,
-				'project_id' => $project,
-				'section_name'		=> $asana_output->name
-			);
-		} else return false;
-		return save_new_sections($data2);
+	$users = get_users(array( 'fields' => array( 'id' ) ));
+	foreach( $users as $user ){
+		if( is_project_manager( $user->id ) != null ){
+			$section_name =  get_userdata($user->id)->display_name;
+			$project = get_option('_project_manager_id');
+			$sectionExist = section_exist($section_name, $project);
+			if ($sectionExist) return false;
+			else {
+				$asana = connect_asana();
+				$asana->createSection(
+					$project,
+					array("name" => $section_name)
+				);
+				$asana_output = $asana->getData();
+				if (isset($asana_output->gid)) {
+					$data2 = array(
+						'id' 		=> $asana_output->gid,
+						'project_id' => $project,
+						'section_name'		=> $asana_output->name
+					);
+				} else return false;
+				return save_new_sections($data2);
+			}
+		}
 	}
 }
 
