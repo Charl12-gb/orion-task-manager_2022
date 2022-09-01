@@ -118,19 +118,12 @@ function sync_new_project($data, $project_id=null)
 {
 	global $wpdb;
 	$asana = connect_asana();
-	$array_asana = array(
-		'workspace' => get_workspace(),
-		'name' => $data['title'],
-		'notes' => $data['description']
-	);
+	$array_asana = array( 'workspace' => get_workspace(), 'name' => $data['title'], 'notes' => $data['description']);
+	
 	if( $project_id != null ){
-		$asana->updateProject(
-			$project_id,
-			$array_asana
-		);
+		$asana->updateProject( $project_id, $array_asana );
 	}else
 		$asana->createProject($array_asana);
-
 	$result = $asana->getData();
 	if (isset($result->gid)) {
 		if( $project_id != null ){
@@ -652,7 +645,7 @@ function get_user_asana_id($id_asana)
  */
 function syncEmployeesFromAsana(){
 	$asana = connect_asana();
-	$asana->getUsers();
+	$asana->getUsersInWorkspace(get_workspace());
 	if( $asana->getData() != null ){
 		foreach( $asana->getData() as $employe ){
 			get_user_asana_id( $employe->gid );

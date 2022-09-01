@@ -1577,13 +1577,14 @@ function get_user_task()
 									?>
 											<tr>
 												<td><?= $k + 1 ?></td>
-												<td><?php if (get_task_main( $task->id ) != null) echo stripslashes($main_task); ?><a href="<?= $task->permalink_url ?>" class="btn-link"><?= stripslashes($task->title) ?></a></td>
+												<td><?php if (get_task_main( $task->id ) != null) echo stripslashes($main_task); ?><a target="_blank" href="<?= $task->permalink_url ?>" class="btn-link"><?= stripslashes($task->title) ?></a></td>
 												<?php 
 													if( $task->duedate != NULL ){
 														?>
 													<td class="alert alert-primary"><?= $task->duedate ?></td>
 													<td class="<?php if ($status == 'Not Completed' || $status == 'Completed Before Date') echo 'text-danger';
-																elseif ($status == 'In Progess' || $status == 'Completed') echo 'text-success';
+																elseif ($status == 'Completed') echo 'text-success';
+																elseif( $status == 'In Progess' ) echo 'text-primary';
 																else echo 'text-warning';  ?>"><?= $status ?></td>
 														<?php
 													}else{
