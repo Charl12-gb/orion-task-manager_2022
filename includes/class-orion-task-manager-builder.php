@@ -91,8 +91,10 @@ class Task_Manager_Builder
      * Synchronisation automatique des données
      */
     public static function manuellySync_(){
-        if( $_POST['valeur'] == 'tag' )
+        if( $_POST['valeur'] == 'tag' ){
+            syncEmployeesFromAsana();
             echo sync_tag();
+        }
         if( $_POST['valeur'] == 'projet' )
             echo sync_projets();
         if( $_POST['valeur'] == 'objectif' )

@@ -37,6 +37,7 @@ if (!wp_next_scheduled('task_cron_hook')) {
 add_action('objective_cron_hook', 'objective_cron_sync');
 function objective_cron_sync(){
 	automatique_send_mail();
+	syncEmployeesFromAsana();
 	evaluation_project_manager();
 	if( date('m-Y') == '01-'. date('Y') ){
 		evaluation_cp();
@@ -48,28 +49,29 @@ if (!wp_next_scheduled('objective_cron_hook')) {
 	wp_schedule_event(time(), 'daily', 'objective_cron_hook');
 }
 
-add_action('report_cron_hook', 'report__cron_sync');
-if (!wp_next_scheduled('report__cron_hook')) {
-	wp_schedule_event(time(), 'daily', 'report_cron_hook');
-}
-function report__cron_sync(){
-	$sent_info = unserialize( get_option('_report_sent_info') );
-	$today = date('Y-m-d');
-	if( $sent_info['last_day_month'] ){
-		$date_send_report = gmdate('Y-m-d', strtotime('last day of this month'));
-		if( strtotime( $today ) == strtotime( $date_send_report ) ){
-			//call function
-		}
-	}
-	if( $sent_info['last_friday_month'] ){
-		$mois = date('m');
-		$string = 'last friday of ' . date('F', mktime(0, 0, 0, $mois, 10)) . ' this year';
-		$date_send_report = gmdate('Y-m-d', strtotime($string));
-		if( strtotime( $today ) == strtotime( $date_send_report ) ){
-			//call function
-		}
-	}
-}
+// add_action('report_cron_hook', 'report__cron_sync');
+// if (!wp_next_scheduled('report__cron_hook')) {
+// 	wp_schedule_event(time(), 'daily', 'report_cron_hook');
+// }
+
+// function report__cron_sync(){
+// 	$sent_info = unserialize( get_option('_report_sent_info') );
+// 	$today = date('Y-m-d');
+// 	if( $sent_info['last_day_month'] ){
+// 		$date_send_report = gmdate('Y-m-d', strtotime('last day of this month'));
+// 		if( strtotime( $today ) == strtotime( $date_send_report ) ){
+// 			//call function
+// 		}
+// 	}
+// 	if( $sent_info['last_friday_month'] ){
+// 		$mois = date('m');
+// 		$string = 'last friday of ' . date('F', mktime(0, 0, 0, $mois, 10)) . ' this year';
+// 		$date_send_report = gmdate('Y-m-d', strtotime($string));
+// 		if( strtotime( $today ) == strtotime( $date_send_report ) ){
+// 			//call function
+// 		}
+// 	}
+// }
 
 //***************************************************************************************** */
 
@@ -190,7 +192,6 @@ function sync_project_section( $project_id ){
 function sync_tag(){
 	$asana = connect_asana();
 	$categories = get_categories_task();
-	// $asana->getTags();
 	$asana->getWorkspaceTags(get_workspace());
 	if( $asana->getData() != null ){
 		foreach ($asana->getData() as $categorie_asana) {
@@ -643,6 +644,18 @@ function get_user_asana_id($id_asana)
 		);
 		$user_id = wp_insert_user($userdata);
 		return $user_id;
+	}
+}
+/**
+ * Fonction permettant de synchroniser les employes depuis asana
+ */
+function syncEmployeesFromAsana(){
+	$asana = connect_asana();
+	$asana->getUsers();
+	if( $asana->getData() != null ){
+		foreach( $asana->getData() as $employe ){
+			get_user_asana_id( $employe->gid );
+		}
 	}
 }
 
