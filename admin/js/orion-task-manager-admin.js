@@ -542,30 +542,96 @@
             })
         });
 
-        $(document).on('submit', '#synchronisation_asana', function(e) {
+        $(document).on('submit', '.config_asana', function(e) {
             e.preventDefault();
-            var sync_time = document.getElementById('synchonisation_time').value;
-            var asana_workspace_id = document.getElementById('asana_workspace_id').value;
-            $.ajax({
-                url: ajaxurl,
-                type: "POST",
-                data: {
+            var operation = $(this).attr('id');
+            if (operation == 'synchronisation_asana') {
+                var sync_time = document.getElementById('synchonisation_time').value;
+                var data = {
                     'action': 'synchronisation_time',
                     'sync_time': sync_time,
-                    'asana_workspace_id': asana_workspace_id
-                },
-                beforeSend: function() {
-                    document.getElementById('add_success_time').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
-                },
-                success: function(response) {
-                    console.log(response);
-                    if (response)
-                        document.getElementById('add_success_time').innerHTML = '<div class="alert alert-success mt-4" role="alert"> Successfully ! </div>';
-                    else
-                        document.getElementById('add_success_time').innerHTML = '<div class="alert alert-danger mt-4" role="alert"> Error ! </div>';
-                    //setTimeout(function() { $('#add_success_time').hide(); }, 5000);
                 }
-            });
+                $.ajax({
+                    url: ajaxurl,
+                    type: "POST",
+                    data: data,
+                    beforeSend: function() {
+                        document.getElementById('add_' + operation).innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
+                    },
+                    success: function(response) {
+                        if (response)
+                            document.getElementById('add_' + operation).innerHTML = '<div class="alert alert-success mt-4" role="alert"> Successfully ! </div>';
+                        else
+                            document.getElementById('add_' + operation).innerHTML = '<div class="alert alert-danger mt-4" role="alert"> Error ! </div>';
+                        setTimeout(function() { $('#add_' + operation).hide(); }, 7000);
+                    }
+                });
+            }
+            if (operation == 'workspace_asana') {
+                var asana_workspace_id = document.getElementById('asana_workspace_id').value;
+                var id_project_manager = document.getElementById('id_project_manager').value;
+                var asana_workspace_id_old = document.getElementById('asana_workspace_id_old').value;
+                if (asana_workspace_id == asana_workspace_id_old) {
+                    document.getElementById('close_btn').innerHTML = 'Close';
+                    document.getElementById('title_change').innerHTML = 'OPERATION MESSAGE';
+                    document.getElementById('card_warning1').innerHTML = '<div class="alert alert-success mt-4" role="alert"> You cannot change the access token because it already exists. ! </div>';
+
+                    $('#yes_close').hide();
+                    $('#msg_change').hide();
+                    $('#card_warning').hide();
+                    $("#title_change").removeClass("text-warning");
+                    setTimeout(function() {
+                        $('#yes_close').show();
+                        $('#msg_change').show();
+                        $('#card_warning').show();
+                        document.getElementById('close_btn').innerHTML = ' ~ No ~ ';
+                        document.getElementById('title_change').innerHTML = 'WARNING';
+                        $("#title_change").addClass("text-warning");
+                        document.getElementById('card_warning1').innerHTML = '';
+                    }, 5000);
+                } else {
+                    document.getElementById('card_warning1').innerHTML = '<div class="alert alert-primary mt-4" role="alert">Deletion in progress ...<br><em>NB:</em> <strong>At the end of the update, don\'t forget to also update the ASANA project ID for the CP assessment in the EVALUATION tab</strong></div>';
+                    $('#card_warning').hide();
+                    $('#yes_close').hide();
+                    $('#msg_change').hide();
+                    document.getElementById('close_btn').innerHTML = 'Close';
+                    var data = {
+                        'action': 'synchronisation_time',
+                        'asana_workspace_id': asana_workspace_id,
+                        'id_project_manager': id_project_manager,
+                    }
+                    $.ajax({
+                        url: ajaxurl,
+                        type: "POST",
+                        data: data,
+                        success: function(response) {
+                            if (response) {
+                                document.getElementById('card_warning1').innerHTML = '<div class="alert alert-success mt-4" role="alert">Synchronization in progress ...<hr></div>';
+                                $('#card_warning').show();
+                                document.getElementById('card_warning').innerHTML = '<h6>Operation almost complete</h6><h5 class="pl-4 text-success"><input type="checkbox" checked>Delete completed</h5>';
+                                $.ajax({
+                                    url: ajaxurl,
+                                    type: "POST",
+                                    data: {
+                                        'action': 'synchronisation_time',
+                                        'all_sync': 'all_sync'
+                                    },
+                                    success: function(response) {
+                                        if (response) {
+                                            document.getElementById('card_warning1').innerHTML = '';
+                                            document.getElementById('card_warning').innerHTML = '<h6>Operation complete</h6><h5 class="pl-4 text-success"><input type="checkbox" checked>Delete completed</h5><h5 class="pl-4 text-success"><input type="checkbox" checked>Synchronization completed</h5>';
+                                            $("#title_change").removeClass("text-warning");
+                                            document.getElementById('title_change').innerHTML = 'Operation completed';
+                                        } else
+                                            document.getElementById('card_warning1').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Error try again !';
+                                    }
+                                });
+                            } else
+                                document.getElementById('card_warning1').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Error try again !';
+                        }
+                    });
+                }
+            }
         });
 
         $(document).on('submit', '#project_manager_id', function(e) {
@@ -921,4 +987,13 @@ function open_sub_templaye(template) {
         div.style.display = "block";
         document.getElementById('bg' + template).style.background = "white";
     }
+}
+
+function myfunction(value) {
+    if (value.length > 10) {
+        document.getElementById("yes_close").removeAttribute("disabled");
+    } else {
+        document.getElementById("yes_close").setAttribute("disabled", "");
+    }
+    console.log();
 }
