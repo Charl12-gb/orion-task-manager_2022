@@ -708,27 +708,38 @@ class Task_Manager_Builder
                     echo update_option('_synchronisation_time', $time);
                 }
                 if (isset($_POST['all_sync'])) {
-                    syncEmployeesFromAsana();
-                    $output = save_objective_section();
-                    $output1 = sync_tag();
-                    $output2 = sync_projets();
-                    $output3 = sync_objectives_month();
-                    $output4 = sync_tasks();
-                    $output5 = sync_duedate_task();
-                    if( ( $output == true ) && ( $output1 == 'tag' ) && ( $output2 == 'projet' ) && ( $output3 == 'objectif' ) && ( $output4 == 'task' ) && ( $output5 == 'duedate' ) ) echo true; else echo false;
+                    if( $_POST['all_sync'] == 'categorie' ){
+                        syncEmployeesFromAsana();
+                        save_objective_section();
+                        $output1 = sync_tag();
+                        if( $output1 == 'tag' ) echo true; else echo false;
+                    }
+                    if( $_POST['all_sync'] == 'project' ){
+                        $output2 = sync_projets();
+                        if( $output2 == 'projet' ) echo true; else echo false;
+                    }
+                    if( $_POST['all_sync'] == 'objective' ){
+                        $output3 = sync_objectives_month();
+                        if( $output3 == 'objectif' ) echo true; else echo false;
+                    }
+                    if( $_POST['all_sync'] == 'task' ){
+                        $output4 = sync_tasks();
+                        if( $output4 == 'task' ) echo true; else echo false;
+                    }
+                    if( $_POST['all_sync'] == 'duedate' ){
+                        $output5 = sync_duedate_task();
+                        if( $output5 == 'duedate' ) echo true; else echo false;
+                    }
                 }
+
                 if (isset($_POST['asana_workspace_id'])) {
                     $asana_workspace_id = htmlentities($_POST['asana_workspace_id']);
                     $out =  update_option('_asana_workspace_id', $asana_workspace_id);
                     $out1 =  update_option('_project_manager_id', htmlentities($_POST['id_project_manager']));
-                    $out3 = Task_Manager_Builder::delete_all();
+                    $out3 = delete_all();
                     if( ($out == true) and ($out1 == true) and ( $out3 == true ) ) echo true; else echo false;
                 } else echo false;
                 wp_die();
-            }
-
-            public static function delete_all(){
-                return true;
             }
 
             /**

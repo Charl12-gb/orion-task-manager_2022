@@ -28,6 +28,7 @@
      * Although scripts in the WordPress core, Plugins and Themes may be
      * practising this, we should strive to set a better example in our own work.
      */
+
     $(document).ready(function() {
         var i = 0,
             z = 0,
@@ -35,6 +36,7 @@
             v = 0,
             u = 0;
         var val;
+        var sortir = 0;
 
         $(document).on('click', '.syncNow', function() {
             $.ajax({
@@ -590,7 +592,7 @@
                         document.getElementById('card_warning1').innerHTML = '';
                     }, 5000);
                 } else {
-                    document.getElementById('card_warning1').innerHTML = '<div class="alert alert-primary mt-4" role="alert">Deletion in progress ...<br><em>NB:</em> <strong>At the end of the update, don\'t forget to also update the ASANA project ID for the CP assessment in the EVALUATION tab</strong></div>';
+                    document.getElementById('card_warning1').innerHTML = '<div class="alert alert-primary mt-4" role="alert">Deletion in progress ...</div>';
                     $('#card_warning').hide();
                     $('#yes_close').hide();
                     $('#msg_change').hide();
@@ -606,33 +608,73 @@
                         data: data,
                         success: function(response) {
                             if (response) {
-                                document.getElementById('card_warning1').innerHTML = '<div class="alert alert-success mt-4" role="alert">Synchronization in progress ...<hr></div>';
+                                document.getElementById('card_warning1').innerHTML = '<div class="alert alert-success mt-4" role="alert">Synchronization in progress ...<br><strong><h6>Operation almost complete...</h6></strong></div>';
                                 $('#card_warning').show();
-                                document.getElementById('card_warning').innerHTML = '<h6>Operation almost complete</h6><h5 class="pl-4 text-success"><input type="checkbox" checked>Delete completed</h5>';
-                                $.ajax({
-                                    url: ajaxurl,
-                                    type: "POST",
-                                    data: {
-                                        'action': 'synchronisation_time',
-                                        'all_sync': 'all_sync'
-                                    },
-                                    success: function(response) {
-                                        if (response) {
-                                            document.getElementById('card_warning1').innerHTML = '';
-                                            document.getElementById('card_warning').innerHTML = '<h6>Operation complete</h6><h5 class="pl-4 text-success"><input type="checkbox" checked>Delete completed</h5><h5 class="pl-4 text-success"><input type="checkbox" checked>Synchronization completed</h5>';
-                                            $("#title_change").removeClass("text-warning");
-                                            document.getElementById('title_change').innerHTML = 'Operation completed';
-                                        } else
-                                            document.getElementById('card_warning1').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Error try again !';
+                                document.getElementById('card_warning').innerHTML = '<h5 class="pl-4 text-success"><input type="checkbox" checked>Delete completed</h5>';
+                                $('#card_warning').append('<hr><h5 class="pl-4">Synhronization : </h5>');
+                                ajaxSync('categorie').success(function(data) {
+                                    if (data) {
+                                        $('#card_warning').append('<h5 class="pl-4"><input type="checkbox" checked>Category synchronization completed</h5>');
+                                        ajaxSync('project').success(function(data) {
+                                            if (data) {
+                                                $('#card_warning').append('<h5 class="pl-4"><input type="checkbox" checked>Synchronization of projects completed</h5>');
+                                                ajaxSync('objective').success(function(data) {
+                                                    if (data) {
+                                                        $('#card_warning').append('<h5 class="pl-4"><input type="checkbox" checked>Synchronization of goals completed</h5>');
+                                                        ajaxSync('task').success(function(data) {
+                                                            if (data) {
+                                                                $('#card_warning').append('<h5 class="pl-4"><input type="checkbox" checked>Synchronization of tasks completed</h5>');
+                                                                ajaxSync('categorie').success(function(data) {
+                                                                    if (data) {
+                                                                        $('#card_warning').append('<h5 class="pl-4"><input type="checkbox" checked>Synchronization of due dates completed</h5>');
+                                                                        document.getElementById('card_warning1').innerHTML = '<div class="alert alert-primary mt-4" role="alert"><strong><h5>Operation completed</h5></strong></div>';
+                                                                        $('#card_warning').append('<h5 class="pl-4 text-success">Synchronization completed</h5>');
+                                                                        document.getElementById('close_btn').innerHTML = 'Finish';
+                                                                    } else {
+                                                                        $('#card_warning').append('<h5 class="pl-4 text-danger"><input type="checkbox" >Synchronization of due dates error</h5>');
+                                                                        document.getElementById('card_warning1').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Error try again !';
+                                                                    }
+                                                                });
+                                                            } else {
+                                                                $('#card_warning').append('<h5 class="pl-4 text-danger"><input type="checkbox" >Synchronization of tasks error</h5>');
+                                                                document.getElementById('card_warning1').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Error try again !';
+
+                                                            }
+                                                        });
+                                                    } else {
+                                                        $('#card_warning').append('<h5 class="pl-4 text-danger"><input type="checkbox" >Synchronization of goals error</h5>');
+                                                        document.getElementById('card_warning1').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Error try again !';
+                                                    }
+                                                });
+                                            } else {
+                                                $('#card_warning').append('<h5 class="pl-4 text-danger"><input type="checkbox" >Synchronization of projects error</h5>');
+                                                document.getElementById('card_warning1').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Error try again !';
+                                            }
+                                        });
+                                    } else {
+                                        $('#card_warning').append('<h5 class="pl-4 text-danger"><input type="checkbox" >Category synchronization error</h5>');
+                                        document.getElementById('card_warning1').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Error try again !';
                                     }
                                 });
-                            } else
+                            } else {
                                 document.getElementById('card_warning1').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Error try again !';
+                            }
                         }
                     });
                 }
             }
         });
+
+        function ajaxSync(element) {
+            return $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'synchronisation_time',
+                    'all_sync': element
+                }
+            });
+        }
 
         $(document).on('submit', '#project_manager_id', function(e) {
             e.preventDefault();

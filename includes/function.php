@@ -131,6 +131,30 @@ function delete_template($id_template, $type)
 }
 
 /**
+ * Fonction permettant de vider les tables après mise à jour de l'access token
+ * 
+ * @return bool
+ */
+function delete_all(){
+	global $wpdb;
+	$out = array();
+	$tables = array(
+		$wpdb->prefix . 'worklog', 
+		$wpdb->prefix . 'subtask',
+		$wpdb->prefix . 'task',
+		$wpdb->prefix . 'objectives',
+		$wpdb->prefix . 'categories',
+		$wpdb->prefix . 'sections',
+		$wpdb->prefix . 'project'
+	);
+	foreach( $tables as $table ){
+		$out = array( $wpdb->query("DELETE FROM $table") );
+	}
+	if( in_array(false, $out) ) return false;
+	else return true;
+}
+
+/**
  * Save and update project
  * @param array $data
  * @param int|null $project_id
@@ -1318,7 +1342,7 @@ function project_tab( ){
 					<tr>
 						<td class="m-0 p-0" style="height: 45px;"><?= $k + 1 ?></td>
 						<td class="m-0 p-0" style="height: 45px;"><span class="btn btn-link project_edit" id="<?= $project->id ?>"><?= $project->title ?></span></td>
-						<td class="m-0 p-0" style="height: 45px;"><?= get_userdata( $project->project_manager )->display_name ?></td>
+						<td class="m-0 p-0 pt-2" style="height: 45px;"><?= get_userdata( $project->project_manager )->display_name ?></td>
 						<td class="m-0 p-0" style="height: 45px;">
 							<span class="text-primary btn btn-link project_edit" id="<?= $project->id ?>">Edit</span> | <span class="text-danger btn btn-link project_remove" id="<?= $project->id ?>">Delete</span>
 						</td>
@@ -1756,7 +1780,7 @@ function create_task_criteria()
 			<div id="bg11111" style="background:white" class="col-sm-6 alert alert-info btn-link" onclick="open_sub_templaye(11111)">
 				<h6>Developpment</h6>
 			</div>
-			<div id="bg22222" style="background:" class="col-sm-6 alert alert-info btn-link" onclick="open_sub_templaye(22222)">
+			<div id="bg22222" class="col-sm-6 alert alert-info btn-link" onclick="open_sub_templaye(22222)">
 				<h6>Normal</h6>
 			</div>
 		</div>
