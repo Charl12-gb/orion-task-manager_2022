@@ -882,6 +882,18 @@ class Asana
     }
 
     /**
+     * Delete tag from asana
+     * 
+     * @param string $tagId
+     * 
+     * @return string JSON or null
+     */
+    public function deleteTag($tagId)
+    {
+        return $this->askAsana($this->tagsUrl . '/' . $tagId, null, ASANA_METHOD_DELETE);
+    }
+
+    /**
      * Modifies the fields of a tag provided in the request, then returns the full updated record.
      *
      * @param string $tagId

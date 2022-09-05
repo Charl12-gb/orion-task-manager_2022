@@ -255,6 +255,9 @@ function update_type_task( $datas, $type_task ){
 function delete_categories_($id)
 {
 	global $wpdb;
+	// Delte from asana
+	$asana = connect_asana();
+	$asana->deleteTag($id);
 	$table = $wpdb->prefix . 'categories';
 	return $wpdb->delete($table, array('id' => $id), array('%d'));
 }

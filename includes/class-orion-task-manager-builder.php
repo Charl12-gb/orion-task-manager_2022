@@ -564,7 +564,7 @@ class Task_Manager_Builder
                     $id_categorie = htmlentities($_POST['id_categorie']);
                     $retour = delete_categories_($id_categorie);
                     if ($retour) echo get_categories_();
-                    else echo 'error';
+                    else echo false;
                 } else {
                     delete_template($id_template, 'task');
                     echo get_list_template();

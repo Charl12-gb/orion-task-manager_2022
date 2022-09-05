@@ -209,8 +209,8 @@
                 },
                 success: function(response) {
                     document.getElementById('categories_card').innerHTML = response;
-                    document.getElementById('add_success_categories').innerHTML = '<div class="alert alert-success mt-4" role="alert">Successfully updated evaluation criteria</div>';
-                    setTimeout(function() { $('#add_success_categories').hide(); }, 5000);
+                    document.getElementById('add_success_categories').innerHTML = '<div class="alert alert-success mt-4" role="alert">Successfully updated or saved categories</div>';
+                    setTimeout(function() { $('#add_success_categories').hide(); }, 10000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -504,6 +504,7 @@
 
         $(document).on('click', '.delete_categorie', function() {
             var id_categorie = $(this).attr('id');
+            document.getElementById(id_categorie).setAttribute("disabled", "");
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
@@ -512,7 +513,12 @@
                     'id_categorie': id_categorie
                 },
                 success: function(response) {
-                    document.getElementById("categories_card").innerHTML = response;
+                    if( response != false ){
+                        document.getElementById("categories_card").innerHTML = response;
+                        document.getElementById("add_success_categories").innerHTML = '<span class="alert alert-danger">Deletion completed successfully !</span>';
+                    }else{
+                        document.getElementById("add_success_categories").innerHTML = '<span class="alert alert-danger">Error !</span>';
+                    }
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
