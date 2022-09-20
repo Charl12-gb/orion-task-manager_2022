@@ -210,7 +210,6 @@
                 success: function(response) {
                     document.getElementById('categories_card').innerHTML = response;
                     document.getElementById('add_success_categories').innerHTML = '<div class="alert alert-success mt-4" role="alert">Successfully updated or saved categories</div>';
-                    setTimeout(function() { $('#add_success_categories').hide(); }, 10000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -513,10 +512,10 @@
                     'id_categorie': id_categorie
                 },
                 success: function(response) {
-                    if( response != false ){
+                    if (response != false) {
                         document.getElementById("categories_card").innerHTML = response;
-                        document.getElementById("add_success_categories").innerHTML = '<span class="alert alert-danger">Deletion completed successfully !</span>';
-                    }else{
+                        document.getElementById("add_success_categories").innerHTML = '<div class="alert alert-success mt-4" role="alert">Deletion completed successfully !</div>';
+                    } else {
                         document.getElementById("add_success_categories").innerHTML = '<span class="alert alert-danger">Error !</span>';
                     }
                 },
@@ -954,7 +953,6 @@
         $(document).on('submit', '#create_new_projet', function(e) {
             e.preventDefault();
             document.getElementById('add_success1').innerHTML = '';
-            console.log('Le clic sur le bouton a été pris en compte');
             var multi_choix = $('#multichoix option:selected').toArray().map(item => item.value);
             var projectmanager = document.getElementById('projectmanager').value;
             var project_id = "";

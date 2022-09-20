@@ -283,7 +283,7 @@ class Task_Manager_Builder
                                 'section_name'        => $result->name
                             );
                             // Sauvegarde des sections inexistante dans la bdd
-                            save_new_sections($data);
+                            $output = save_new_sections($data);
                         }
                     }
                 }
@@ -784,8 +784,7 @@ class Task_Manager_Builder
                                         <form action="" method="post" id="create_template">
                                         </form>
                                         <div id="template_card">
-                                            <?= get_list_template();
-                                            ?>
+                                            <?= get_list_template(); ?>
                                         </div>
                                     </div>
                                 </div>
@@ -811,7 +810,7 @@ class Task_Manager_Builder
                             </div>
                             <div id="collapseFour1" class="collapse" aria-labelledby="headingFour1" data-parent="#accordion">
                                 <div class="card-body">
-                                    <?= create_new_project() ?>
+                                    <?= project_form_add() ?>
                                 </div>
                             </div>
                         </div>

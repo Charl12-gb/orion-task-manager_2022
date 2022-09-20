@@ -1198,11 +1198,13 @@ function get_form_template($id_template = null)
 
 <?php
 }
+
 function project_form_add( $id_project=null ){
 	if( $id_project != null ) $project = get_project_( $id_project );
 	?>
-		<h3><?php if( $id_project != null ) echo 'Update Project'; else echo 'New Project'; ?> <button class="btn btn-outline-success btn_list_project" id="project_btn_list">List Projects</button> </h3>
-			<hr>
+		<h3><?php if( $id_project != null ) echo 'Update Project'; else echo 'New Project'; ?> <button <?php if( $id_project == null ) echo 'class="btn btn-outline-success collapsed" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree"'; else echo 'class="btn btn-outline-success btn_list_project" id="project_btn_list"'; ?>>List Projects</button> </h3>
+		<p><strong class="text-warning">NB: </strong>Before creating a project, make sure that the project manager and collaborators have an account on ASANA and have been added to the Workspace. If not it will produce an error. Thanks</p>
+		<hr>
 			<form id="create_new_projet" name="create_new_projet" action="" method="post">
 			<?php if( $id_project != null ) { ?> <input type="hidden" name="project_id" id="project_id" value="<?= $id_project ?>"> <?php } ?>
 				<div class="form-group">
@@ -1234,6 +1236,18 @@ function project_form_add( $id_project=null ){
 						</div>
 					</div>
 				</div>
+				<?php
+					if( $id_project == null ){
+						?>
+						<div class="form-group">
+							<label for="inputState">Collaborators :</label>
+							<select class="selectpicker form-control" id="multichoix" name="multichoix" multiple data-live-search="true">
+								<?= option_select(get_all_users()) ?>
+							</select>
+						</div>
+						<?php
+					}
+				?>
 				<hr>
 				<h5>Sections</h5>
 				<div id="addsectionchamp" class="pb-3">
@@ -1245,18 +1259,9 @@ function project_form_add( $id_project=null ){
 								?>
 								<div id="rm2<?= $i ?>">
 									<div class="form-row pt-2">
-										<div class="col-sm-11">
-											<input type="text" name="section<?= $i ?>" id="section<?= $i ?>" class="form-control" value="<?= $section ?>">
+										<div class="col-sm-12">
+											<input type="text" name="section<?= $i ?>" id="section<?= $i ?>" readonly class="form-control" value="<?= $section ?>">
 										</div>
-										<?php 
-										if( $section != 'Untitled section' ){
-											?>
-											<div class="col-sm-1">
-												<span name="remove" id="<?= $i ?>" class="btn btn-outline-danger btn_remove_section">X</span>
-											</div>
-											<?php 
-										}
-										?>
 									</div>
 								</div>
 								<?php
@@ -1278,58 +1283,14 @@ function project_form_add( $id_project=null ){
 	<?php
 }
 
-function create_new_project(){
-	?>
-		<h3>New Project <button class="btn btn-outline-success collapsed" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree"> List Projects </button> </h3>
-			<hr>
-			<form id="create_new_projet" name="create_new_projet" action="" method="post">
-				<div class="form-group">
-					<label for="InputTitle">Project Name </label>
-					<input type="text" name="titleproject" id="titleproject" class="form-control" placeholder="Project Name">
-				</div>
-				<div class="form-group">
-					<textarea class="form-control" id="description" name="description" rows="3" placeholder="Description ..."></textarea>
-				</div>
-				<div class="form-group">
-					<div class="form-row">
-						<div class="col">
-							<label for="InputTitle">Slug </label>
-							<input type="text" name="slug" id="slug" class="form-control" placeholder="Slug">
-						</div>
-						<div class="col">
-							<label for="inputState">Project Manager :</label>
-							<select id="projectmanager" name="projectmanager" class="form-control">
-								<option value="">Choose...</option>
-								<?= option_select(get_all_users()) ?>
-							</select>
-						</div>
-					</div>
-				</div>
-				<div class="form-group">
-					<label for="inputState">Collaborators :</label>
-					<select class="selectpicker form-control" id="multichoix" name="multichoix" multiple data-live-search="true">
-					<?= option_select(get_all_users()) ?>
-					</select>
-				</div>
-				<hr>
-				<h5>Sections</h5>
-				<div id="addsectionchamp" class="pb-3"></div>
-				<div class="form-group">
-					<span id="addsection" name="addsection" class="btn btn-outline-success">+ Add Section</span>
-				</div>
-				<div class="form-group">
-					<button type="submit" name="valide" class="btn btn-primary btn-sm btn-block"> CREATE PROJECT </button>
-				</div>
-			</form>
-	<?php
-}
-
 function project_tab( ){
 	$projects = get_project_();
 	?>
 		<h3>List Projects <button class="btn btn-outline-success collapsed" data-toggle="collapse" data-target="#collapseFour1" aria-expanded="false" aria-controls="collapseFour1">Add New Project</button> </h3>
+		<p>The list of projects with managers and a brief description</p>
+		<hr>
 		<table class="table table-hover table-responsive-lg">
-			<thead>
+			<thead class="thead-dark">
 				<tr>
 					<th>N°</th>
 					<th>Title</th>
@@ -1343,10 +1304,13 @@ function project_tab( ){
 				foreach ($projects as $project) {
 				?>
 					<tr>
-						<td class="m-0 p-0" style="height: 45px;"><?= $k + 1 ?></td>
-						<td class="m-0 p-0" style="height: 45px;"><span class="btn btn-link project_edit" id="<?= $project->id ?>"><?= $project->title ?></span></td>
-						<td class="m-0 p-0 pt-2" style="height: 45px;"><?= get_userdata( $project->project_manager )->display_name ?></td>
-						<td class="m-0 p-0" style="height: 45px;">
+						<td class="m-2"><?= $k+1 ?></td>
+						<td class="m-0 p-0">
+							<span class="btn btn-link project_edit" id="<?= $project->id ?>"><?= $project->title ?></span><br>
+							<span class="ml-3"><?= substr($project->description, 0,30) ?> ... </span> 
+						</td>
+						<td class="m-0 p-0 pt-2"><?= get_userdata( $project->project_manager )->display_name ?></td>
+						<td class="m-0 p-0">
 							<span class="text-primary btn btn-link project_edit" id="<?= $project->id ?>">Edit</span> | <span class="text-danger btn btn-link project_remove" id="<?= $project->id ?>">Delete</span>
 						</td>
 					</tr>
@@ -1371,7 +1335,7 @@ function get_list_template()
 ?>
 	<h3>List Template <button class="btn btn-outline-success btn_list_task" id="template_btn_add">Add New Template</button> </h3>
 	<table class="table table-hover table-responsive-lg">
-		<thead>
+		<thead class="thead-dark">
 			<tr>
 				<th>N°</th>
 				<th>Template name</th>
@@ -1521,7 +1485,7 @@ function objective_tab( $id_user = null, $month = null ){
 				?>
 				<div class="card-body">
 					<table class="table table-hover">
-						<thead>
+						<thead  class="thead-dark">
 							<tr>
 								<th colspan="2">Goals</th>
 							</tr>
@@ -1584,7 +1548,7 @@ function get_user_task()
 					<div id="collapse<?= $project['id'] . $project['title'] ?>" class="collapse <?php if ($i == 1) echo 'show'; ?>" aria-labelledby="heading<?= $project['id'] . $project['title'] ?>" data-parent="#accord">
 						<div class="card-body">
 							<table class="table table-hover">
-								<thead>
+								<thead  class="thead-dark">
 									<tr>
 										<th>N°</th>
 										<th>Task title</th>
@@ -1894,7 +1858,7 @@ function list_email_sending()
 	$emails = get_email_();
 ?>
 	<table class="table table-hover table-responsive-lg">
-		<thead>
+		<thead class="thead-dark">
 			<tr>
 				<th>N°</th>
 				<th>Subject</th>
