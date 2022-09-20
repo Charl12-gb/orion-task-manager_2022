@@ -20,7 +20,7 @@ class Task_Manager_Builder
             'Task_Manager_Builder::settings_page',
             'dashicons-welcome-write-blog',
             30,
-            '',
+            ''
         );
     }
 

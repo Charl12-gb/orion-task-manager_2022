@@ -215,15 +215,18 @@ function sync_projets()
 	// See class comments and Asana API for full info
 	$projects = get_project_();
 	$asana = connect_asana();
-	$asana->getProjects();
+	$asana->getProjectsInWorkspace(get_option('_asana_workspace_id'));
+	
 	if ($asana->getData() != null) {
 		foreach ($asana->getData() as $project_asana) {
 			$sync = true;
 			if ($projects == null) $sync = true;
 			else {
 				if( $project_asana->gid == get_option('_project_manager_id') ) $sync = false;
-				foreach ($projects as $project) {
-					if ($project_asana->gid == $project->id) { $sync = false; }
+				else{
+				    foreach ($projects as $project) {
+    					if ($project_asana->gid == $project->id) { $sync = false; }
+    				}
 				}
 			}
 			if ($sync) {
@@ -233,30 +236,32 @@ function sync_projets()
 				}else $created = null;
 				$asana->getProject($project_asana->gid);
 				$project_asana_info = $asana->getData();
-				if( ( $project_asana_info->workspace->gid == get_option('_asana_workspace_id') ) || ( $project_asana->gid == get_option('_project_manager_id') ) ){
-					if ($project_asana->gid == get_option('_project_manager_id')) $project_manager = NULL;
-					else $project_manager = get_user_asana_id($created);
+				
+				if ($project_asana->gid == get_option('_project_manager_id')) $project_manager = NULL;
+				else $project_manager = get_user_asana_id($created);
 
-					if( isset( $project_asana_info->notes ) ) $description_project = $project_asana_info->notes;
-					else $description_project = null;
-					$data1 = array(
-						'id' => $project_asana->gid,
-						'title' => $project_asana->name,
-						'description' => $description_project,
-						'permalink' => $project_asana_info->permalink_url,
-						'slug' => str_replace(" ", ",", strtolower($project_asana->name)),
-						'project_manager' => $project_manager,
-						'collaborator' => get_asana_collaborator($project_asana->gid)
-					);
-					// Sauvegarde des projets inexistant dans la bdd
-					save_project($data1);
-				}
+				if( isset( $project_asana_info->notes ) ) $description_project = $project_asana_info->notes;
+				else $description_project = null;
+				$data1 = array(
+					'id' => $project_asana->gid,
+					'title' => $project_asana->name,
+					'description' => $description_project,
+					'permalink' => $project_asana_info->permalink_url,
+					'slug' => str_replace(" ", ",", strtolower($project_asana->name)),
+					'project_manager' => $project_manager,
+					'collaborator' => get_asana_collaborator($project_asana->gid)
+				);
+				// Sauvegarde des projets inexistant dans la bdd
+				
+				save_project($data1);
+					
 			}
 			sync_project_section( $project_asana->gid );
 		}
 	}
 	return 'projet';
 }
+
 
 
 /**
