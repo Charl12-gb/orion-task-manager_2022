@@ -111,7 +111,6 @@ class Task_Manager_Builder
     {
         if ($_POST['valeur'] == 'tag') {
             syncEmployeesFromAsana();
-            save_objective_section();
             echo sync_tag();
         }
         if ($_POST['valeur'] == 'projet')
@@ -716,7 +715,6 @@ class Task_Manager_Builder
         if (isset($_POST['all_sync'])) {
             if ($_POST['all_sync'] == 'categorie') {
                 syncEmployeesFromAsana();
-                save_objective_section();
                 $output1 = sync_tag();
                 if ($output1 == 'tag') echo true;
                 else echo false;
@@ -1230,8 +1228,7 @@ class Task_Manager_Builder
         $post_author = get_current_user_id();
         $download_worklog = get_option('_worklog_authorized');
         if (isset($_GET['status'])) {
-            if (htmlentities($_GET['status']) == 'success'){ ?> <div class="alert alert-success" role="alert">Successfuly ! </div> <?php }
-            else if( htmlentities($_GET['status']) ) { ?> <div class="alert alert-success" role="alert">Successfuly ! </div> <?php }
+            if ((htmlentities($_GET['status']) == 'success') || (htmlentities($_GET['status']) == 'successObj') ){ ?> <div class="alert alert-success" role="alert">Successfuly ! </div> <?php }
             else{ 
                 if( (htmlentities($_GET['status']) == 'errorTypeTask') || (htmlentities($_GET['status']) == 'impossible') ){
                     ?> <div class="alert alert-danger" role="alert">A problem came at the level of the type of the task. <br>Review your task type and try again ! </div> <?php
@@ -1241,6 +1238,15 @@ class Task_Manager_Builder
                 }
                 else if( htmlentities($_GET['status']) == 'errorTaskSave'){
                     ?> <div class="alert alert-danger" role="alert">Problem occurred while saving the task. <br><strong>Try again.</strong> If the problem persists, contact the administrator ! </div> <?php
+                }
+                else if( htmlentities($_GET['status']) == 'objectiveExist'){
+                    ?> <div class="alert alert-danger" role="alert">Sorry, you've already set goals for this month !</div> <?php
+                }
+                else if( htmlentities($_GET['status']) == 'noObjective'){
+                    ?> <div class="alert alert-danger" role="alert">Sorry please enter the goals to achieve and try again ! </div> <?php
+                }
+                else if( htmlentities($_GET['status']) == 'errorAsanaObj'){
+                    ?> <div class="alert alert-danger" role="alert">Error occurred in ASANA. Please try again later. ! </div> <?php
                 }
                 else{ ?> <div class="alert alert-danger" role="alert">Failed operation try again ! </div> <?php }
             }

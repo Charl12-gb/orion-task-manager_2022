@@ -921,7 +921,7 @@ function get_categorie_format()
  */
 function traite_form_public($array){
 	if ( $array['type_task'] == 'objective' ) {
-		saveProjectManagerObjection( $array );
+		return saveProjectManagerObjection( $array );
 	}
 	else if (($array['type_task'] == 'normal') || ($array['type_task'] == 'developper')) {
 		if ($array['show'] == 'userTemplate') {
@@ -943,67 +943,69 @@ function saveProjectManagerObjection( $array ){
 	$mois = htmlentities($array['mois']);
 	$annee = date('Y');
 	$workspace = get_workspace();
-	// $project = htmlentities($array['project_select']);
-	if (get_objective_of_month($mois,  $annee, get_current_user_id()) != null ) return false;
+
+	if (get_objective_of_month($mois,  $annee, get_current_user_id()) != null ){ return 'objectiveExist'; }
 	else {
-		if ($nbre == 0) return false;
+		if ($nbre == 0) return 'noObjective';
 		else {
 			$id_section = section_exist(get_current_user_id());
-			if ($id_section == null) return false;
-			else {
-				//Sauvegarde du mois comme une tâche
-				$month = date('F', mktime(0, 0, 0, $mois, 10)) . " ( $annee ) ";
-				// $project_name = get_project_title($project);
-				$string = 'last friday of ' . date('F', mktime(0, 0, 0, $mois, 10)) . ' this year';
-				$duedate = gmdate('Y-m-d', strtotime($string)) . ' 23:59:00';
-				$asana = connect_asana();
-				$result = $asana->createTask(array(
-					'workspace' => "$workspace", // a revoir
-					'name' => $month,
-					'notes' => "Objectives of the month ( $month )",
-					'assignee_section' 	=> $id_section,
-					'assignee' 			=> get_userdata(get_current_user_id())->user_email,
-					'due_on' 			=> $duedate,
-				));
-				print_r($asana->getData());
-				if ($asana->hasError()) {
-					return false;
-				} else {
-					$objective_id = $asana->getData()->gid;
-					$asana->addProjectToTask($objective_id, get_option('_project_manager_id'));
-					$task_asana = json_decode($result)->data;
-					$permalink_objective = $task_asana->permalink_url;
-					
-					// Sauvegarde des subtask
-					$objective_array = array();
-					for ($k = 1; $k <= $nbre; $k++) {
-						$ob = 'objective' . $k;
-						$objective = htmlentities($array[$ob]);
-						$resulat = $asana->createSubTask($objective_id, array(
-							'name' => $objective,
-							'assignee' 			=> get_userdata(get_current_user_id())->user_email,
-							'due_on' 			=> $duedate,
-						));
-						$taskid = $asana->getData()->gid;
-						$objective_array += array($taskid => array('objective' => $objective, 'status' => ''));
-					}
-					$objective_tab_save = array(
-						'id_objective' 			=> $objective_id,
-						'id_user' 				=> get_current_user_id(),
-						'id_section'			=> $id_section,
-						'month_section' 		=> $mois,
-						'year_section'			=> $annee,
-						'duedate_section'		=> $duedate,
-						'objective_section'		=> serialize($objective_array),
-						'section_permalink'		=> $permalink_objective,
-						'modify_date'			=> $task_asana->modified_at
-					);
-					//Sauvegarde du worklog
-					$task_array = array('id' => $objective_id,'author_id' => get_current_user_id(),'project_id' => get_option('_project_manager_id'),'section_id' => $id_section,'title' => '','permalink_url' => $permalink_objective,'type_task' => 'objective','categorie' => NULL,'dependancies' => NULL,'description' => NULL,'assigne' => NULL,'duedate' => $duedate,'created_at' => $task_asana->created_at);
-					$dataworklog = array('id_task' => $objective_id,'finaly_date' => $task_asana->completed_at,'status' => $task_asana->completed,'evaluation' => NULL,'evaluation_date' => NULL,'mail_status' => 'cp');
-					save_objective($objective_tab_save);
-					return $output = save_new_task($task_array, $dataworklog);
+			if ($id_section == null){ 
+				$id_section = save_objective_section(get_current_user_id());
+			} 
+			
+			//Sauvegarde du mois comme une tâche
+			$month = date('F', mktime(0, 0, 0, $mois, 10)) . " ( $annee ) ";
+			// $project_name = get_project_title($project);
+			$string = 'last friday of ' . date('F', mktime(0, 0, 0, $mois, 10)) . ' this year';
+			$duedate = gmdate('Y-m-d', strtotime($string)) . ' 23:59:00';
+			$asana = connect_asana();
+			$result = $asana->createTask(array(
+				'workspace' => "$workspace", // a revoir
+				'name' => $month,
+				'notes' => "Objectives of the month ( $month )",
+				'assignee_section' 	=> $id_section,
+				'assignee' 			=> get_userdata(get_current_user_id())->user_email,
+				'due_on' 			=> $duedate,
+			));
+
+			if ($asana->hasError()) {
+				return 'errorAsanaObj';
+			} else {
+				$objective_id = $asana->getData()->gid;
+				$asana->addProjectToTask($objective_id, get_option('_project_manager_id'));
+				$task_asana = json_decode($result)->data;
+				$permalink_objective = $task_asana->permalink_url;
+				
+				// Sauvegarde des subtask
+				$objective_array = array();
+				for ($k = 1; $k <= $nbre; $k++) {
+					$ob = 'objective' . $k;
+					$objective = htmlentities($array[$ob]);
+					$resulat = $asana->createSubTask($objective_id, array(
+						'name' => $objective,
+						'assignee' 			=> get_userdata(get_current_user_id())->user_email,
+						'due_on' 			=> $duedate,
+					));
+					$taskid = $asana->getData()->gid;
+					$objective_array += array($taskid => array('objective' => $objective, 'status' => ''));
 				}
+				$objective_tab_save = array(
+					'id_objective' 			=> $objective_id,
+					'id_user' 				=> get_current_user_id(),
+					'id_section'			=> $id_section,
+					'month_section' 		=> $mois,
+					'year_section'			=> $annee,
+					'duedate_section'		=> $duedate,
+					'objective_section'		=> serialize($objective_array),
+					'section_permalink'		=> $permalink_objective,
+					'modify_date'			=> $task_asana->modified_at
+				);
+				//Sauvegarde du worklog
+				$task_array = array('id' => $objective_id,'author_id' => get_current_user_id(),'project_id' => get_option('_project_manager_id'),'section_id' => $id_section,'title' => '','permalink_url' => $permalink_objective,'type_task' => 'objective','categorie' => NULL,'dependancies' => NULL,'description' => NULL,'assigne' => NULL,'duedate' => $duedate,'created_at' => $task_asana->created_at);
+				$dataworklog = array('id_task' => $objective_id,'finaly_date' => $task_asana->completed_at,'status' => $task_asana->completed,'evaluation' => NULL,'evaluation_date' => NULL,'mail_status' => 'cp');
+				save_objective($objective_tab_save);
+				save_new_task($task_array, $dataworklog);
+				return 'successObj';
 			}
 		}
 	}
@@ -1455,7 +1457,7 @@ function objective_tab( $id_user = null, $month = null ){
 	?>
 	<div id="98795" style="display:none">
 		<div class="card-header">
-				<h3 class="mb-0 ">Add Goals</h3>
+			<h3 class="mb-0 ">Add Goals</h3>
 		</div>
 		<form method="post" action="#" >
 			<?php wp_nonce_field('create_new_task', 'verifier_new_task_form'); ?>

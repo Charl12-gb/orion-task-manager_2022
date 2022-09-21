@@ -38,7 +38,6 @@ add_action('objective_cron_hook', 'objective_cron_sync');
 function objective_cron_sync(){
 	automatique_send_mail();
 	syncEmployeesFromAsana();
-	save_objective_section();
 	evaluation_project_manager();
 	if( date('m-Y') == '01-'. date('Y') ){
 		evaluation_cp();
@@ -719,31 +718,29 @@ function saveTaskInAsanaAndBdd($data)
 /**
  * Fonction permettant de créer une nouvelle section d'un project manager en utilisant son nom 
  */
-function save_objective_section()
+function save_objective_section($user_id)
 {
-	$users = get_users(array( 'fields' => array( 'id' ) ));
-	foreach( $users as $user ){
-		if( is_project_manager( $user->id ) != null ){
-			$section_name =  get_userdata($user->id)->display_name;
-			$project = get_option('_project_manager_id');
-			$sectionExist = section_exist($section_name, $project);
-			if ($sectionExist) return false;
-			else {
-				$asana = connect_asana();
-				$asana->createSection(
-					$project,
-					array("name" => $section_name)
+	if( is_project_manager( $user_id ) != null ){
+		$section_name =  get_userdata($user_id)->display_name;
+		$project = get_option('_project_manager_id');
+		$sectionExist = section_exist($section_name, $project);
+		if ($sectionExist) return false;
+		else {
+			$asana = connect_asana();
+			$asana->createSection(
+				$project,
+				array("name" => $section_name)
+			);
+			$asana_output = $asana->getData();
+			if (isset($asana_output->gid)) {
+				$data2 = array(
+					'id' 		=> $asana_output->gid,
+					'project_id' => $project,
+					'section_name'		=> $asana_output->name
 				);
-				$asana_output = $asana->getData();
-				if (isset($asana_output->gid)) {
-					$data2 = array(
-						'id' 		=> $asana_output->gid,
-						'project_id' => $project,
-						'section_name'		=> $asana_output->name
-					);
-				} else return false;
-				return save_new_sections($data2);
-			}
+			} else return false;
+			save_new_sections($data2);
+			return $asana_output->gid;
 		}
 	}
 }
