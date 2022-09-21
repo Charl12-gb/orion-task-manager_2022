@@ -720,6 +720,20 @@ function categorie_name(){
 }
 
 /**
+ * Obtenir les taches d'un utilisateur d'un projet dont il est collaborateur
+ * @param int $user_id
+ * @param int $project_id
+ * 
+ * @return array
+ */
+function getUserTaskInProject($user_id, $project_id){
+	global $wpdb;
+	$table = $wpdb->prefix . 'task';
+	$sql = "SELECT * FROM $table WHERE project_id = $project_id AND assigne = $user_id ORDER BY duedate DESC"; 
+	return $wpdb->get_results($sql);
+}
+
+/**
  * Save userTemplate task add
  * @param array $array
  */
@@ -1283,7 +1297,7 @@ function project_form_add( $id_project=null ){
 	<?php
 }
 
-function project_tab( ){
+function project_tab(){
 	$projects = get_project_();
 	?>
 		<h3>List Projects <button class="btn btn-outline-success collapsed" data-toggle="collapse" data-target="#collapseFour1" aria-expanded="false" aria-controls="collapseFour1">Add New Project</button> </h3>
@@ -1307,7 +1321,7 @@ function project_tab( ){
 						<td class="m-2"><?= $k+1 ?></td>
 						<td class="m-0 p-0">
 							<span class="btn btn-link project_edit" id="<?= $project->id ?>"><?= $project->title ?></span><br>
-							<span class="ml-3"><?= substr($project->description, 0,30) ?> ... </span> 
+							<span class="ml-3"><?= substr($project->description, 0,30) ?>... </span> 
 						</td>
 						<td class="m-0 p-0 pt-2"><?= get_userdata( $project->project_manager )->display_name ?></td>
 						<td class="m-0 p-0">
@@ -1513,7 +1527,7 @@ function objective_tab( $id_user = null, $month = null ){
 			}else{
 				?>
 				<div class="alert alert-primary" role="alert">
-					No tasks for this project at the moment
+					No goals set at this time
 				</div>
 				<?php
 			}
@@ -1521,16 +1535,18 @@ function objective_tab( $id_user = null, $month = null ){
 		</div>
 	<?php
 }
+
 function get_user_task()
 {
-	$user_current_tasks = get_user_current_project(get_current_user_id());
-	if ($user_current_tasks != null) {
+	$user_current_projects = get_user_current_project(get_current_user_id());
+	if ($user_current_projects != null) {
 		$i = 1;
-	?>
+		?>
 		<div id="accord">
 			<?php
-			foreach ($user_current_tasks as $project) {
-			?>
+			foreach ($user_current_projects as $project) {
+				$tasks = getUserTaskInProject(get_current_user_id(), $project['id']);
+				?>
 				<div class="card">
 				<?php 
 					if( $project['id'] != get_option( '_project_manager_id' ) ){
@@ -1544,66 +1560,63 @@ function get_user_task()
 						</div>
 						<?php
 					}
-				?>
+					?>
 					<div id="collapse<?= $project['id'] . $project['title'] ?>" class="collapse <?php if ($i == 1) echo 'show'; ?>" aria-labelledby="heading<?= $project['id'] . $project['title'] ?>" data-parent="#accord">
 						<div class="card-body">
-							<table class="table table-hover">
-								<thead  class="thead-dark">
-									<tr>
-										<th>N°</th>
-										<th>Task title</th>
-										<th>Due Date</th>
-										<th>Status</th>
-									</tr>
-								</thead>
-								<tbody>
-									<?php
-									$k = 0;
-									foreach (get_task_(get_current_user_id() ) as $task) {
-										if ($project['id'] == $task->project_id ) {
-											$status = get_task_status($task->id);
-											if( in_array($task->categorie, categorie_name()) ){
-													$main_task = get_task_main( $task->id ) . ' <-- ';
-											}
+							<?php
+								if( $tasks != null ){
 									?>
+									<table class="table table-hover">
+										<thead  class="thead-dark">
 											<tr>
-												<td><?= $k + 1 ?></td>
-												<td><?php if (get_task_main( $task->id ) != null) echo stripslashes($main_task); ?><a target="_blank" href="<?= $task->permalink_url ?>" class="btn-link"><?= stripslashes($task->title) ?></a></td>
-												<?php 
-													if( $task->duedate != NULL ){
-														?>
-													<td class="alert alert-primary"><?= $task->duedate ?></td>
-													<td class="<?php if ($status == 'Not Completed' || $status == 'Completed Before Date') echo 'text-danger';
-																elseif ($status == 'Completed') echo 'text-success';
-																elseif( $status == 'In Progess' ) echo 'text-primary';
-																else echo 'text-warning';  ?>"><?= $status ?></td>
-														<?php
-													}else{
-														?>
-													<td class="alert alert-primary">Not define</td>
-													<td class="<?php if( ! get_task_status( $task->id , 'yes') ) echo 'text-warning'; else echo 'text-success'; ?> ">
-														<?php
-														if( ! get_task_status( $task->id , 'yes') ) echo 'Not Completed'; else echo 'Completed';
-														?>
-													</td>
-														<?php
-													}
-												?>
+												<th>N°</th>
+												<th>Task title</th>
+												<th>Due Date</th>
+												<th>Status</th>
 											</tr>
-										<?php
-											$k++;
-										}
-									}
-									if ($k == 0) {
-										?>
-										<div class="alert alert-primary" role="alert">
-											No tasks for this project at the moment
-										</div>
+										</thead>
+										<tbody>
+											<?php
+											$k = 1;
+											foreach (get_task_(get_current_user_id() ) as $task) {
+												$status = get_task_status($task->id);
+												if( in_array($task->categorie, categorie_name()) ) $main_task = get_task_main( $task->id ) . ' <-- ';
+													?>
+													<tr>
+														<td><?= $k ?></td>
+														<td><?php if (get_task_main( $task->id ) != null) echo stripslashes($main_task); ?><a target="_blank" href="<?= $task->permalink_url ?>" class="btn-link"><?= stripslashes($task->title) ?></a></td>
+														<?php 
+														if( $task->duedate != NULL ){
+															?>
+															<td class="alert alert-primary"><?= $task->duedate ?></td>
+															<td class="<?php if ($status == 'Not Completed' || $status == 'Completed Before Date') echo 'text-danger';
+																		elseif ($status == 'Completed') echo 'text-success';
+																		elseif( $status == 'In Progess' ) echo 'text-primary';
+																		else echo 'text-warning';  ?>"><?= $status ?></td>
+															<?php
+														}else{
+															?>
+															<td class="alert alert-primary">Not define</td>
+															<td class="<?php if( ! get_task_status( $task->id , 'yes') ) echo 'text-warning'; else echo 'text-success'; ?> "> <?php if( ! get_task_status( $task->id , 'yes') ) echo 'Not Completed'; else echo 'Completed'; ?> </td>
+															<?php
+														}
+														?>
+													</tr>
+												<?php
+												$k++;
+											}
+											?>
+										</tbody>
+									</table>
 									<?php
-									}
+								}else{
 									?>
-								</tbody>
-							</table>
+									<div class="alert alert-primary" role="alert">
+										No tasks for this project at the moment
+									</div>
+									<?php
+								}
+							?>
 						</div>
 					</div>
 				</div>
@@ -1611,12 +1624,6 @@ function get_user_task()
 				$i++;
 			}
 			?>
-		</div>
-	<?php
-	} else {
-	?>
-		<div class="alert alert-primary" role="alert">
-			You have no tasks at the moment
 		</div>
 	<?php
 	}
