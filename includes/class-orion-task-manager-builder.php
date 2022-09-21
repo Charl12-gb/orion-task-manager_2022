@@ -218,12 +218,12 @@ class Task_Manager_Builder
         if (isset($_POST['verifier_new_task_form'])) {
             if (wp_verify_nonce($_POST['verifier_new_task_form'], 'create_new_task')) {
                 $retour =  traite_form_public($_POST);
-                if (!$retour) {
-                    $url = add_query_arg('status', 'error', wp_get_referer());
+                if ($retour == 'success') {
+                    $url = add_query_arg('status', 'success', wp_get_referer());
                     wp_safe_redirect($url);
                     exit();
                 } else {
-                    $url = add_query_arg('status', 'success', wp_get_referer());
+                    $url = add_query_arg('status', $retour, wp_get_referer());
                     wp_safe_redirect($url);
                     exit();
                 }
@@ -501,7 +501,7 @@ class Task_Manager_Builder
             else echo option_select(get_project_section($id_project));
         } else {
             if (empty($id_project)) echo '';
-            else echo option_select(array('' => 'Choose ...') + get_project_collaborator($id_project));
+            else echo option_select(get_project_collaborator($id_project), get_current_user_id());
             wp_die();
         }
     }
@@ -526,7 +526,7 @@ class Task_Manager_Builder
     {
         $send = array_diff($_POST, array('action' => 'create_new_task'));
         $data = wp_unslash($send);
-        traite_task_and_save($data);
+        saveTaskInAsanaAndBdd($data);
         wp_die();
     }
 
@@ -1230,11 +1230,23 @@ class Task_Manager_Builder
         $post_author = get_current_user_id();
         $download_worklog = get_option('_worklog_authorized');
         if (isset($_GET['status'])) {
-            if ($_GET['status'] == 'success') {
-        ?> <div class="alert alert-success" role="alert">Successfuly ! </div> <?php } else { ?> <div class="alert alert-danger" role="alert">Failed operation try again ! </div> <?php }
-                                                                                                                                                                                    }
-                                                                                                                                                                                    if ($post_author != 0) {
-                                                                                                                                                                                            ?>
+            if (htmlentities($_GET['status']) == 'success'){ ?> <div class="alert alert-success" role="alert">Successfuly ! </div> <?php }
+            else if( htmlentities($_GET['status']) ) { ?> <div class="alert alert-success" role="alert">Successfuly ! </div> <?php }
+            else{ 
+                if( (htmlentities($_GET['status']) == 'errorTypeTask') || (htmlentities($_GET['status']) == 'impossible') ){
+                    ?> <div class="alert alert-danger" role="alert">A problem came at the level of the type of the task. <br>Review your task type and try again ! </div> <?php
+                }
+                else if( htmlentities($_GET['status']) == 'errorAsana'){
+                    ?> <div class="alert alert-danger" role="alert">A problem has occurred with ASANA. unsaved task. <br>Try again later. <br>Review your task type and try again ! </div> <?php
+                }
+                else if( htmlentities($_GET['status']) == 'errorTaskSave'){
+                    ?> <div class="alert alert-danger" role="alert">Problem occurred while saving the task. <br><strong>Try again.</strong> If the problem persists, contact the administrator ! </div> <?php
+                }
+                else{ ?> <div class="alert alert-danger" role="alert">Failed operation try again ! </div> <?php }
+            }
+        }
+        if ($post_author != 0) {
+            ?>
             <span id="worklog_msg"></span>
             <div class="container card">
                 <div class="row text-center card-header">
@@ -1248,15 +1260,16 @@ class Task_Manager_Builder
                             <h5><?php _e('Task Lists', 'task'); ?> </h5>
                         </a>
                     </div>
-                    <?php if (is_project_manager() != null) {
-                    ?>
+                    <?php 
+                    if (is_project_manager() != null) {
+                        ?>
                         <div class="col-sm-4">
                             <a class="button text-dark" data-toggle="collapse" data-target="#collapseOb" aria-expanded="true" aria-controls="collapseOb" href="" class="nav-tab">
                                 <h5><?php _e('Goals', 'task'); ?> </h5>
                             </a>
                         </div>
-                    <?php
-                                                                                                                                                                                        }
+                        <?php
+                    }
                     ?>
                 </div>
                 <div id="accordion" class="card-body">
@@ -1272,24 +1285,24 @@ class Task_Manager_Builder
                                 <div class="col-sm-6" style="text-align:right;">
                                     <span>
                                         <?php
-                                                                                                                                                                                        if ($download_worklog == 'true') {
-                                                                                                                                                                                            $nxtm = strtotime("previous month");
-                                                                                                                                                                                            $date_worklog = date("M-Y", $nxtm);
-                                                                                                                                                                                            $upload = wp_upload_dir();
-                                                                                                                                                                                            $worklog_evaluation = $upload['basedir'];
-                                                                                                                                                                                            $name_worklog = $date_worklog . '/' . get_userdata(get_current_user_id())->display_name . '_worklog.xlsx';
-                                                                                                                                                                                            $worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation/' . $name_worklog;
+                                        if ($download_worklog == 'true') {
+                                            $nxtm = strtotime("previous month");
+                                            $date_worklog = date("M-Y", $nxtm);
+                                            $upload = wp_upload_dir();
+                                            $worklog_evaluation = $upload['basedir'];
+                                            $name_worklog = $date_worklog . '/' . get_userdata(get_current_user_id())->display_name . '_worklog.xlsx';
+                                            $worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation/' . $name_worklog;
 
-                                                                                                                                                                                            if (file_exists($worklog_evaluation_file)) {
-                                        ?>
+                                            if (file_exists($worklog_evaluation_file)) {
+                                                ?>
                                                 <form method="post" action="" id="sent_worklog_mail">
                                                     <input type="hidden" name="link_file" id="link_file" value="<?= $worklog_evaluation_file ?>">
                                                     <input type="hidden" name="file_name" id="file_name" value="<?= get_userdata(get_current_user_id())->display_name . '_worklog.xlsx' ?>">
                                                     <button type="submit" class="btn btn-outline-success">Download Worklog</button>
                                                 </form>
-                                        <?php
-                                                                                                                                                                                            }
-                                                                                                                                                                                        }
+                                            <?php
+                                            }
+                                        }
                                         ?>
                                     </span>
                                     <span>
@@ -1307,15 +1320,16 @@ class Task_Manager_Builder
                     <div id="collapse3" class="collapse" aria-labelledby="heading3" data-parent="#accordion">
                         <div>
                             <h3>Create a Task</h3>
-                            <?php if (is_project_manager() != null) {
-                                                                                                                                                                                            add_task_form();
-                                                                                                                                                                                        } ?>
+                            <p>
+                                <strong class="text-warning">WARNING:</strong> Before creating a task, make sure that the collaborating members of the selected<br>
+                                project have <strong>an account on ASANA and that they are invited</strong> to do so in the project.<br>
+                                <strong>Otherwise, creating the task will produce an error</strong>.
+                            </p>
+                            <?php if (is_project_manager() != null) add_task_form(); ?>
                         </div>
                     </div>
                     <div id="collapseOb" class="collapse" aria-labelledby="headingOb" data-parent="#accordion">
-                        <div><?php if (is_project_manager() != null) {
-                                                                                                                                                                                            objective_tab();
-                                                                                                                                                                                        } ?></div>
+                        <div><?php if (is_project_manager() != null) objective_tab(); ?></div>
                     </div>
                     <div id="collapse5" class="collapse show" aria-labelledby="heading5" data-parent="#accordion">
                         <div>
@@ -1333,15 +1347,15 @@ class Task_Manager_Builder
                             </div>
                             <div id="calendar_card">
                                 <?php
-                                                                                                                                                                                        if (is_project_manager() != null) get_task_calendar();
-                                                                                                                                                                                        else get_task_calendar(get_current_user_id());
+                                if (is_project_manager() != null) get_task_calendar();
+                                else get_task_calendar(get_current_user_id());
                                 ?>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-<?php
-                                                                                                                                                                                    }
-                                                                                                                                                                                }
-                                                                                                                                                                            }
+            <?php
+        }
+    }
+}

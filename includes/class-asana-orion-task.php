@@ -666,7 +666,7 @@ function syncEmployeesFromAsana(){
  * 
  * @param array $data
  */
-function traite_task_and_save($data)
+function saveTaskInAsanaAndBdd($data)
 {
 	$asana = connect_asana();
 	$array = $data['parametre']['task'];
@@ -681,7 +681,7 @@ function traite_task_and_save($data)
 	$taskId = $asana->getData()->gid;
 	$asana->addProjectToTask($taskId, $array['project']);
 	if ($asana->hasError()) {
-		return false;
+		return 'errorAsana';
 	} else {
 		$task_asana = json_decode($result)->data;
 		$data_add = array(
@@ -709,7 +709,7 @@ function traite_task_and_save($data)
 			'mail_status' => NULL
 		);
 		$output = save_new_task($data_add, $dataworklog);
-		if (!$output) return false;
+		if (!$output) return 'errorTaskSave';
 	}
 	if (isset($data['parametre']['subtask'])) {
 		return save_new_subtask($data['parametre']['subtask'], $taskId);
@@ -718,10 +718,6 @@ function traite_task_and_save($data)
 
 /**
  * Fonction permettant de créer une nouvelle section d'un project manager en utilisant son nom 
- * 
- * @param int $projectmanager
- * 
- * @return bool
  */
 function save_objective_section()
 {
@@ -769,25 +765,36 @@ function save_new_subtask($data, $parent_id)
 		if ($array['categorie'] == 'implementation') {
 			$tags = get_categories_task(null,'implementation')->id;
 		}
-		if ($array['categorie'] == 'revue') {
+		else if ($array['categorie'] == 'revue') {
 			$tags = get_categories_task(null,'revue')->id;
 		}
-		if ($array['categorie'] == 'test') {
+		else if ($array['categorie'] == 'test') {
 			$tags = get_categories_task(null,'test')->id;
 		}
-		if ($array['categorie'] == 'integration') {
+		else if ($array['categorie'] == 'integration') {
 			$tags = get_categories_task(null,'integration')->id;
+		}else{
+			if( ! empty( $array['categorie'] ) ){
+				$tag = get_categories_task(null, $array['categorie']);
+				if( $tag != null ) $tags = $tag->id;
+				else $tags = null;
+			}else{
+				$tags = null;
+			}
 		}
+		$as_data = array(
+			'name' 				=>	$array['title'],
+			'assignee_section' 	=> $array['section_project'],
+			'notes' 			=> $array['description'],
+			'assignee' 			=> get_userdata($array['assign'])->user_email
+		);
+
+		if( $array['duedate'] != null ) $as_data += array('due_on'=> $array['duedate'],);
+		if( $tags != null ) $as_data += array('tags'=> [$tags]);
+		
 		$result = $asana->createSubTask(
 			$parent_id,
-			array(
-				'name' 				=>	$array['title'],
-				'assignee_section' 	=> $array['section_project'],
-				'notes' 			=> $array['description'],
-				'assignee' 			=> get_userdata($array['assign'])->user_email,
-				'due_on' 			=> $array['duedate'],
-				'tags'				=> [$tags]
-			)
+			$as_data
 		);
 		$output = $asana->getData();
 		if (isset($output->gid)) {
@@ -831,9 +838,9 @@ function save_new_subtask($data, $parent_id)
 			);
 			$subarray = array('id' => $taskId, 'id_task_parent' => $parent_id);
 			$sortir = save_new_task($data_add, $dataworklog, $subarray);
-			if (!$sortir) return false;
+			if (!$sortir) return 'errorSubTaskNoSave';
 		} else {
-			return 'noadd';
+			return 'errorSubTaskAsana';
 		}
 	}
 	if ($id_implementation != NULL) {
