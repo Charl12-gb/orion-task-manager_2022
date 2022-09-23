@@ -40,8 +40,8 @@ function objective_cron_sync(){
 	syncEmployeesFromAsana();
 	evaluation_project_manager();
 	if( date('m-Y') == '01-'. date('Y') ){
-		evaluation_cp();
-		worklog_file();
+		evaluation_cp(); // Evaluation des cp
+		worklog_file(); // Générer les worklog et envoi des rapports
 	}
 }
 
@@ -157,7 +157,7 @@ function sync_new_project($data, $project_id=null)
 function sync_project_section( $project_id ){
 	$asana = connect_asana();
 	$sections_all = get_all_sections();
-	$sections_asana = $asana->getProjectSections($project_id);
+	$asana->getProjectSections($project_id);
 	if ($asana->getData() != null) {
 		foreach ($asana->getData() as $sections) {
 			$sync = true;
@@ -313,10 +313,12 @@ function sync_duedate_task()
 	foreach ($worklog_all as $worklog) {
 		$asana->getTask($worklog->id_task);
 		$detail_task = $asana->getData();
-		if ($worklog->status != $detail_task->completed){
-			if( $detail_task->completed ) $mail_status = 'no';
-			else $mail_status = NULL;			
-			update_worklog( array('finaly_date' => $detail_task->completed_at, 'status' => $detail_task->completed, 'mail_status' => $mail_status), array('id_task' => $worklog->id_task), array('%s', '%s') );
+		if( $detail_task != null ){
+			if ($worklog->status != $detail_task->completed){
+				if( $detail_task->completed ) $mail_status = 'no';
+				else $mail_status = NULL;			
+				update_worklog( array('finaly_date' => $detail_task->completed_at, 'status' => $detail_task->completed, 'mail_status' => $mail_status), array('id_task' => $worklog->id_task), array('%s', '%s') );
+			}
 		}
 	}
 
@@ -328,7 +330,6 @@ function sync_duedate_task()
 		if( $objective_month != null ){
 			$objectives = unserialize( $objective_month->objective_section );
 			foreach( $objectives as $taskid => $objective ){
-				echo 1;
 				$asana->getTask($taskid);
 				$detail_task = $asana->getData();
 				$objective_array += array($taskid => array('objective' => $objective['objective'], 'status' => $detail_task->completed ));
@@ -652,7 +653,10 @@ function syncEmployeesFromAsana(){
 	$asana->getUsersInWorkspace(get_workspace());
 	if( $asana->getData() != null ){
 		foreach( $asana->getData() as $employe ){
-			get_user_asana_id( $employe->gid );
+			$user_id = get_user_asana_id( $employe->gid );
+			if( $user_id != null ){
+				update_user_meta($user_id, 'workspace_id', get_workspace());
+			}
 		}
 	}
 }
@@ -665,8 +669,7 @@ function syncEmployeesFromAsana(){
  * 
  * @param array $data
  */
-function saveTaskInAsanaAndBdd($data)
-{
+function saveTaskInAsanaAndBdd($data){
 	$asana = connect_asana();
 	$array = $data['parametre']['task'];
 	$result = $asana->createTask(array(
@@ -691,7 +694,7 @@ function saveTaskInAsanaAndBdd($data)
 			'title' => $array['title'],
 			'permalink_url' => $task_asana->permalink_url,
 			'type_task' => $array['type_task'],
-			'categorie' => NULL,
+			'categorie' => $array['categorie'],
 			'dependancies' => NULL,
 			'description' => $array['description'],
 			'assigne' => $array['assign'],
@@ -711,7 +714,11 @@ function saveTaskInAsanaAndBdd($data)
 		if (!$output) return 'errorTaskSave';
 	}
 	if (isset($data['parametre']['subtask'])) {
-		return save_new_subtask($data['parametre']['subtask'], $taskId);
+		if( $array['categorie'] != null ){
+			return save_new_subtask($data['parametre']['subtask'], $taskId, $taskId);
+		}else{
+			return save_new_subtask($data['parametre']['subtask'], $taskId);
+		}
 	} else return true;
 }
 
@@ -751,10 +758,10 @@ function save_objective_section($user_id)
  * @param array $data
  * @param int $parent_id
  */
-function save_new_subtask($data, $parent_id)
+function save_new_subtask($data, $parent_id, $implementationId=null)
 {
 	$asana = connect_asana();
-	$id_implementation = NULL;
+	$id_implementation = $implementationId;
 	$id_revue = NULL;
 	$id_test = NULL;
 	$id_integration = NULL;
@@ -775,25 +782,16 @@ function save_new_subtask($data, $parent_id)
 				$tag = get_categories_task(null, $array['categorie']);
 				if( $tag != null ) $tags = $tag->id;
 				else $tags = null;
-			}else{
-				$tags = null;
-			}
+			}else{ $tags = null;}
 		}
-		$as_data = array(
-			'name' 				=>	$array['title'],
-			'assignee_section' 	=> $array['section_project'],
-			'notes' 			=> $array['description'],
-			'assignee' 			=> get_userdata($array['assign'])->user_email
-		);
 
+		$as_data = array('name'=> $array['title'],'assignee_section'=> $array['section_project'],'notes'=> $array['description'],'assignee' => get_userdata($array['assign'])->user_email);
 		if( $array['duedate'] != null ) $as_data += array('due_on'=> $array['duedate'],);
 		if( $tags != null ) $as_data += array('tags'=> [$tags]);
 		
-		$result = $asana->createSubTask(
-			$parent_id,
-			$as_data
-		);
+		$asana->createSubTask( $parent_id, $as_data );
 		$output = $asana->getData();
+
 		if (isset($output->gid)) {
 			$taskId = $output->gid;
 			if ($array['categorie'] == 'implementation') {

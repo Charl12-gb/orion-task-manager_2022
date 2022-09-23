@@ -745,7 +745,7 @@ class Task_Manager_Builder
             $asana_workspace_id = htmlentities($_POST['asana_workspace_id']);
             $out =  update_option('_asana_workspace_id', $asana_workspace_id);
             $out1 =  update_option('_project_manager_id', htmlentities($_POST['id_project_manager']));
-            $out3 = delete_all();
+            $out3 = delete_all_();
             if (($out == true) and ($out1 == true) and ($out3 == true)) echo true;
             else echo false;
         } else echo false;

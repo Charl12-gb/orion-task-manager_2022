@@ -168,7 +168,7 @@ function download_worklog($user_id, $month=null)
 		$date_worklog = date("M-Y", $strMont);
 	}
 	$tasks = get_task_('assigne', $user_id, 'worklog', $date_evaluation);
-
+	
 	//Worklog
 	$spreadsheet->setActiveSheetIndex(0);
 	$spreadsheet->getActiveSheet()->setCellValue('C2', $name_user);

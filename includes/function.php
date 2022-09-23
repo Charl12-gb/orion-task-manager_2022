@@ -135,7 +135,7 @@ function delete_template($id_template, $type)
  * 
  * @return bool
  */
-function delete_all(){
+function delete_all_(){
 	global $wpdb;
 	$out = array();
 	$tables = array(
@@ -573,16 +573,25 @@ function get_template_titles()
 
 /**
  * Get user id and name or email only
- * @param string|int $key
+ * @param string|int $keyif( get_user_meta( 1, 'workspace_id', true ) == null ) echo 'vide';
+	else echo get_user_meta( 1, 'workspace_id', true );
  */
 function get_all_users($key = null)
 {
 	$users = array();
 	
 		if ($key != null) {
-			foreach (get_users() as $value) { $users += array($value->ID => $value->display_name); }
+			foreach (get_users() as $value) { 
+				if( (get_user_meta( $value->ID, 'workspace_id', true ) != null) && (get_user_meta( $value->ID, 'workspace_id', true ) == get_workspace()) ){
+					$users += array($value->ID => $value->display_name); 
+				}
+			}
 		} else {
-			foreach (get_users() as $value) { $users += array($value->ID => $value->user_email); }
+			foreach (get_users() as $value) { 
+				if( (get_user_meta( $value->ID, 'workspace_id', true ) != null) && (get_user_meta( $value->ID, 'workspace_id', true ) == get_workspace()) ){
+					$users += array($value->ID => $value->user_email); 
+				}
+			}
 		}
 	return $users;
 }
@@ -1220,7 +1229,7 @@ function project_form_add( $id_project=null ){
 	if( $id_project != null ) $project = get_project_( $id_project );
 	?>
 		<h3><?php if( $id_project != null ) echo 'Update Project'; else echo 'New Project'; ?> <button <?php if( $id_project == null ) echo 'class="btn btn-outline-success collapsed" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree"'; else echo 'class="btn btn-outline-success btn_list_project" id="project_btn_list"'; ?>>List Projects</button> </h3>
-		<p><strong class="text-warning">NB: </strong>Before creating a project, make sure that the project manager and collaborators have an account on ASANA and have been added to the Workspace. If not it will produce an error. Thanks</p>
+		<p><strong class="text-warning">WARNING: </strong>Before creating a project, make sure that the project manager and collaborators have an account on ASANA and have been added to the Workspace. Thanks</p>
 		<hr>
 			<form id="create_new_projet" name="create_new_projet" action="" method="post">
 			<?php if( $id_project != null ) { ?> <input type="hidden" name="project_id" id="project_id" value="<?= $id_project ?>"> <?php } ?>
@@ -1346,6 +1355,7 @@ function project_tab(){
 		</table>
 	<?php
 }
+
 function get_list_template()
 {
 	$tab_templates = get_templates_();
