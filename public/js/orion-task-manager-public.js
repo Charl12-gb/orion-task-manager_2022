@@ -172,7 +172,8 @@
                     'project_id': project_id
                 },
                 success: function(response) {
-                    document.getElementById('assign').innerHTML = response;
+                    if (document.getElementById('assign'))
+                        document.getElementById('assign').innerHTML = response;
                     if (document.getElementById('sub_assign'))
                         document.getElementById('sub_assign').innerHTML = response;
                     if (document.getElementById('manuel_assign'))

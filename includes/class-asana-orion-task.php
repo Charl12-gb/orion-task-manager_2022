@@ -691,14 +691,43 @@ function syncEmployeesFromAsana(){
 function saveTaskInAsanaAndBdd($data){
 	$asana = connect_asana();
 	$array = $data['parametre']['task'];
-	$result = $asana->createTask(array(
+
+	if( isset($array['categorie']) && !empty($array['categorie']) ){
+		if ($array['categorie'] == 'implementation') {
+			$tags = get_categories_task(null,'implementation')->id;
+		}
+		else if ($array['categorie'] == 'revue') {
+			$tags = get_categories_task(null,'revue')->id;
+		}
+		else if ($array['categorie'] == 'test') {
+			$tags = get_categories_task(null,'test')->id;
+		}
+		else if ($array['categorie'] == 'integration') {
+			$tags = get_categories_task(null,'integration')->id;
+		}else{
+			if( ! empty( $array['categorie'] ) ){
+				$tag = get_categories_task(null, $array['categorie']);
+				if( $tag != null ) $tags = $tag->id;
+				else $tags = null;
+			}else{ $tags = null;}
+		}
+	}else{
+		$tags = null;
+	}
+
+	$save = array(
 		'workspace'			=> get_workspace(),
 		'name' 				=>	$array['title'],
 		'assignee_section' 	=> $array['section_project'],
 		'notes' 			=> $array['description'],
 		'assignee' 			=> get_userdata($array['assign'])->user_email,
 		'due_on' 			=> $array['duedate'],
-	));
+	);
+	if( $tags != null ) $save += array('tags'=> [$tags]);
+
+
+	$result = $asana->createTask($save);
+
 	$taskId = $asana->getData()->gid;
 	$asana->addProjectToTask($taskId, $array['project']);
 	if ($asana->hasError()) {

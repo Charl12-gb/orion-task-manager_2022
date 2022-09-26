@@ -755,6 +755,8 @@ function getUserTaskInProject($user_id, $project_id){
  */
 function useTemplate_save( $array ){
 	$subtask = array();
+	if( ! isset( $array['assign'] ) ) { $assigne = NULL; }
+	else { $assigne = $array['assign']; }
 	$task = array(
 		'title' => $array['title'],
 		'section_project' => $array['project_section'],
@@ -762,7 +764,7 @@ function useTemplate_save( $array ){
 		'categorie' => NULL,
 		'dependance' => NULL,
 		'project' => $array['project'],
-		'assign' => $array['assign'],
+		'assign' => $assigne,
 		'duedate' => $array['duedate'],
 		'description' => $array['description']
 	);
@@ -1975,13 +1977,13 @@ function get_form(array $array, $istemplate)
 						<?= option_select(get_categorie_format()) ?>
 					</select>
 				</div>
+				<div class="col">
+					<label for="assigne">Assign : </label>
+					<select required class="form-control assign_option" id="<?php if ($istemplate) echo 'sub_'  ?>assign" name="<?php if ($istemplate) echo 'sub_'  ?>assign"><option value="" selected></option></select>
+				</div>
 				<?php
 			}  
 			?>
-			<div class="col">
-				<label for="assigne">Assign : </label>
-				<select required class="form-control assign_option" id="<?php if ($istemplate) echo 'sub_'  ?>assign" name="<?php if ($istemplate) echo 'sub_'  ?>assign"><option value="" selected></option></select>
-			</div>
 		</div>
 	</div>
 	<?php
