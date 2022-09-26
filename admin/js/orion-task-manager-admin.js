@@ -413,18 +413,20 @@
             }
         });
 
-        $(document).on('click', '.worklog_authorized', function() {
+        $(document).on('click', '.worklog_authorized,.debug_authorized', function() {
+            var operation = $(this).attr('id');
+            console.log(operation);
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
                 data: {
-                    'action': 'worklog_update',
+                    'action': operation + '_update',
                 },
                 beforeSend: function() {
-                    document.getElementById('worklog_card').innerHTML = '<div class="alert alert-info mt-4 card" role="alert">Loading ... </div>';
+                    document.getElementById(operation + '_card').innerHTML = '<div class="alert alert-info mt-4 card" role="alert">Loading ... </div>';
                 },
                 success: function(response) {
-                    document.getElementById('worklog_card').innerHTML = response;
+                    document.getElementById(operation + '_card').innerHTML = response;
                 }
             });
         });

@@ -87,7 +87,7 @@ function evaluator_page()
 /**
  * Evaluation des projects manager à la fin de chaque mois
  */
-function evaluation_project_manager()
+function evaluation_project_manager($periode=null)
 {
 	$string = 'last friday of ' . date('F', mktime(0, 0, 0, date('m'), 10)) . ' this year';
 	$last_friday = gmdate('Y-m-d', strtotime($string));
@@ -97,41 +97,54 @@ function evaluation_project_manager()
 	$evaluation_date = strtotime($date1);
 	$today_date = strtotime($date2);
 
-	if ($evaluation_date == $today_date) {
-		$objectives = get_objective_of_month(date('m')/1, date('Y'));
-		$tab_rapport_month = array();
-		foreach ($objectives as $objective) {
-			$total = 0;
-			$completed = 0;
-			$reste = 0;
-			$moyenne = 0;
-			$month_objectives = unserialize($objective->objective_section);
-			foreach ($month_objectives as $key => $month_objective) {
-				$total++;
-				if ($month_objective['status']) $completed++;
-			}
-			$reste = $total - $completed;
-			$moyenne = ($completed / $total) * 100;
-			$array_evaluation = array(
-				'objectives' => $month_objectives,
-				'evaluation' => array(
-					'total' => $total,
-					'completed' => $completed,
-					'reste' => $reste,
-					'moyenne' => $moyenne
-				)
-			);
-			$output = save_evaluation_info($array_evaluation, $objective->id_objective);
-			if ($output) array_push($tab_rapport_month, $objective->id_objective);
+	if( $periode != null ){
+		evaluateCpTask();
+	}else{
+		if ($evaluation_date == $today_date) {
+			evaluateCpTask();
 		}
 	}
 }
 
-function worklog_file(){
+function evaluateCpTask( ){
+	$objectives = get_objective_of_month(date('m')/1, date('Y'));
+	$tab_rapport_month = array();
+	foreach ($objectives as $objective) {
+		$total = 0;
+		$completed = 0;
+		$reste = 0;
+		$moyenne = 0;
+		$month_objectives = unserialize($objective->objective_section);
+		foreach ($month_objectives as $key => $month_objective) {
+			$total++;
+			if ($month_objective['status']) $completed++;
+		}
+		$reste = $total - $completed;
+		$moyenne = ($completed / $total) * 100;
+		$array_evaluation = array(
+			'objectives' => $month_objectives,
+			'evaluation' => array(
+				'total' => $total,
+				'completed' => $completed,
+				'reste' => $reste,
+				'moyenne' => $moyenne
+			)
+		);
+		$output = save_evaluation_info($array_evaluation, $objective->id_objective);
+		if ($output) array_push($tab_rapport_month, $objective->id_objective);
+	}
+}
+
+
+function worklog_file($month=null){
 	$users = get_all_users();
 	$report = array();
 	foreach( $users as $user_id => $user ){
-		$output = download_worklog( $user_id );
+		if( $month != null ){
+			$output = download_worklog( $user_id, $month );
+		}else{
+			$output = download_worklog( $user_id );
+		}
 		$report += $output;
 	}
 	if( $report != null ){
@@ -304,9 +317,10 @@ function download_worklog($user_id, $month=null)
 	return array();
 }
 
-function evaluation_cp( $id_cp=null ){
+function evaluation_cp( $month=null, $id_cp=null ){
 	$nxtm = strtotime("previous month");
-	$month =  date("m", $nxtm)/1;
+	if( $month != null ){  $month = $month/1; }
+	else { $month =  date("m", $nxtm)/1; }
 	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-cp-evaluation.xlsx';
 
 	$upload = wp_upload_dir();

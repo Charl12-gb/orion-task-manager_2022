@@ -169,26 +169,32 @@ class Task_Manager_Builder
                     <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-rapport')); ?>" class="nav-tab <?php echo $active_tableau == 'o-rapport' ? 'nav-tab-active' : ''; ?>"><?php _e('REPORT', 'task'); ?></a>
                     <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-performance')); ?>" class="nav-tab <?php echo $active_tableau == 'o-performance' ? 'nav-tab-active' : ''; ?>"><?php _e('PERFORMANCE', 'task'); ?></a>
                     <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-active')); ?>" class="nav-tab <?php echo $active_tableau == 'o-active' ? 'nav-tab-active' : ''; ?>"><?php _e('INTEGRATION', 'task'); ?></a>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-debug')); ?>" class="nav-tab <?php echo $active_tableau == 'o-debug' ? 'nav-tab-active' : ''; ?>"><?php _e('DEBUG', 'task'); ?></a>
                 </nav>
                 <div class="o_task_manager addons-featured">
                     <?php
                     if ($active_tableau == 'o_task_manager') {
                         Task_Manager_Builder::taches_tab();
                     }
-                    if ($active_tableau == 'o-worklog') {
+                    else if ($active_tableau == 'o-worklog') {
                         Task_Manager_Builder::worklog_tab();
                     }
-                    if ($active_tableau == 'o-evaluation') {
+                    else if ($active_tableau == 'o-evaluation') {
                         Task_Manager_Builder::evaluation_tab();
                     }
-                    if ($active_tableau == 'o-active') {
+                    else if ($active_tableau == 'o-active') {
                         Task_Manager_Builder::active_tab();
                     }
-                    if ($active_tableau == 'o-rapport') {
+                    else if ($active_tableau == 'o-rapport') {
                         Task_Manager_Builder::rapport_tab();
                     }
-                    if ($active_tableau == 'o-performance') {
+                    else if ($active_tableau == 'o-performance') {
                         Task_Manager_Builder::performance_tab();
+                    }
+                    else if ($active_tableau == 'o-debug') {
+                        Task_Manager_Builder::debug_tab();
+                    }else{
+                        Task_Manager_Builder::taches_tab();
                     }
                     ?>
                 </div>
@@ -608,6 +614,25 @@ class Task_Manager_Builder
     }
 
     /**
+     * Function permettant de lancer la phase de test
+     */
+    public static function launchTestPhase(){
+        $debug_status  = get_option('_debug_authorized');
+        if (!isset($debug_status)) {
+            $new_status = 'true';
+        } else {
+            if ($debug_status == 'true') {
+                $new_status = 'false';
+            } else {
+                $new_status = 'true';
+            }
+        }
+        update_option('_debug_authorized', $new_status);
+        echo Task_Manager_Builder::debug_tab();
+        wp_die();
+    }
+
+    /**
      * Fonction permettant d'obtenir le calendrier soit de tout le monde ou d'un utilisateur
      */
     public static function getUserCalendar()
@@ -752,6 +777,47 @@ class Task_Manager_Builder
         wp_die();
     }
 
+    public static function debug_tab(){
+        $value = get_option('_debug_authorized');
+        if (!isset($value)) $active = false;
+        else {
+            if ($value == 'true') $active = true;
+            else $active = false;
+        }
+    ?>
+        <div id="debug_card">
+            <div class="container-fluid pt-3">
+                <div class="card">
+                    <h5 class="card-header">Enable Debugging</h5>
+                    <div class="card-body">
+                        <div class="custom-control custom-checkbox my-1 mr-sm-2 debug_authorized" id="debug">
+                            <input type="checkbox" <?php if ($active) echo 'checked'; ?> class="custom-control-input" id="id_debug_authorized">
+                            <label class="custom-control-label <?php if ($active) echo 'text-success';
+                                                                else echo 'text-danger'; ?>" for="id_debug_authorized">Click here to enable or disable debugging</label>
+                            <?php
+                            if ($active) {
+                            ?>
+                                <div class="text-success">Debugging is active</div>
+                            <?php
+                            } else {
+                            ?>
+                                <div class="text-danger">Debugging is disabled</div>
+                            <?php
+                            }
+                            ?>
+                        </div><hr>
+                        <p>
+                        <strong>Warning:</strong> For the debugging phase to work properly, we advise you to : <br>
+                        - create tasks of category implementation and subtasks of category review.<br>
+                        - Consult your emails to evaluate the review tasks.<br>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php
+    }
+
     /**
      * Backend add param task
      */
@@ -843,7 +909,7 @@ class Task_Manager_Builder
                 <div class="card">
                     <h5 class="card-header">Enable Worklog</h5>
                     <div class="card-body">
-                        <div class="custom-control custom-checkbox my-1 mr-sm-2 worklog_authorized">
+                        <div class="custom-control custom-checkbox my-1 mr-sm-2 worklog_authorized" id="worklog">
                             <input type="checkbox" <?php if ($active) echo 'checked'; ?> class="custom-control-input" id="id_worklog_authorized">
                             <label class="custom-control-label <?php if ($active) echo 'text-success';
                                                                 else echo 'text-danger'; ?>" for="id_worklog_authorized">Check to allow downloading of the worklog file</label>

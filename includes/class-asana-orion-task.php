@@ -8,20 +8,15 @@ function connect_asana()
 	$asana = new Asana(array('personalAccessToken' => $token_asana));
 	return $asana;
 }
-//******************************************************************************************* */
-//Ajouter ces propres heure de modification
-// add_filter( 'cron_schedules', 'moose_add_cron_interval' );
-// function moose_add_cron_interval( $schedules ) { 
-//     $schedules['ten_seconds'] = array(
-//         'interval' => 10,
-//         'display'  => esc_html__( 'Every Ten Seconds' ), );
-//     return $schedules;
-// }
 
+
+if (!wp_next_scheduled('task_cron_hook')) {
+	$time_def = get_option('_synchronisation_time');
+	wp_schedule_event(time(), $time_def, 'task_cron_hook');
+}
 
 add_action('task_cron_hook', 'task_cron_sync');
-function task_cron_sync()
-{
+function task_cron_sync(){
 	sync_tag();
 	sync_projets();
 	sync_objectives_month();
@@ -29,51 +24,56 @@ function task_cron_sync()
 	sync_duedate_task();
 }
 
-if (!wp_next_scheduled('task_cron_hook')) {
-	$time_def = get_option('_synchronisation_time');
-	wp_schedule_event(time(), $time_def, 'task_cron_hook');
+if (!wp_next_scheduled('objective_cron_hook')) {
+	wp_schedule_event(time(), 'daily', 'objective_cron_hook');
 }
 
 add_action('objective_cron_hook', 'objective_cron_sync');
+
 function objective_cron_sync(){
 	automatique_send_mail();
 	syncEmployeesFromAsana();
 	evaluation_project_manager();
-	if( date('m-Y') == '01-'. date('Y') ){
+	if( date('d-m-Y') == '01-'. date('m-Y') ){
 		evaluation_cp(); // Evaluation des cp
 		worklog_file(); // Générer les worklog et envoi des rapports
 	}
 }
 
-if (!wp_next_scheduled('objective_cron_hook')) {
-	wp_schedule_event(time(), 'daily', 'objective_cron_hook');
+if (!wp_next_scheduled('bebug_cron_hook')) {
+	wp_schedule_event(time(), 'hourly', 'bebug_cron_hook');
 }
 
-// add_action('report_cron_hook', 'report__cron_sync');
-// if (!wp_next_scheduled('report__cron_hook')) {
-// 	wp_schedule_event(time(), 'daily', 'report_cron_hook');
-// }
+add_action('bebug_cron_hook', 'debugSendMail_cron_sync');
 
-// function report__cron_sync(){
-// 	$sent_info = unserialize( get_option('_report_sent_info') );
-// 	$today = date('Y-m-d');
-// 	if( $sent_info['last_day_month'] ){
-// 		$date_send_report = gmdate('Y-m-d', strtotime('last day of this month'));
-// 		if( strtotime( $today ) == strtotime( $date_send_report ) ){
-// 			//call function
-// 		}
-// 	}
-// 	if( $sent_info['last_friday_month'] ){
-// 		$mois = date('m');
-// 		$string = 'last friday of ' . date('F', mktime(0, 0, 0, $mois, 10)) . ' this year';
-// 		$date_send_report = gmdate('Y-m-d', strtotime($string));
-// 		if( strtotime( $today ) == strtotime( $date_send_report ) ){
-// 			//call function
-// 		}
-// 	}
-// }
+function debugSendMail_cron_sync(){
+	$debug_status  = get_option('_debug_authorized');
+	if (!isset( $debug_status )) {
+		$debug_status = 'false';
+	}
+	if( $debug_status == 'true' ){
+		sync_duedate_task();
+		automatique_send_mail();
+	}
+}
 
-//***************************************************************************************** */
+if (!wp_next_scheduled('bebug2_cron_hook')) {
+	wp_schedule_event(time(), 'twicedaily', 'bebug2_cron_hook');
+}
+
+add_action('bebug2_cron_hook', 'debugReportWorklog_cron_sync');
+
+function debugReportWorklog_cron_sync(){
+	$debug_status  = get_option('_debug_authorized');
+	if (!isset( $debug_status )) {
+		$debug_status = 'false';
+	}
+	if( $debug_status == 'true' ){
+		evaluation_project_manager(true);
+		evaluation_cp(date('m'));
+		worklog_file(date('m'));
+	}
+}
 
 /**
  * Obtenir l'espace de travail depuis asana
@@ -135,6 +135,7 @@ function sync_new_project($data, $project_id=null)
 			);
 			return save_project($array, $project_id);
 		}else{
+			$collaborateurs = array_merge($data['collaborator'], array($data['project_manager']));
 			$array = array(
 				'id'		=> $result->gid,
 				'title'		=> $data['title'],
@@ -142,7 +143,7 @@ function sync_new_project($data, $project_id=null)
 				'permalink'	=> $result->permalink_url,
 				'slug' => $data['slug'],
 				'project_manager' => $data['project_manager'],
-				'collaborator' => serialize($data['collaborator'])
+				'collaborator' => serialize($collaborateurs)
 			);
 			$output = save_project($array);
 			if( $output ) return $result->gid;
@@ -429,6 +430,24 @@ function sync_objectives_month(){
 		}
 	}
 	return 'objectif';
+}
+
+function synTaskForAsana(){
+	$asana = connect_asana();
+	$tasks = get_task_();
+	foreach ($tasks as $task){
+		$asana->getTask($task->id);
+		$task_detail = $asana->getData();
+		if(($task->project_id) != (get_option('_project_manager_id'))){
+			if( isset( $asana->getData()->assignee->gid ) ) $assig = $asana->getData()->assignee->gid;
+			else $assig = null;
+			$assigne = get_user_asana_id($assig);
+			if( $assigne != null ){
+				update_task_assign($task->id, $assigne);
+			}
+				
+		}
+	}
 }
 
 function task_id_only(){

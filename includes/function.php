@@ -232,6 +232,13 @@ function update_task_dependance( $id_parent, $dependant ){
 	return $wpdb->update($table, $data, array( 'id' => $dependant ), $format);
 }
 
+function update_task_assign( $taskid, $userId ){
+	global $wpdb;
+	$table = $wpdb->prefix . 'task';
+	$data = array( 'assigne' => $userId );
+	return $wpdb->update($table, $data, array( 'id' => $taskid ));
+}
+
 /**
  * Mettre à jour le type des tâches lors de la synchonisation
  * 
@@ -467,7 +474,7 @@ function get_task_($specification = null, $value = null, $project = null, $date_
 	} else {
 		$sql = "SELECT * FROM $table WHERE $specification = $value";  //Tâche avec une spéfication
 	}
-	$sql = $sql . " ORDER BY duedate";
+	$sql = $sql . " ORDER BY duedate DESC";
 	return $wpdb->get_results($sql);
 }
 
@@ -749,15 +756,15 @@ function getUserTaskInProject($user_id, $project_id){
 function useTemplate_save( $array ){
 	$subtask = array();
 	$task = array(
-		'title' => htmlentities($array['title']),
-		'section_project' => htmlentities($array['project_section']),
-		'type_task' => htmlentities($array['type_task']),
+		'title' => $array['title'],
+		'section_project' => $array['project_section'],
+		'type_task' => $array['type_task'],
 		'categorie' => NULL,
 		'dependance' => NULL,
-		'project' => htmlentities($array['project']),
-		'assign' => htmlentities($array['assign']),
-		'duedate' => htmlentities($array['duedate']),
-		'description' => htmlentities($array['description'])
+		'project' => $array['project'],
+		'assign' => $array['assign'],
+		'duedate' => $array['duedate'],
+		'description' => $array['description']
 	);
 	if (isset($array['nbrechamp'])) {
 		$nbrechamp = htmlentities($array['nbrechamp']) -1 ;
@@ -768,15 +775,15 @@ function useTemplate_save( $array ){
 			$duedate = 'duedate'.$l;
 			$description = 'description'.$l;
 			$subtask += array($l => array(
-				'title' => htmlentities($array[$titre]),
-				'section_project' => htmlentities($array['project_section']),
-				'type_task' => htmlentities($array['type_task']),
-				'categorie' => htmlentities($array[$categorie]),
+				'title' => $array[$titre],
+				'section_project' => $array['project_section'],
+				'type_task' => $array['type_task'],
+				'categorie' => $array[$categorie],
 				'dependance' => '',
-				'project' => htmlentities($array['project']),
-				'assign' => htmlentities($array[$assign]),
-				'duedate' => htmlentities($array[$duedate]),
-				'description' => htmlentities($array[$description])
+				'project' => $array['project'],
+				'assign' => $array[$assign],
+				'duedate' => $array[$duedate],
+				'description' => $array[$description]
 			));
 		}
 	}
@@ -792,29 +799,29 @@ function manuel_save($array)
 {
 	$subtask = array();
 	$task = array(
-		'title' => htmlentities($array['title']),
-		'section_project' => htmlentities($array['project_section']),
-		'type_task' => htmlentities($array['type_task']),
-		'categorie' => htmlentities( $array['categorie'] ),
+		'title' => $array['title'],
+		'section_project' => $array['project_section'],
+		'type_task' => $array['type_task'],
+		'categorie' =>  $array['categorie'],
 		'dependance' => NULL,
-		'project' => htmlentities($array['project']),
-		'assign' => htmlentities($array['assign']),
-		'duedate' => htmlentities($array['duedate']),
-		'description' => htmlentities($array['description'])
+		'project' => $array['project'],
+		'assign' => $array['assign'],
+		'duedate' => $array['duedate'],
+		'description' => $array['description']
 	);
 	if (isset($array['show1'])) {
 		if ($array['show1'] == 'userTemplate1') {
 			$subtask += array(
 				0 => array(
-					'title' => htmlentities($array['sub_title']),
-					'section_project' => htmlentities($array['project_section']),
-					'type_task' => htmlentities($array['type_task']),
-					'categorie' => htmlentities($array['sub_categorie']),
+					'title' => $array['sub_title'],
+					'section_project' => $array['project_section'],
+					'type_task' => $array['type_task'],
+					'categorie' => $array['sub_categorie'],
 					'dependance' => '',
-					'project' => htmlentities($array['project']),
-					'assign' => htmlentities($array['sub_assign']),
-					'duedate' => htmlentities($array['sub_duedate']),
-					'description' => htmlentities($array['sub_description'])
+					'project' => $array['project'],
+					'assign' => $array['sub_assign'],
+					'duedate' => $array['sub_duedate'],
+					'description' => $array['sub_description']
 				)
 			);
 			if (isset($array['nbrechamp'])) {
@@ -826,15 +833,15 @@ function manuel_save($array)
 					$duedate = 'sub_duedate' . $l;
 					$description = 'sub_description' . $l;
 					$subtask += array($l => array(
-						'title' => htmlentities($array[$titre]),
-						'section_project' => htmlentities($array['project_section']),
-						'type_task' => htmlentities($array['type_task']),
-						'categorie' => htmlentities($array[$categorie]),
+						'title' => $array[$titre],
+						'section_project' => $array['project_section'],
+						'type_task' => $array['type_task'],
+						'categorie' => $array[$categorie],
 						'dependance' => '',
-						'project' => htmlentities($array['project']),
-						'assign' => htmlentities($array[$assign]),
-						'duedate' => htmlentities($array[$duedate]),
-						'description' => htmlentities($array[$description])
+						'project' => $array['project'],
+						'assign' => $array[$assign],
+						'duedate' => $array[$duedate],
+						'description' => $array[$description]
 					));
 				}
 			}
@@ -842,15 +849,15 @@ function manuel_save($array)
 		if ($array['show1'] == 'manuelTemplate1') {
 			$subtask += array(
 				0 => array(
-					'title' => htmlentities($array['manuel_title']),
-					'section_project' => htmlentities($array['project_section']),
-					'type_task' => htmlentities($array['type_task']),
-					'categorie' => htmlentities($array['manuel_categorie']),
+					'title' => $array['manuel_title'],
+					'section_project' => $array['project_section'],
+					'type_task' => $array['type_task'],
+					'categorie' => $array['manuel_categorie'],
 					'dependance' => '',
-					'project' => htmlentities($array['project']),
-					'assign' => htmlentities($array['manuel_assign']),
-					'duedate' => htmlentities($array['manuel_duedate']),
-					'description' => htmlentities($array['manuel_description'])
+					'project' => $array['project'],
+					'assign' => $array['manuel_assign'],
+					'duedate' => $array['manuel_duedate'],
+					'description' => $array['manuel_description']
 				)
 			);
 			if( isset($array['nbresubtask']) ){
@@ -862,15 +869,15 @@ function manuel_save($array)
 					$duedate = 'manuel_duedate' . $l;
 					$description = 'manuel_description' . $l;
 					$subtask += array($l => array(
-						'title' => htmlentities($array[$titre]),
-						'section_project' => htmlentities($array['project_section']),
-						'type_task' => htmlentities($array['type_task']),
-						'categorie' => htmlentities($array[$categorie]),
+						'title' => $array[$titre],
+						'section_project' => $array['project_section'],
+						'type_task' => $array['type_task'],
+						'categorie' => $array[$categorie],
 						'dependance' => '',
-						'project' => htmlentities($array['project']),
-						'assign' => htmlentities($array[$assign]),
-						'duedate' => htmlentities($array[$duedate]),
-						'description' => htmlentities($array[$description])
+						'project' => $array['project'],
+						'assign' => $array[$assign],
+						'duedate' => $array[$duedate],
+						'description' => $array[$description]
 					));
 				}
 			}
@@ -1590,8 +1597,9 @@ function get_user_task()
 										<tbody>
 											<?php
 											$k = 1;
-											foreach (get_task_(get_current_user_id() ) as $task) {
+											foreach ($tasks as $task) {
 												$status = get_task_status($task->id);
+												$main_task = "";
 												if( in_array($task->categorie, categorie_name()) ) $main_task = get_task_main( $task->id ) . ' <-- ';
 													?>
 													<tr>
