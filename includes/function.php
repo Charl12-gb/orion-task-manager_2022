@@ -34,8 +34,13 @@ function option_select($array, $default=null)
 	$option = '';
 	if( $default != null ){
 		foreach ($array as $key => $value) {
-			if( $key == $default ) $option .= "<option value='$key' selected >$value</option>";
-			else $option .= "<option value='$key'>$value</option>";
+			if( is_array($default) ){
+				if( in_array($key, $default) ) $option .= "<option value='$key' selected >$value</option>";
+				else $option .= "<option value='$key'>$value</option>";
+			}else{
+				if( $key == $default ) $option .= "<option value='$key' selected >$value</option>";
+				else $option .= "<option value='$key'>$value</option>";
+			}
 		}
 	}else{
 		foreach ($array as $key => $value) {
@@ -170,6 +175,20 @@ function save_project($data, $project_id=null)
 		$format = array('%d', '%s', '%s', '%s', '%s', '%d', '%s');
 		return $wpdb->insert($table, $data, $format);
 	}
+}
+
+/**
+ * Archiver un project
+ * @param int $projectId
+ */
+function archiveProject( $projectId, $archive ){
+	global $wpdb;
+	$table = $wpdb->prefix . 'project';
+	return $wpdb->update($table, array('archive'=>$archive), array('id' => $projectId));
+}
+
+function getProjectStatus($projectId){
+	return get_project_($projectId)->archive;
 }
 
 /**
@@ -346,10 +365,27 @@ function get_project_( $id_project = null )
 	if( $id_project == null ){
 		$sql = "SELECT * FROM $table WHERE id != " . get_option('_project_manager_id');
 		return $wpdb->get_results($sql);
-	}else{
+	}else if($id_project == -1){
+		$sql = "SELECT * FROM $table WHERE id != " . get_option('_project_manager_id') . " AND archive != " . true;
+		return $wpdb->get_results($sql);
+	}
+	else{
 		$sql = "SELECT * FROM $table WHERE id = $id_project";
 		return $wpdb->get_row($sql);
 	}
+}
+
+/**
+ * Update project collaborator
+ * @param int $projectId
+ * @param string $collaborators
+ * 
+ * @return bool
+ */
+function editCollaborateur( $projectId, $collaborators ){
+	global $wpdb;
+	$table = $wpdb->prefix . 'project';
+	return $wpdb->update($table, array('collaborator' => $collaborators), array('id' => $projectId));
 }
 
 /**
@@ -508,7 +544,7 @@ function get_user_current_project($id_user)
 	$user_projects_id = array();
 	if ($id_user == null) $id_user = get_current_user_id();
 	$j = 0;
-	foreach (get_project_() as $value) {
+	foreach (get_project_(-1) as $value) {
 		if( $value->collaborator != null ){
 			if( unserialize($value->collaborator) != null ){
 				if (in_array($id_user, unserialize($value->collaborator))) {
@@ -612,7 +648,7 @@ function is_project_manager(int $id_user = null)
 {
 	global $wpdb, $current_user;
 	$table = $wpdb->prefix . 'project';
-	$projects = get_project_();
+	$projects = get_project_(-1);
 	$user_project = array();
 	if ($id_user == null) $id_user = $current_user->ID;
 	$i = 0;
@@ -1344,13 +1380,17 @@ function project_tab(){
 							<span class="btn btn-link project_edit" id="<?= $project->id ?>"><?= $project->title ?></span><br>
 							<span class="ml-3"><?= substr($project->description, 0,30) ?>... </span> 
 						</td>
-						<td class="m-0 p-0 pt-2"><?= get_userdata( $project->project_manager )->display_name ?></td>
+						<td class="m-0 p-0 pt-2">
+							<?= get_userdata( $project->project_manager )->display_name ?><br>
+							<button class="btn btn-link p-0 m-0" data-toggle="modal" data-target="#<?=  $project->id ?>">Editer Collaborators</button>
+						</td>
 						<td class="m-0 p-0">
-							<span class="text-primary btn btn-link project_edit" id="<?= $project->id ?>">Edit</span> | <span class="text-danger btn btn-link project_remove" id="<?= $project->id ?>">Delete</span>
+						<?php if( !getProjectStatus($project->id) ){ ?><span class="text-primary btn btn-outline-secondary project_edit" id="<?= $project->id ?>">Edit</span> <?php } ?><span class="<?php if( getProjectStatus($project->id) ){ echo 'text-warning'; } else { echo 'text-success'; } ?> btn btn-outline-secondary project_archive" id="<?= $project->id ?>" ><?php if( getProjectStatus($project->id) ){ echo 'Unarchive'; } else { echo 'Archive'; } ?></span>
 						</td>
 					</tr>
 				<?php
 					$k++;
+					modalCollaborator($project->id, $project->title, $project->project_manager, unserialize($project->collaborator));
 				}
 				if ($k == 0) {
 				?>
@@ -1362,6 +1402,43 @@ function project_tab(){
 				?>
 			</tbody>
 		</table>
+	<?php
+}
+
+function modalCollaborator( $projectId, $title, $cpId, $collaborators ){
+	?>
+	<!-- Modal -->
+	<div class="modal fade" id="<?= $projectId ?>" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered" role="document">
+		<div class="modal-content">
+		<div class="modal-header">
+			<h5 class="modal-title" id="exampleModalLabel"><?= $title ?></h5>
+			<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+			<span aria-hidden="true">&times;</span>
+			</button>
+		</div>
+		<form id="<?= $projectId ?>" class="editCollaborator" action="" method="post">
+			<div class="modal-body">
+				<h3>Edit Collaborators</h3>
+				<span id="successCol"></span>
+				<hr>
+				<div class="form-group">
+					<label for="inputState">Collaborators :</label>
+					<select class="selectpicker form-control" required id="multichoix" name="multichoix" multiple data-live-search="true">
+						<?= option_select(get_all_users(), $collaborators) ?>
+					</select>
+					<input type="hidden" name="project_manager" id="project_manager" value="<?= $cpId ?>">
+					<small>Click here to edit the project collaborators</small>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button class="btn btn-secondary" id="btn_close<?= $projectId ?>" data-dismiss="modal">Close</button>
+					<button type="submit" id="btn_submit<?= $projectId ?>" class="btn btn-primary">Update Collaborator</button>
+				</div>
+			</form>
+		</div>
+	</div>
+	</div>
 	<?php
 }
 

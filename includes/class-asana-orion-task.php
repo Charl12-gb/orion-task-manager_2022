@@ -439,13 +439,16 @@ function synTaskForAsana(){
 		$asana->getTask($task->id);
 		$task_detail = $asana->getData();
 		if(($task->project_id) != (get_option('_project_manager_id'))){
-			if( isset( $asana->getData()->assignee->gid ) ) $assig = $asana->getData()->assignee->gid;
-			else $assig = null;
-			$assigne = get_user_asana_id($assig);
-			if( $assigne != null ){
-				update_task_assign($task->id, $assigne);
-			}
-				
+			if( isset( $task_detail->modified_at ) && ($task_detail->modified_at != null ) ){
+				if( ( date('Y-m-d H:i:s',strtotime($task_detail->modified_at)) ) != (date('Y-m-d H:i:s',strtotime($task->created_at))) ){
+					if( isset( $asana->getData()->assignee->gid ) ) { $assig = $asana->getData()->assignee->gid; }
+					else { $assig = null; }
+					$assigne = get_user_asana_id($assig);
+					if( $assigne != null ){
+						update_task_assign($task->id, $assigne);
+					}
+				}
+			}	
 		}
 	}
 }

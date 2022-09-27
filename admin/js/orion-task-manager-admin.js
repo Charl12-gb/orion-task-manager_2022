@@ -381,6 +381,62 @@
             });
         });
 
+        $(document).on('submit', '.editCollaborator', function(e) {
+            e.preventDefault();
+            document.getElementById('add_success1').innerHTML = '';
+            var id_proeject = $(this).attr('id');
+            var project_manager = $('#project_manager').val();
+            var multi_choix = $('#multichoix option:selected').toArray().map(item => item.value);
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'editCollaborator',
+                    'project_id': id_proeject,
+                    'project_manager': project_manager,
+                    'collaborators': multi_choix
+                },
+                success: function(response) {
+                    document.getElementById('successCol').innerHTML = '<div class="alert alert-success mt-4" role="alert">Updated collaborators successfully completed</div>';
+                    $('#btn_submit' + id_proeject).hide();
+                    $('#btn_close' + id_proeject).removeClass("btn-secondary");
+                    $('#btn_close' + id_proeject).addClass("btn-success");
+                    document.getElementById('btn_close' + id_proeject).innerHTML = 'Finish';
+                    setTimeout(function() {
+                        $('#btn_submit' + id_proeject).show();
+                        $('#btn_close' + id_proeject).removeClass("btn-success");
+                        $('#btn_close' + id_proeject).addClass("btn-secondary");
+                        document.getElementById('btn_close' + id_proeject).innerHTML = 'Close';
+                    }, 5000);
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
+
+        $(document).on('click', '.project_archive', function() {
+            document.getElementById('add_success1').innerHTML = '';
+            var id_proeject = $(this).attr('id');
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'project_card',
+                    'archive_project': id_proeject
+                },
+                beforeSend: function() {
+                    document.getElementById('project_card').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
+                },
+                success: function(response) {
+                    document.getElementById('project_card').innerHTML = response;
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
+
         $(document).on('click', '.btn_emails', function() {
             var action_template = $(this).attr('id');
             if (action_template == 'new_email') {
@@ -444,7 +500,6 @@
                 success: function(response) {
                     document.getElementById('template_card').innerHTML = response;
                     document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">Deletion completed successfully</div>';
-                    //setTimeout(function() { $('#add_success').hide(); }, 5000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);

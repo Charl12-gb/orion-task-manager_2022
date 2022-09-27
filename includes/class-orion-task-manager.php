@@ -213,6 +213,8 @@ class Orion_Task_Manager {
 		$this->loader->add_action('wp_ajax_nopriv_synchronisation_time', $buildclass, 'parameterSendTimeReport');
 		$this->loader->add_action('wp_ajax_project_card', $buildclass, 'getListOrFormTemplate');
 		$this->loader->add_action('wp_ajax_nopriv_project_card', $buildclass, 'getListOrFormTemplate');
+		$this->loader->add_action('wp_ajax_editCollaborator', $buildclass, 'editProject_');
+		$this->loader->add_action('wp_ajax_nopriv_editCollaborator', $buildclass, 'editProject_');
 		$this->loader->add_action('wp_ajax_manuellySync', $buildclass, 'manuellySync_');
 		$this->loader->add_action('wp_ajax_nopriv_manuellySync', $buildclass, 'manuellySync_');
 		$this->loader->add_action('wp_ajax_set_first_parameter_plugin', $buildclass, 'set_first_parameter_plugin_');

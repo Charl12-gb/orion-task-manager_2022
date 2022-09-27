@@ -304,6 +304,19 @@ class Task_Manager_Builder
         wp_die();
     }
 
+    public static function editProject_(){
+        if( $_POST['action'] == 'editCollaborator' ){
+            $data = wp_unslash( $_POST );
+            $projectId = htmlentities( $_POST['project_id'] );
+            $col = array_merge($data['collaborators'], array($data['project_manager']));
+            $collaborators = serialize( $col );
+            $output = editCollaborateur($projectId, $collaborators);
+            if ($output) echo project_tab();
+            else echo false;
+        }
+        wp_die();
+    }
+
     /**
      * Créer un template
      */
@@ -549,6 +562,13 @@ class Task_Manager_Builder
             if (isset($_POST['update_id'])) {
                 $id_project = htmlentities($_POST['update_id']);
                 echo project_form_add($id_project);
+            }elseif(isset($_POST['archive_project'])){
+                $id_project = htmlentities($_POST['archive_project']);
+                if( getProjectStatus($id_project) ){
+                    $archive = false;
+                }else $archive = true;
+                archiveProject( $id_project, $archive );
+                echo project_tab();
             } else {
                 $type = htmlentities($_POST['valeur']);
                 if ($type == 'project_btn_list') echo project_tab();
@@ -823,6 +843,7 @@ class Task_Manager_Builder
      */
     public static function taches_tab()
     {
+        // synTaskForAsana();
         ?>
         <div class="container-fluid pt-3">
             <div class="row" id="accordion">

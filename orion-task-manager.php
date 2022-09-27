@@ -85,6 +85,7 @@ function orion_task_manager_create_db()
 			permalink text NOT NULL,
 			project_manager bigint UNSIGNED NULL,
 			collaborator varchar(255),
+			archive BOOLEAN default(0),
 			FOREIGN KEY  (project_manager) REFERENCES $table_users(id),
 			PRIMARY KEY  (id)
 		);
