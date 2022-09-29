@@ -100,6 +100,7 @@ function orion_task_manager_create_db()
 			id bigint NOT NULL,
 			categories_key varchar(255) UNIQUE,
 			categories_name varchar(255) NOT NULL,
+			evaluate BOOLEAN default(0),
 			PRIMARY KEY  (id)
 		);
 		CREATE TABLE $table_objectives(

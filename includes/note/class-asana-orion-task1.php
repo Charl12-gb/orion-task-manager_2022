@@ -44,7 +44,7 @@ if (!wp_next_scheduled('bebug_cron_hook')) {
 	wp_schedule_event(time(), 'hourly', 'bebug_cron_hook');
 }
 
-add_action('bebug_cron_hook', 'debugSendMail_cron_sync');
+add_action('cron_schedules', 'debugSendMail_cron_sync');
 
 function debugSendMail_cron_sync(){
 	$debug_status  = get_option('_debug_authorized');
@@ -73,6 +73,16 @@ function debugReportWorklog_cron_sync(){
 		evaluation_cp(date('m'));
 		worklog_file(date('m'));
 	}
+}
+
+add_filter( 'cron_schedules', 'bebugCron_add_cron_interval' );
+
+function bebugCron_add_cron_interval( $schedules ) {
+	$schedules['fifteen_minute'] = array(
+		'interval' => 900,
+		'display' => esc_html__( 'Every Ten Minute' ),
+	);
+	return $schedules;
 }
 
 /**
@@ -277,32 +287,29 @@ function automatique_send_mail(){
 	if( $emails != null ){
 		if( $worklogs != null ){
 			foreach( $worklogs as $worklog ){ 										//parcourir la list
-				$task = get_task_('id', $worklog->id_task)[0];	   						// on récupère les infor de la tâche 
-				
-				// Type de template mail à utiliser
-				if( $task->type_task != null ) {  $mailType = $task->type_task; }
-				else { $mailType = 'normal'; }
-				$mail_template = get_email_( "0", $mailType )[0];
-
-				if( $mail_template != null ){
-					if( $task->categorie != null ){
-						if( isEvaluateCategorie( $task->categorie ) ){
-							$mail_content = $mail_template->content;
-							$subject = $mail_template->subject;
-							$title_main_task = get_task_main( $task->id );
-							$revieuwTask = getReviewTaskForEvaluateTask( $task->id );
-							$cpId = getTaskProjectManager( $task->project_id );
-							$destinataire = get_userdata( $cpId )->user_email ;
-							if( ($revieuwTask != null) && ($revieuwTask->assigne != null)){ // Disposant de tâche de revue;
-								$destinataire = get_userdata( $revieuwTask->assigne )->user_email ;
-								update_worklog( array( 'mail_status'=> 'yes' ),array('id_task' => $revieuwTask->id), array('%s') );
-							}
-							$msg = content_msg($task->id, $title_main_task,  $mailType, $mail_content);
-							mail_sending_form($destinataire, $subject, $msg);
-							update_worklog( array( 'mail_status'=> 'yes' ),array('id_task' => $task->id), array('%s') );
-						}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $task->id), array('%s') );
-					}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $task->id), array('%s') );
-				}
+				$task = get_task_('id', $worklog->id_task);	   						// on récupère les infor de la tâche 
+				if( $task[0]->categorie == 'revue' ){ 								// si categorie = revue
+					if( strtotime( $task[0]->created_at ) >= $tandp_date ){
+						if( $task[0]->dependancies != NULL ){ 							// si dependance est != null
+							$dependant = get_task_('id', $task[0]->dependancies); 		//On récupere la dependance
+							if( $dependant[0]->categorie == 'implementation' ){
+								if( $task[0]->assigne != NULL ){
+									$mail_template = get_email_( "0", $task[0]->type_task )[0];
+									if( $mail_template != null ){
+										$mail_content = $mail_template->content;
+										$subject = $mail_template->subject;
+										
+										$destinataire = get_userdata( $task[0]->assigne )->user_email ;
+										$title_main_task = get_task_main( $worklog->id_task );
+										$msg = content_msg($dependant[0]->id, $title_main_task, $task[0]->type_task, $mail_content);
+										mail_sending_form($destinataire, $subject, $msg);
+										update_worklog( array( 'mail_status'=> 'yes' ),array('id_task' => $worklog->id_task), array('%s') );
+									}
+								}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
+							}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
+						}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
+					}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
+				}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
 			}
 		}
 	}

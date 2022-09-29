@@ -189,13 +189,18 @@
             e.preventDefault();
             var parametre = {};
             var categorie = "";
+            var evaluate = false;
             if (z > 0) {
                 for (var y = 1; y <= z; y++) {
                     categorie = $('#categorie' + y).val();
-                    parametre[y] = { categorie };
+                    if ($('#evaluate' + y + ':checked').val() == 'on')
+                        evaluate = 1;
+                    else
+                        evaluate = 0;
+                    parametre[y] = { categorie, evaluate };
                 }
             }
-            //console.log(parametre);
+            // console.log(parametre);
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
@@ -217,6 +222,33 @@
             });
         });
 
+        $(document).on('click', '.evaluateUpdata', function() {
+            var categorieId = $(this).attr('id');
+            console.log();
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                data: {
+                    'action': 'project_card',
+                    'categorieIdUpdate': categorieId
+                },
+                success: function(response) {
+                    if (response) {
+                        if ($('#' + categorieId + ':checked').val() == 'on')
+                            document.getElementById('label' + categorieId).innerHTML = 'Yes';
+                        else
+                            document.getElementById('label' + categorieId).innerHTML = 'No';
+                        document.getElementById('add_success_categories').innerHTML = '<div class="alert alert-success mt-4" role="alert">Operation successfully completed !</div>';
+                    } else
+                        document.getElementById('add_success_categories').innerHTML = '<div class="alert alert-danger mt-4" role="alert">Problem occurred. Try again !</div>';
+                    setTimeout(function() { document.getElementById('add_success_categories').innerHTML = ''; }, 4000);
+                },
+                error: function(errorThrown) {
+                    console.log(errorThrown);
+                }
+            });
+        });
+
         $(document).on('click', '#addcategorie', function() {
             z++;
             if (document.getElementById('nbresubtask')) {
@@ -225,7 +257,7 @@
                     z = val;
                 }
             }
-            $('#champadd').append('<div id="rm2' + z + '"><div class="form-row pt-2"><div class="col-sm-11"><input type="text" name="categorie' + z + '" id="categorie' + z + '" class="form-control" placeholder="Categorie Name"></div><div class="col-sm-1"><span name="remove" id="' + z + '" class="btn btn-outline-danger btn_remove_categorie">X</span></div></div></div>');
+            $('#champadd').append('<div id="rm2' + z + '"><div class="form-row pt-2"><div class="col-sm-7"><input type="text" name="categorie' + z + '" id="categorie' + z + '" class="form-control" placeholder="Categorie Name"></div><div class="col-sm-"><div class="custom-control custom-checkbox my-1 mr-sm-2"><input type="checkbox" class="custom-control-input" id="evaluate' + z + '"><label class="custom-control-label" for="evaluate' + z + '">Evaluate (Yes/No) </label></div></div><div class="col-sm-1"><span name="remove" id="' + z + '" class="btn btn-outline-danger btn_remove_categorie">X</span></div></div></div>');
         });
 
         $(document).on('click', '#addsection', function() {
@@ -292,7 +324,7 @@
                     success: function(response) {
                         document.getElementById('criteria_evaluation_tab').innerHTML = response;
                         document.getElementById('success_criteria_add').innerHTML = '<div class="alert alert-success mt-4" role="alert">Successfully updated evaluation criteria</div>';
-                        //setTimeout(function() { $('#success_criteria_add').hide(); }, 5000);
+                        setTimeout(function() { document.getElementById('success_criteria_add').innerHTML = ''; }, 10000);
                     },
                     error: function(errorThrown) {
                         console.log(errorThrown);
@@ -361,13 +393,13 @@
 
         $(document).on('click', '.project_edit', function() {
             document.getElementById('add_success1').innerHTML = '';
-            var id_proeject = $(this).attr('id');
+            var id_project = $(this).attr('id');
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
                 data: {
                     'action': 'project_card',
-                    'update_id': id_proeject
+                    'update_id': id_project
                 },
                 beforeSend: function() {
                     document.getElementById('project_card').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
@@ -384,29 +416,29 @@
         $(document).on('submit', '.editCollaborator', function(e) {
             e.preventDefault();
             document.getElementById('add_success1').innerHTML = '';
-            var id_proeject = $(this).attr('id');
-            var project_manager = $('#project_manager').val();
-            var multi_choix = $('#multichoix option:selected').toArray().map(item => item.value);
+            var id_project = $(this).attr('id');
+            var project_manager = $('#project_manager' + id_project).val();
+            var multi_choix = $('#multichoix' + id_project + ' option:selected').toArray().map(item => item.value);
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
                 data: {
                     'action': 'editCollaborator',
-                    'project_id': id_proeject,
+                    'project_id': id_project,
                     'project_manager': project_manager,
                     'collaborators': multi_choix
                 },
                 success: function(response) {
                     document.getElementById('successCol').innerHTML = '<div class="alert alert-success mt-4" role="alert">Updated collaborators successfully completed</div>';
-                    $('#btn_submit' + id_proeject).hide();
-                    $('#btn_close' + id_proeject).removeClass("btn-secondary");
-                    $('#btn_close' + id_proeject).addClass("btn-success");
-                    document.getElementById('btn_close' + id_proeject).innerHTML = 'Finish';
+                    $('#btn_submit' + id_project).hide();
+                    $('#btn_close' + id_project).removeClass("btn-secondary");
+                    $('#btn_close' + id_project).addClass("btn-success");
+                    document.getElementById('btn_close' + id_project).innerHTML = 'Finish';
                     setTimeout(function() {
-                        $('#btn_submit' + id_proeject).show();
-                        $('#btn_close' + id_proeject).removeClass("btn-success");
-                        $('#btn_close' + id_proeject).addClass("btn-secondary");
-                        document.getElementById('btn_close' + id_proeject).innerHTML = 'Close';
+                        $('#btn_submit' + id_project).show();
+                        $('#btn_close' + id_project).removeClass("btn-success");
+                        $('#btn_close' + id_project).addClass("btn-secondary");
+                        document.getElementById('btn_close' + id_project).innerHTML = 'Close';
                     }, 5000);
                 },
                 error: function(errorThrown) {
@@ -417,13 +449,13 @@
 
         $(document).on('click', '.project_archive', function() {
             document.getElementById('add_success1').innerHTML = '';
-            var id_proeject = $(this).attr('id');
+            var id_project = $(this).attr('id');
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
                 data: {
                     'action': 'project_card',
-                    'archive_project': id_proeject
+                    'archive_project': id_project
                 },
                 beforeSend: function() {
                     document.getElementById('project_card').innerHTML = '<div class="alert alert-info mt-4" role="alert">Loading ... </div>';
@@ -522,7 +554,7 @@
                 success: function(response) {
                     document.getElementById('evaluator_tab').innerHTML = response;
                     document.getElementById('add_success').innerHTML = '<div class="alert alert-success" role="alert">Deletion completed successfully</div>';
-                    //setTimeout(function() { $('#add_success').hide(); }, 5000);
+                    setTimeout(function() { document.getElementById('add_success').innerHTML = '' }, 10000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -756,7 +788,7 @@
                         document.getElementById('add_success_id').innerHTML = '<div class="alert alert-success mt-4" role="alert"> Successfully ! </div>';
                     else
                         document.getElementById('add_success_id').innerHTML = '<div class="alert alert-danger mt-4" role="alert"> Error ! </div>';
-                    //setTimeout(function() { $('#add_success_id').hide(); }, 5000);
+                    setTimeout(function() { document.getElementById('add_success_id').innerHTML = '' }, 10000);
                 }
             });
         });
@@ -799,7 +831,7 @@
                         document.getElementById('add_success_id').innerHTML = '<div class="alert alert-success mt-4" role="alert"> Successfully ! </div>';
                     else
                         document.getElementById('add_success_id').innerHTML = '<div class="alert alert-danger mt-4" role="alert"> Error ! </div>';
-                    setTimeout(function() { $('#add_success_id').hide(); }, 5000);
+                    setTimeout(function() { $('#add_success_id').hide(); }, 10000);
                 }
             });
         });
@@ -910,7 +942,7 @@
                         document.getElementById('list_email').innerHTML = 'New Email Template';
                         $('#list_email').attr('id', 'new_email');
                     }
-                    //setTimeout(function() { $('#add_success').hide(); }, 5000);
+                    setTimeout(function() { document.getElementById('add_success').innerHTML = ''; }, 10000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -936,7 +968,7 @@
                     } else {
                         document.getElementById('add_success').innerHTML = '<div class="alert alert-danger" role="alert">Error</div>';
                     }
-                    //setTimeout(function() { $('#add_success').hide(); }, 5000);
+                    setTimeout(function() { document.getElementById('add_success').innerHTML = ''; }, 10000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -999,7 +1031,7 @@
                         } else
                             document.getElementById('add_success').innerHTML = '<div class="alert alert-danger" role="alert">Error occurred during template creation</div>';
                     }
-                    //setTimeout(function() { $('#add_success').hide(); }, 5000);
+                    setTimeout(function() { document.getElementById('add_success').innerHTML = ''; }, 10000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);
@@ -1065,7 +1097,7 @@
                         document.getElementById('project_card').innerHTML = response;
                     } else
                         document.getElementById('add_success1').innerHTML = '<div class="alert alert-danger" role="alert">Error occurred during project creation</div>';
-                    //setTimeout(function() { $('#add_success1').hide(); }, 5000);
+                    setTimeout(function() { document.getElementById('add_success1').innerHTML = ''; }, 10000);
                 },
                 error: function(errorThrown) {
                     console.log(errorThrown);

@@ -62,7 +62,7 @@ class Task_Manager_Builder
             if (isset($_REQUEST['page'])) {
                 if ($_REQUEST['page'] == 'o_task_manager') {
                     if (($token == null) || ($projetIdCp == null) || ($sender_info == null) || ($sent_info == null) || ($send_subperformance == null) || ($get_criteria == null) || ($emails == null) || ($tab_templates == null)) {
-?>
+                        ?>
                         <div class="notice notice-warning is-dismissible">
                             <h5 style="text-decoration: underline"><strong class="text-danger">Incomplete configuration</strong></h5>
                             <h6>
@@ -70,34 +70,50 @@ class Task_Manager_Builder
                                 <ol>
                                     <?php
                                     if ($token == null) {
-                                    ?> <li>The ASANA Access Token (in ASANA access token): <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-active')); ?>"><?php _e('Here', 'task'); ?></a></li> <?php
-                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                            if ($projetIdCp == null) {
-                                                                                                                                                                                                                                ?> <li>Adding the identifier of the project containing the CP objectives for evaluation (in Project Manager) : <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-evaluation')); ?>"><?php _e('Here', 'task'); ?></a></li> <?php
-                                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                                                        if (($sender_info == null) || (unserialize($sender_info)['sender_name'] == '')) {
-                                                                                                                                                                                                                                                                                            ?> <li>Information for sending evaluation emails (in mail template) : <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-evaluation')); ?>"><?php _e('Here', 'task'); ?></a></li> <?php
-                                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                                                        if (($sent_info == null) || (unserialize($sent_info)['email_manager'] == '')) {
-                                                                                                                                                                                                                                                    ?> <li>The send report parameter : <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-rapport')); ?>"><?php _e('Here', 'task'); ?></a></li> <?php
-                                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                                                        if (($send_subperformance == null)) {
-                                                                                                                                                                                                            ?> <li>Performance plan parameters : <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-performance')); ?>"><?php _e('Here', 'task'); ?></a></li> <?php
-                                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                                                        if ($get_criteria == null) {
-                                                                                                                                                                                                                    ?> <li>Adding evaluation criteria (in Task Evaluation Criteria) : <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-evaluation')); ?>"><?php _e('Here', 'task'); ?></a></li> <?php
-                                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                                                        if ($emails == null) {
-                                                                                                                                                                                                                                                ?> <li> Adding mail sending templates (in Mail template) : <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-evaluation')); ?>"><?php _e('Here', 'task'); ?></a></li> <?php
-                                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                                                        if ($tab_templates == null) {
-                                                                                                                                                                                                                                        ?> <li> Adding templates for creating tasks (in Template) : <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager')); ?>"><?php _e('Here', 'task'); ?></a></li> <?php
-                                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                        ?>
+                                        ?> 
+                                        <li>The ASANA Access Token (in ASANA access token): <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-active')); ?>"><?php _e('Here', 'task'); ?></a></li> 
+                                        <?php
+                                    }
+                                    if ($projetIdCp == null) {
+                                        ?> 
+                                        <li>Adding the identifier of the project containing the CP objectives for evaluation (in Project Manager) : <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-evaluation')); ?>"><?php _e('Here', 'task'); ?></a></li> 
+                                        <?php
+                                    }
+                                    if (($sender_info == null) || (unserialize($sender_info)['sender_name'] == '')) {
+                                        ?> 
+                                        <li>Information for sending evaluation emails (in mail template) : <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-evaluation')); ?>"><?php _e('Here', 'task'); ?></a></li> 
+                                        <?php
+                                    } 
+                                    if (($sent_info == null) || (unserialize($sent_info)['email_manager'] == '')) {
+                                        ?> 
+                                        <li>The send report parameter : <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-rapport')); ?>"><?php _e('Here', 'task'); ?></a></li> 
+                                        <?php
+                                    }
+                                    if (($send_subperformance == null)) {
+                                        ?> 
+                                        <li>Performance plan parameters : <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-performance')); ?>"><?php _e('Here', 'task'); ?></a></li> 
+                                        <?php
+                                    }
+                                    if ($get_criteria == null) {
+                                        ?> 
+                                        <li>Adding evaluation criteria (in Task Evaluation Criteria) : <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-evaluation')); ?>"><?php _e('Here', 'task'); ?></a></li> 
+                                        <?php
+                                    }
+                                    if ($emails == null) {
+                                        ?> 
+                                        <li> Adding mail sending templates (in Mail template) : <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager&set=o-evaluation')); ?>"><?php _e('Here', 'task'); ?></a></li> 
+                                        <?php
+                                    }
+                                    if ($tab_templates == null) {
+                                        ?> 
+                                        <li> Adding templates for creating tasks (in Template) : <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager')); ?>"><?php _e('Here', 'task'); ?></a></li> 
+                                        <?php
+                                    }
+                                    ?>
                                 </ol>
                             </h6>
                         </div>
-            <?php
+                        <?php
                     }
                 }
             }
@@ -562,6 +578,9 @@ class Task_Manager_Builder
             if (isset($_POST['update_id'])) {
                 $id_project = htmlentities($_POST['update_id']);
                 echo project_form_add($id_project);
+            }else if(isset($_POST['categorieIdUpdate'])){
+                $categorieId = htmlentities($_POST['categorieIdUpdate']);
+                echo updateEvaluateCategorie($categorieId);
             }elseif(isset($_POST['archive_project'])){
                 $id_project = htmlentities($_POST['archive_project']);
                 if( getProjectStatus($id_project) ){
@@ -843,7 +862,6 @@ class Task_Manager_Builder
      */
     public static function taches_tab()
     {
-        // synTaskForAsana();
         ?>
         <div class="container-fluid pt-3">
             <div class="row" id="accordion">
@@ -1310,6 +1328,9 @@ class Task_Manager_Builder
         <?php
     }
 
+    /**
+     * @return mixed
+     */
     public static function page_task()
     {
         $post_author = get_current_user_id();

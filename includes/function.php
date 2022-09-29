@@ -213,7 +213,7 @@ function save_new_categories($datas, $id = null, $syn=false)
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'categories';
-	$format = array('%d','%s', '%s');
+	$format = array('%d', '%s', '%s', '%d');
 	if ($id == null) {
 		if( $syn ){
 			$wpdb->insert($table, $datas, $format);
@@ -222,7 +222,7 @@ function save_new_categories($datas, $id = null, $syn=false)
 				$form = str_replace(" ", "_", strtolower($data['categorie']));
 				$id_categorie = create_tag( $form );
 				if( $id_categorie != null ){
-					$data_format = array('id' => $id_categorie, 'categories_key' => $form, 'categories_name' => $data['categorie']);
+					$data_format = array('id' => $id_categorie, 'categories_key' => $form, 'categories_name' => $data['categorie'], 'evaluate' => $data['evaluate'] );
 					$wpdb->insert($table, $data_format, $format);
 				}
 			}
@@ -233,6 +233,18 @@ function save_new_categories($datas, $id = null, $syn=false)
 		$wpdb->update($table, $d_format, array('id' => $id), $format);
 	}
 	return;
+}
+
+/**
+ * Update categorie evaluation status
+ */
+function updateEvaluateCategorie( $categorieId ){
+	global $wpdb;
+	$table = $wpdb->prefix . 'categories';
+	$categorie = get_categories_task( $categorieId );
+	if( $categorie->evaluate ) $data = array( 'evaluate'=> 0 );
+	else $data = array( 'evaluate'=> 1 );
+	return $wpdb->update($table, $data, array('id' => $categorieId));
 }
 
 /**
@@ -762,6 +774,49 @@ function get_categories_task($id_categorie=null, $key=null)
 			$sql = "SELECT * FROM $table WHERE categories_key='$key'";
 		return $wpdb->get_row( $sql );
 	}
+}
+
+/**
+ * Vérifier si une catégorie est évaluable
+ * 
+ * @param  string $keyCategorie
+ * 
+ * @return bool
+ */
+function isEvaluateCategorie( $keyCategorie ){
+	$categorie = get_categories_task(null, $keyCategorie);
+	if( $categorie->evaluate == 1 ) return true;
+	else return false;
+}
+
+/**
+ * Récupérer la tâche de revue d'une tâche principale
+ * @param int $taskId
+ * 
+ */
+function getReviewTaskForEvaluateTask( $taskId ){
+	global $wpdb;
+	$table = $wpdb->prefix . 'subtask';
+	$sql = "SELECT id FROM $table WHERE id_task_parent = " . $taskId;
+	$subTasks = $wpdb->get_results($sql);
+	if( $subTasks != null ){
+		foreach( $subTasks as $subTask ){
+			$task = get_task_('id', $subTask->id)[0];
+			if( $task->categorie == 'revue' ) 
+				return $task;
+		}
+	}else return array();
+	return array();
+}
+
+/**
+ * Get project manager for project
+ * @param int $projectId
+ * 
+ * @return int
+ */
+function getTaskProjectManager( $projectId ){
+	return get_project_( $projectId )->project_manager;
 }
 
 /**
@@ -1382,7 +1437,7 @@ function project_tab(){
 						</td>
 						<td class="m-0 p-0 pt-2">
 							<?= get_userdata( $project->project_manager )->display_name ?><br>
-							<button class="btn btn-link p-0 m-0" data-toggle="modal" data-target="#<?=  $project->id ?>">Editer Collaborators</button>
+							<button class="btn btn-link p-0 m-0 text-warning" data-toggle="modal" data-target="#<?=  $project->id ?>">Editer Collaborators</button>
 						</td>
 						<td class="m-0 p-0">
 						<?php if( !getProjectStatus($project->id) ){ ?><span class="text-primary btn btn-outline-secondary project_edit" id="<?= $project->id ?>">Edit</span> <?php } ?><span class="<?php if( getProjectStatus($project->id) ){ echo 'text-warning'; } else { echo 'text-success'; } ?> btn btn-outline-secondary project_archive" id="<?= $project->id ?>" ><?php if( getProjectStatus($project->id) ){ echo 'Unarchive'; } else { echo 'Archive'; } ?></span>
@@ -1424,10 +1479,10 @@ function modalCollaborator( $projectId, $title, $cpId, $collaborators ){
 				<hr>
 				<div class="form-group">
 					<label for="inputState">Collaborators :</label>
-					<select class="selectpicker form-control" required id="multichoix" name="multichoix" multiple data-live-search="true">
+					<select class="selectpicker form-control" required id="multichoix<?= $projectId ?>" name="multichoix" multiple data-live-search="true">
 						<?= option_select(get_all_users(), $collaborators) ?>
 					</select>
-					<input type="hidden" name="project_manager" id="project_manager" value="<?= $cpId ?>">
+					<input type="hidden" name="project_manager" id="project_manager<?= $projectId ?>" value="<?= $cpId ?>">
 					<small>Click here to edit the project collaborators</small>
 					</div>
 				</div>
@@ -1733,18 +1788,27 @@ function get_user_task()
 function get_categories_()
 {
 	$all_categories = get_categories_task();
+	?>
+	<div class="form-row pt-2">
+		<div class="col-sm-2"><strong>Evaluate</strong></div>
+		<div class="col-sm-5"><strong>Name</strong></div>
+		<div class="col-sm-5"><strong>Key</strong></div>
+	</div>
+	<?php
 	foreach ($all_categories as $categorie) {
 		if (in_array($categorie->categories_key, categorie_name())) {
 	?>
 			<div class="form-row pt-2">
+				<div class="col-sm-1"><div class="custom-control custom-checkbox my-1 mr-sm-2"><input type="checkbox" <?php if( $categorie->evaluate ) echo 'checked' ?> class="custom-control-input evaluateUpdata" id="<?= $categorie->id ?>"><label id="label<?= $categorie->id ?>" class="custom-control-label" for="<?= $categorie->id ?>"><?php if( $categorie->evaluate ) echo 'Yes'; else echo 'No'; ?></label></div></div>
 				<div class="col-sm-6"><input type="text" readonly value="<?= $categorie->categories_name ?>" class="form-control text-dark"></div>
-				<div class="col-sm-6"><input type="text" readonly value="<?= $categorie->categories_key ?>" class="form-control text-dark"></div>
+				<div class="col-sm-5"><input type="text" readonly value="<?= $categorie->categories_key ?>" class="form-control text-dark"></div>
 			</div>
-		<?php
+			<?php
 		} else {
-		?>
+			?>
 			<div class="form-row pt-2">
-				<div class="col-sm-6"><input type="text" id="name<?= $categorie->id ?>" readonly value="<?= $categorie->categories_name ?>" class="form-control text-dark"></div>
+				<div class="col-sm-1"><div class="custom-control custom-checkbox my-1 mr-sm-2"><input type="checkbox" <?php if( $categorie->evaluate ) echo 'checked' ?> class="custom-control-input evaluateUpdata" id="<?= $categorie->id ?>"><label class="custom-control-label" id="label<?= $categorie->id ?>" for="<?= $categorie->id ?>"><?php if( $categorie->evaluate ) echo 'Yes'; else echo 'No'; ?></label></div></div>
+				<div class="col-sm-5"><input type="text" id="name<?= $categorie->id ?>" readonly value="<?= $categorie->categories_name ?>" class="form-control text-dark"></div>
 				<div class="col-sm-4"><input type="text" id="key<?= $categorie->id ?>" readonly value="<?= $categorie->categories_key ?>" class="form-control text-dark"></div>
 				<div class="col-sm-1 btn btn-primary edit_categorie" id="<?= $categorie->id ?>"> <span id="edit_<?= $categorie->id ?>">Edit</span> </div>
 				<div class="col-sm-1 btn btn-danger delete_categorie" id="<?= $categorie->id ?>">Delete</div>
@@ -1753,8 +1817,8 @@ function get_categories_()
 		}
 	}
 	?>
-	<form action="" method="post" id="create_categories">
-		<label for="inputState">Other Categories :</label>
+	<form action="" method="post" id="create_categories"><hr>
+		<label for="inputState">Add Other Categories :</label>
 		<div id="champadd" class="pb-3"></div>
 		<div class="form-group">
 			<span id="addcategorie" name="addcategorie" class="btn btn-outline-success">+ Add Categories</span>
