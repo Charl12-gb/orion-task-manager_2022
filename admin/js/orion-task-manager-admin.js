@@ -503,7 +503,6 @@
 
         $(document).on('click', '.worklog_authorized,.debug_authorized', function() {
             var operation = $(this).attr('id');
-            console.log(operation);
             $.ajax({
                 url: ajaxurl,
                 type: "POST",

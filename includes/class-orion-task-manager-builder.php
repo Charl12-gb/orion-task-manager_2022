@@ -136,7 +136,7 @@ class Task_Manager_Builder
         if ($_POST['valeur'] == 'task')
             echo sync_tasks();
         if ($_POST['valeur'] == 'duedate')
-            echo sync_duedate_task();
+            echo syncTaskStatus();
         wp_die();
     }
 
@@ -248,6 +248,13 @@ class Task_Manager_Builder
                     wp_safe_redirect($url);
                     exit();
                 }
+            }
+            if (wp_verify_nonce($_POST['verifier_new_task_form'], 'refreshProject')) {
+                $projectId = htmlentities( $_POST['projectRefresh'] );
+                synTaskForAsana( $projectId );
+                $url = add_query_arg('status', 'success', wp_get_referer());
+                wp_safe_redirect($url);
+                exit();
             }
         }
     }
@@ -799,7 +806,7 @@ class Task_Manager_Builder
                 else echo false;
             }
             if ($_POST['all_sync'] == 'duedate') {
-                $output5 = sync_duedate_task();
+                $output5 = syncTaskStatus();
                 if ($output5 == 'duedate') echo true;
                 else echo false;
             }

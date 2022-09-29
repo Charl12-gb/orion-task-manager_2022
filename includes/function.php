@@ -263,10 +263,10 @@ function update_task_dependance( $id_parent, $dependant ){
 	return $wpdb->update($table, $data, array( 'id' => $dependant ), $format);
 }
 
-function update_task_assign( $taskid, $userId ){
+function updateTaskFromAsana( $taskid, $userId, $duedate ){
 	global $wpdb;
 	$table = $wpdb->prefix . 'task';
-	$data = array( 'assigne' => $userId );
+	$data = array( 'assigne' => $userId, 'duedate' => $duedate );
 	return $wpdb->update($table, $data, array( 'id' => $taskid ));
 }
 
@@ -1439,8 +1439,41 @@ function project_tab(){
 							<?= get_userdata( $project->project_manager )->display_name ?><br>
 							<button class="btn btn-link p-0 m-0 text-warning" data-toggle="modal" data-target="#<?=  $project->id ?>">Editer Collaborators</button>
 						</td>
-						<td class="m-0 p-0">
-						<?php if( !getProjectStatus($project->id) ){ ?><span class="text-primary btn btn-outline-secondary project_edit" id="<?= $project->id ?>">Edit</span> <?php } ?><span class="<?php if( getProjectStatus($project->id) ){ echo 'text-warning'; } else { echo 'text-success'; } ?> btn btn-outline-secondary project_archive" id="<?= $project->id ?>" ><?php if( getProjectStatus($project->id) ){ echo 'Unarchive'; } else { echo 'Archive'; } ?></span>
+						<td class="m-0 p-0 text-center pt-3">
+						<?php 
+						if( !getProjectStatus($project->id) ){ 
+							?>
+							<span title="edit" class="btn btn-outline-primary project_edit" id="<?= $project->id ?>">
+								<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
+									<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+								</svg>
+							</span> 
+							<?php
+						}
+						?>
+						<span class="<?php if( getProjectStatus($project->id) ){ echo 'btn-outline-warning'; } else { echo 'btn-outline-success'; } ?> btn project_archive" id="<?= $project->id ?>" >
+						<?php 
+						if( getProjectStatus($project->id) ){ 
+							?> 
+							<span title="unarchive">
+								<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-up" viewBox="0 0 16 16">
+									<path fill-rule="evenodd" d="M3.5 6a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5h-2a.5.5 0 0 1 0-1h2A1.5 1.5 0 0 1 14 6.5v8a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 14.5v-8A1.5 1.5 0 0 1 3.5 5h2a.5.5 0 0 1 0 1h-2z"/>
+									<path fill-rule="evenodd" d="M7.646.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 1.707V10.5a.5.5 0 0 1-1 0V1.707L5.354 3.854a.5.5 0 1 1-.708-.708l3-3z"/>
+								</svg>
+							</span>
+							<?php
+						} 
+						else { 
+							?> 
+							<span title="archive">
+								<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-archive" viewBox="0 0 16 16">
+									<path d="M0 2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1v7.5a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5V5a1 1 0 0 1-1-1V2zm2 3v7.5A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V5H2zm13-3H1v2h14V2zM5 7.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/>
+								</svg>
+							</span>
+							<?php
+						} 
+						?>
+						</span>
 						</td>
 					</tr>
 				<?php
@@ -1705,11 +1738,28 @@ function get_user_task()
 					if( $project['id'] != get_option( '_project_manager_id' ) ){
 						?>
 						<div class="card-header" id="heading<?= $project['id'] . $project['title'] ?>" data-toggle="collapse" data-target="#collapse<?= $project['id'] . $project['title'] ?>" aria-expanded="true" aria-controls="collapse<?= $project['id'] . $project['title'] ?>">
-							<h3 class="mb-0 ">
-								<button class="btn btn-link">
-									Project <?= $i ?>: <strong><?= $project['title'] ?></strong>
-								</button>
-							</h3>
+							<div class="row">
+								<div class="col-sm-6">
+									<h3 class="mb-0 ">
+										<button class="btn btn-link">
+											Project <?= $i ?>: <strong><?= $project['title'] ?></strong>
+										</button>
+									</h3>
+								</div>
+								<div class="col-sm-4"></div>
+								<div class="col-sm-2">
+									<form action="#" method="post">
+										<?php wp_nonce_field('refreshProject', 'verifier_new_task_form'); ?>
+										<input type="hidden" name="projectRefresh" value="<?= $project['id'] ?>">
+										<button type="submit" title="refresh" id="<?= $project['id'] ?>" class="btn btn-outline-success refreshBtn">
+											<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-repeat" viewBox="0 0 16 16">
+												<path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+												<path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+											</svg> Refresh
+										</button>
+									</form>
+								</div>
+							</div>
 						</div>
 						<?php
 					}

@@ -76,6 +76,7 @@ class Orion_Task_Manager_Admin {
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/orion-task-manager-admin.css', array(), $this->version, 'all' );
 		wp_enqueue_style( 'acd-flexgrid', plugin_dir_url( __FILE__ ) . 'css/flexiblegs.css', array(), $this->version, 'all' );
 		wp_enqueue_style( 'o-ui', plugin_dir_url( __FILE__ ) . 'css/UI.css', array(), $this->version, 'all' );
+		wp_enqueue_style( 'icons', 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css', array(), $this->version, 'all' );
 		wp_enqueue_style( 'bootstrap', 'https://cdn.jsdelivr.net/npm/bootstrap@4.1.1/dist/css/bootstrap.min.css', array(), $this->version, 'all' );
 		wp_enqueue_style( 'bootstrapselect', 'https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/css/bootstrap-select.min.css', array(), $this->version, 'all' );
 	}

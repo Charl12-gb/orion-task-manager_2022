@@ -21,7 +21,7 @@ function task_cron_sync(){
 	sync_projets();
 	sync_objectives_month();
 	sync_tasks();
-	sync_duedate_task();
+	syncTaskStatus();
 }
 
 if (!wp_next_scheduled('objective_cron_hook')) {
@@ -44,7 +44,7 @@ if (!wp_next_scheduled('bebug_cron_hook')) {
 	wp_schedule_event(time(), 'hourly', 'bebug_cron_hook');
 }
 
-add_action('bebug_cron_hook', 'debugSendMail_cron_sync');
+add_action('cron_schedules', 'debugSendMail_cron_sync');
 
 function debugSendMail_cron_sync(){
 	$debug_status  = get_option('_debug_authorized');
@@ -52,7 +52,7 @@ function debugSendMail_cron_sync(){
 		$debug_status = 'false';
 	}
 	if( $debug_status == 'true' ){
-		sync_duedate_task();
+		syncTaskStatus();
 		automatique_send_mail();
 	}
 }
@@ -75,6 +75,15 @@ function debugReportWorklog_cron_sync(){
 	}
 }
 
+add_filter( 'cron_schedules', 'bebugCron_add_cron_interval' );
+
+function bebugCron_add_cron_interval( $schedules ) {
+	$schedules['fifteen_minute'] = array(
+		'interval' => 900,
+		'display' => esc_html__( 'Every Ten Minute' ),
+	);
+	return $schedules;
+}
 /**
  * Obtenir l'espace de travail depuis asana
  */
@@ -311,7 +320,7 @@ function automatique_send_mail(){
 /**
  * Synchronisation le status des tâches. (Completed or No)
  */
-function sync_duedate_task()
+function syncTaskStatus()
 {
 	$worklog_all = get_all_worklog();
 	$asana = connect_asana();
@@ -437,23 +446,30 @@ function sync_objectives_month(){
 	return 'objectif';
 }
 
-function synTaskForAsana(){
+/**
+ * Sync task duedate from asana
+ * 
+ * @param int $projectId
+ */
+function synTaskForAsana( $projectId ){
 	$asana = connect_asana();
 	$tasks = get_task_();
 	foreach ($tasks as $task){
-		$asana->getTask($task->id);
-		$task_detail = $asana->getData();
-		if(($task->project_id) != (get_option('_project_manager_id'))){
-			if( isset( $task_detail->modified_at ) && ($task_detail->modified_at != null ) ){
-				if( ( date('Y-m-d H:i:s',strtotime($task_detail->modified_at)) ) != (date('Y-m-d H:i:s',strtotime($task->created_at))) ){
-					if( isset( $asana->getData()->assignee->gid ) ) { $assig = $asana->getData()->assignee->gid; }
-					else { $assig = null; }
-					$assigne = get_user_asana_id($assig);
-					if( $assigne != null ){
-						update_task_assign($task->id, $assigne);
+		if($task->project_id == $projectId){
+			$asana->getTask($task->id);
+			$task_detail = $asana->getData();
+			if(($task->project_id) != (get_option('_project_manager_id'))){
+				if( isset( $task_detail->modified_at ) && ($task_detail->modified_at != null ) ){
+					if( ( date('Y-m-d H:i:s',strtotime($task_detail->modified_at)) ) != (date('Y-m-d H:i:s',strtotime($task->created_at))) ){
+						if( isset( $asana->getData()->assignee->gid ) ) { $assig = $asana->getData()->assignee->gid; }
+						else { $assig = null; }
+						$assigne = get_user_asana_id($assig);
+						if( $assigne != null ){
+							updateTaskFromAsana($task->id, $assigne, $asana->getData()->due_on);
+						}
 					}
-				}
-			}	
+				}	
+			}
 		}
 	}
 }
