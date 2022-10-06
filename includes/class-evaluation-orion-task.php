@@ -411,7 +411,7 @@ function content_msg($id_task, $title_main_task, $type_task, $content)
 			else if ($output == 'task_link')
 				$val = "<a class='btn-link' href='" . $task->permalink_url . "'>" . $task->permalink_url . "</a>";
 			else if ($output == 'form_link')
-				$val = "<a style='text-align:center' href='" . get_site_url() . "/task-evaluation?task_id=" . $id_task . "&type_task=" . $type_task . "'><button style='background-color:blue; color:white; border-radius:10%; padding:3px;'><strong style='font-size:15px'>Evaluate Task</strong></button></a>";
+				$val = "<a style='text-align:center' href='" . get_site_url() . "/task-evaluation?task_id=" . $id_task . "&type_task=" . $type_task . "'>here</a>";
 			else
 				$val = 'inconnu';
 			$content = preg_replace("/{{" . $output . "}}/", "$val", $content);
