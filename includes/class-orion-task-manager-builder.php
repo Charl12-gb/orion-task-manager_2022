@@ -869,6 +869,8 @@ class Task_Manager_Builder
      */
     public static function taches_tab()
     {
+		// evaluation_cp(10);
+		// worklog_file(10);
         ?>
         <div class="container-fluid pt-3">
             <div class="row" id="accordion">

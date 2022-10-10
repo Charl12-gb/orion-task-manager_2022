@@ -259,14 +259,15 @@ function download_worklog($user_id, $month=null)
 		if( ($criteria3/$numberFiels) >= 4 ) $good_performance .= 'Commit | ';
 		else $bad_performance .= 'Commit | ';
 	
-		try {
+		if( ($numberFiels-$numberFielsNormal) > 0 ){
 			$perfo_coll = ($criteria4/($numberFiels-$numberFielsNormal));
-		} catch (\Throwable $th) {
+		}else{
 			$perfo_coll = 10;
 		}
-		try {
+
+		if( ($numberFiels-$numberFielsNormal) > 0 ){
 			$perfo_cons = ($criteria5/($numberFiels-$numberFielsNormal));
-		} catch (\Throwable $th) {
+		}else{
 			$perfo_cons = 10;
 		}
 

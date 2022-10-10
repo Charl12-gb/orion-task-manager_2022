@@ -291,26 +291,28 @@ function automatique_send_mail(){
 				// Type de template mail à utiliser
 				if( $task->type_task != null ) {  $mailType = $task->type_task; }
 				else { $mailType = 'normal'; }
-				$mail_template = get_email_( "0", $mailType )[0];
-
-				if( $mail_template != null ){
-					if( $task->categorie != null ){
-						if( isEvaluateCategorie( $task->categorie ) ){
-							$mail_content = $mail_template->content;
-							$subject = $mail_template->subject;
-							$title_main_task = get_task_main( $task->id );
-							$revieuwTask = getReviewTaskForEvaluateTask( $task->id );
-							$cpId = getTaskProjectManager( $task->project_id );
-							$destinataire = get_userdata( $cpId )->user_email ;
-							if( ($revieuwTask != null) && ($revieuwTask->assigne != null)){ // Disposant de tâche de revue;
-								$destinataire = get_userdata( $revieuwTask->assigne )->user_email ;
-								update_worklog( array( 'mail_status'=> 'yes' ),array('id_task' => $revieuwTask->id), array('%s') );
-							}
-							$msg = content_msg($task->id, $title_main_task,  $mailType, $mail_content);
-							mail_sending_form($destinataire, $subject, $msg);
-							update_worklog( array( 'mail_status'=> 'yes' ),array('id_task' => $task->id), array('%s') );
+				if( isset( get_email_( "0", $mailType )[0] ) ){
+					$mail_template = get_email_( "0", $mailType )[0];
+					
+					if( $mail_template != null ){
+						if( $task->categorie != null ){
+							if( isEvaluateCategorie( $task->categorie ) ){
+								$mail_content = $mail_template->content;
+								$subject = $mail_template->subject;
+								$title_main_task = get_task_main( $task->id );
+								$revieuwTask = getReviewTaskForEvaluateTask( $task->id );
+								$cpId = getTaskProjectManager( $task->project_id );
+								$destinataire = get_userdata( $cpId )->user_email ;
+								if( ($revieuwTask != null) && ($revieuwTask->assigne != null)){ // Disposant de tâche de revue;
+									$destinataire = get_userdata( $revieuwTask->assigne )->user_email ;
+									update_worklog( array( 'mail_status'=> 'yes' ),array('id_task' => $revieuwTask->id), array('%s') );
+								}
+								$msg = content_msg($task->id, $title_main_task,  $mailType, $mail_content);
+								mail_sending_form($destinataire, $subject, $msg);
+								update_worklog( array( 'mail_status'=> 'yes' ),array('id_task' => $task->id), array('%s') );
+							}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $task->id), array('%s') );
 						}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $task->id), array('%s') );
-					}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $task->id), array('%s') );
+					}
 				}
 			}
 		}
