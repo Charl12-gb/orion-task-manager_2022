@@ -381,6 +381,10 @@ class Task_Manager_Builder
     public static function sent_worklog_mail_($filemane, $datas = null, $user_id = null)
     {
         $m =  date("M", strtotime("previous month"));
+        $debug = get_option( '_debug_authorized' );
+        if( $debug == 'true'){
+            $m = date('M');
+        }
 
         $sender_info = unserialize(get_option('_sender_mail_info'));
         $sent_info = unserialize(get_option('_report_sent_info'));
@@ -408,7 +412,8 @@ class Task_Manager_Builder
         // Headers
         $headers = 'From: "' . $sender_info['sender_name'] . '"<' . $sender_info['sender_email'] . '>' . "\r\n";
         $headers .= 'Mime-Version: 1.0' . "\r\n";
-        $headers .= 'Content-Type: multipart/mixed;boundary=' . $boundary . "\r\n";
+        // $headers .= 'Content-Type: multipart/mixed;boundary=' . $boundary . "\r\n";
+        $headers .= 'Content-type: text/html; charset=UTF-8' . "\n";
         $headers .= "\r\n";
 
         // Message
@@ -430,66 +435,26 @@ class Task_Manager_Builder
 
         //Plan de performance
         if ($user_id != null) {
-            $file_url = $filemane;
-            if (file_exists($file_url)) {
-                $file_type = filetype($file_url);
-                $file_size = filesize($file_url);
-
-                $handle = fopen($file_url, 'r') or die('File ' . $file_url . 'can t be open');
-                $content = fread($handle, $file_size);
-                $content = chunk_split(base64_encode($content));
-                $f = fclose($handle);
-
-                $msg .= '--' . $boundary . "\r\n";
-                $filename = $name_user . '_Worklog.xlsx';
-                $msg .= 'Content-type:' . $file_type . ';name=' . $filename . "\r\n";
-                $msg .= 'Content-transfer-encoding:base64' . "\r\n";
-                $msg .= $content . "\r\n";
+            if (file_exists($filemane)) {
+                $body = 'Performance report for the month of ' . $m;
+                wp_mail($to, $subject, $body, $headers, $filemane);
             }
         } else {
             // Pièce jointe
             if ($datas != null) {
+                $attachments = array();
                 foreach ($datas as $filename => $file_url) {
                     if (file_exists($file_url)) {
-                        $file_type = filetype($file_url);
-                        $file_size = filesize($file_url);
-
-                        $handle = fopen($file_url, 'r') or die('File ' . $file_url . 'can t be open');
-                        $content = fread($handle, $file_size);
-                        $content = chunk_split(base64_encode($content));
-                        $f = fclose($handle);
-
-                        $msg .= '--' . $boundary . "\r\n";
-                        $msg .= 'Content-type:' . $file_type . ';name=' . $filename . "\r\n";
-                        $msg .= 'Content-transfer-encoding:base64' . "\r\n";
-                        $msg .= $content . "\r\n";
+                        $attachments = array_merge( $attachments, array($file_url) );
                     }
                 }
-            } else {
-                $file_url = $filemane;
-                if (file_exists($file_url)) {
-                    $file_type = filetype($file_url);
-                    $file_size = filesize($file_url);
-
-                    $handle = fopen($file_url, 'r') or die('File ' . $file_url . 'can t be open');
-                    $content = fread($handle, $file_size);
-                    $content = chunk_split(base64_encode($content));
-                    $f = fclose($handle);
-
-                    $msg .= '--' . $boundary . "\r\n";
-                    $filename = 'Report_' . $m . '.xlsx';
-                    $msg .= 'Content-type:' . $file_type . ';name=' . $filename . "\r\n";
-                    $msg .= 'Content-transfer-encoding:base64' . "\r\n";
-                    $msg .= $content . "\r\n";
-                }
+            } 
+            else {
+                $attachments = array( $filemane );
             }
+            $body = 'Performance report for the month of ' . $m;
+            wp_mail($to, $subject, $body, $headers, $attachments);
         }
-
-        // Fin
-        $msg .= '--' . $boundary . "\r\n";
-
-        // Function mail()
-        mail($to, $subject, $msg, $headers);
     }
 
     /**
@@ -869,8 +834,6 @@ class Task_Manager_Builder
      */
     public static function taches_tab()
     {
-		// evaluation_cp(10);
-		// worklog_file(10);
         ?>
         <div class="container-fluid pt-3">
             <div class="row" id="accordion">
@@ -1409,8 +1372,13 @@ class Task_Manager_Builder
                                     <span>
                                         <?php
                                         if ($download_worklog == 'true') {
-                                            $nxtm = strtotime("previous month");
-                                            $date_worklog = date("M-Y", $nxtm);
+                                            $debug_status  = get_option('_debug_authorized');
+                                            if ($debug_status == 'true') {
+                                                $date_worklog = date("M-Y");
+                                            }else{
+                                                $nxtm = strtotime("previous month");
+                                                $date_worklog = date("M-Y", $nxtm);
+                                            }
                                             $upload = wp_upload_dir();
                                             $worklog_evaluation = $upload['basedir'];
                                             $name_worklog = $date_worklog . '/' . get_userdata(get_current_user_id())->display_name . '_worklog.xlsx';

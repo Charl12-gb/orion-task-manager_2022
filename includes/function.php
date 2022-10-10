@@ -796,17 +796,14 @@ function isEvaluateCategorie( $keyCategorie ){
  */
 function getReviewTaskForEvaluateTask( $taskId ){
 	global $wpdb;
-	$table = $wpdb->prefix . 'subtask';
-	$sql = "SELECT id FROM $table WHERE id_task_parent = " . $taskId;
-	$subTasks = $wpdb->get_results($sql);
-	if( $subTasks != null ){
-		foreach( $subTasks as $subTask ){
-			$task = get_task_('id', $subTask->id)[0];
-			if( $task->categorie == 'revue' ) 
-				return $task;
-		}
-	}else return array();
-	return array();
+	$table = $wpdb->prefix . 'task';
+	$sql = "SELECT * FROM $table WHERE dependancies = " . $taskId . " AND categorie = 'revue'";
+	$reviewTask = $wpdb->get_row($sql);
+	if( $reviewTask != null ) 
+		return $reviewTask;
+	else{
+		return array();
+	} 
 }
 
 /**

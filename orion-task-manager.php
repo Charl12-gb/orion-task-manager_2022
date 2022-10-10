@@ -171,6 +171,11 @@ function orion_task_manager_create_db()
 		update_option('_synchronisation_time', 'twicedaily');
 	}
 
+	$debug = get_option( '_debug_authorized' );
+	if( $debug == null){
+		update_option('_debug_authorized', 'false');
+	}
+
 	$using = get_option( '_first_user_plugin' );
 	if( $using == null){
 		update_option('_first_user_plugin', 'on');

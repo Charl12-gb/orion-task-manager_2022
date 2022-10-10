@@ -305,7 +305,6 @@ function automatique_send_mail(){
 								$destinataire = get_userdata( $cpId )->user_email ;
 								if( ($revieuwTask != null) && ($revieuwTask->assigne != null)){ // Disposant de tâche de revue;
 									$destinataire = get_userdata( $revieuwTask->assigne )->user_email ;
-									update_worklog( array( 'mail_status'=> 'yes' ),array('id_task' => $revieuwTask->id), array('%s') );
 								}
 								$msg = content_msg($task->id, $title_main_task,  $mailType, $mail_content);
 								mail_sending_form($destinataire, $subject, $msg);
@@ -874,7 +873,8 @@ function save_new_subtask($data, $parent_id, $implementationId=null)
 
 		if (isset($output->gid)) {
 			$taskId = $output->gid;
-			if ($array['categorie'] == 'implementation') {
+			$categorieEvaluate = get_categories_task( $tags );
+			if( $categorieEvaluate->evaluate ){
 				$id_implementation = $taskId;
 			}
 			if ($array['categorie'] == 'revue') {

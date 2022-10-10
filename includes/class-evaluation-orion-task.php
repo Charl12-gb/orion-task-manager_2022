@@ -16,33 +16,47 @@ function evaluator_page()
 	if (isset($_GET['task_id'], $_GET['type_task']) && (!empty($_GET['task_id']) && !empty($_GET['type_task']))) {
 		$task_id = htmlentities($_GET['task_id']);
 		$type_task = htmlentities($_GET['type_task']);
-		if ($type_task == 'normal' || $type_task == 'developper') {
-			if (get_evaluation_info($task_id) == null) {
-?>
-				<div class="alert alert-danger" role="alert">
-					Sorry ! <br>
-					Task Not Found
-				</div>
-				<?php
-			} else {
-				if (get_evaluation_info($task_id)->evaluation == null) {
-					get_evaluation_form($task_id, $type_task);
-				} else {
-				?>
+
+		$reviewTask = getReviewTaskForEvaluateTask($task_id);
+		$cpId = getTaskProjectManager( $reviewTask->project_id );
+		$user_id = get_current_user_id();
+
+		if( ($user_id == $reviewTask->assigne) || ($cpId == $user_id) ){
+			if ($type_task == 'normal' || $type_task == 'developper') {
+				if (get_evaluation_info($task_id) == null) {
+					?>
 					<div class="alert alert-danger" role="alert">
 						Sorry ! <br>
-						Task already evaluated
+						Task Not Found
 					</div>
-			<?php
+					<?php
+				} else {
+					if (get_evaluation_info($task_id)->evaluation == null) {
+						get_evaluation_form($task_id, $type_task);
+					} else {
+						?>
+						<div class="alert alert-danger" role="alert">
+							Sorry ! <br>
+							Task already evaluated
+						</div>
+						<?php
+					}
 				}
+			} else {
+				?>
+				<div class="alert alert-danger" role="alert">
+					Sorry ! <br>
+					Invalid type
+				</div>
+				<?php
 			}
-		} else {
+		}else{
 			?>
 			<div class="alert alert-danger" role="alert">
 				Sorry ! <br>
-				Invalid type
+				You are not allowed to evaluate this task
 			</div>
-		<?php
+			<?php
 		}
 	} else {
 		if (!isset($_POST['verifier_nonce_evaluation']) || !wp_verify_nonce($_POST['verifier_nonce_evaluation'], 'save_evaluation_form')) {
@@ -109,7 +123,7 @@ function evaluation_project_manager($periode=null)
 	}
 }
 
-function evaluateCpTask( ){
+function evaluateCpTask(){
 	$objectives = get_objective_of_month(date('m')/1, date('Y'));
 	$tab_rapport_month = array();
 	foreach ($objectives as $objective) {
@@ -376,8 +390,8 @@ function evaluation_cp( $month=null, $id_cp=null ){
 						->getStartColor()->setARGB('40A497');
 					$nemberRowMerge = $nemberRow+1;
 				}
+				$nemberRow += 2;
 			}
-			$nemberRow += 2;
 		}
 	}
 	$file_name = $url_save_file . $month. '-' . date('Y') .'_evaluation_cp.xlsx';
