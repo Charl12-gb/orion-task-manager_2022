@@ -280,8 +280,7 @@ function sync_projets()
  * les mails si la tache est terminée.
  */
 function automatique_send_mail(){
-	$worklogs = get_all_worklog('mail_status', 'no'); 	
-	$tandp_date = get_option('_orion_tandp_date');								// récupération des tâches dont mail n'est pas encore send
+	$worklogs = get_all_worklog('mail_status', 'no'); 	// récupération des tâches dont mail n'est pas encore send
 	$emails = get_email_(); // Email
 	if( $emails != null ){
 		if( $worklogs != null ){

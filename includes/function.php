@@ -1782,6 +1782,7 @@ function get_user_task()
 												$status = get_task_status($task->id);
 												$main_task = "";
 												if( in_array($task->categorie, categorie_name()) ) $main_task = get_task_main( $task->id ) . ' <-- ';
+												if( date('m', strtotime($task->created_at)) == date('m') ){
 													?>
 													<tr>
 														<td><?= $k ?></td>
@@ -1803,8 +1804,9 @@ function get_user_task()
 														}
 														?>
 													</tr>
-												<?php
-												$k++;
+													<?php
+													$k++;
+												}
 											}
 											?>
 										</tbody>

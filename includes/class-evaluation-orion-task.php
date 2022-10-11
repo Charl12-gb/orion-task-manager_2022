@@ -18,35 +18,59 @@ function evaluator_page()
 		$type_task = htmlentities($_GET['type_task']);
 
 		$reviewTask = getReviewTaskForEvaluateTask($task_id);
-		$cpId = getTaskProjectManager( $reviewTask->project_id );
 		$user_id = get_current_user_id();
-
-		if( ($user_id == $reviewTask->assigne) || ($cpId == $user_id) ){
-			if ($type_task == 'normal' || $type_task == 'developper') {
-				if (get_evaluation_info($task_id) == null) {
-					?>
-					<div class="alert alert-danger" role="alert">
-						Sorry ! <br>
-						Task Not Found
-					</div>
-					<?php
-				} else {
-					if (get_evaluation_info($task_id)->evaluation == null) {
-						get_evaluation_form($task_id, $type_task);
+		$taskEvaluate = get_task_('id', $task_id);
+		
+		if( $taskEvaluate != null ){
+			$task = $taskEvaluate[0];
+			if( isEvaluateCategorie( $task->categorie ) ){
+				$assign = getTaskProjectManager( $task->project_id );
+				if( $reviewTask != null ){
+					if( $reviewTask->assigne != null ) 
+						$assign = $reviewTask->assigne; 
+				}
+				if( $user_id == $assign){
+					if ($type_task == 'normal' || $type_task == 'developper') {
+						if (get_evaluation_info($task_id) == null) {
+							?>
+							<div class="alert alert-danger" role="alert">
+								Sorry ! <br>
+								Task Not Found
+							</div>
+							<?php
+						} else {
+							if (get_evaluation_info($task_id)->evaluation == null) {
+								get_evaluation_form($task_id, $type_task);
+							} else {
+								?>
+								<div class="alert alert-danger" role="alert">
+									Sorry ! <br>
+									Task already evaluated
+								</div>
+								<?php
+							}
+						}
 					} else {
 						?>
 						<div class="alert alert-danger" role="alert">
 							Sorry ! <br>
-							Task already evaluated
+							Invalid type
 						</div>
 						<?php
 					}
+				}else{
+					?>
+					<div class="alert alert-danger" role="alert">
+						Sorry ! <br>
+						You are not allowed to evaluate this task
+					</div>
+					<?php
 				}
-			} else {
+			}else{
 				?>
 				<div class="alert alert-danger" role="alert">
-					Sorry ! <br>
-					Invalid type
+					Error ! <br>
+					Impossible to evaluate this task because it is not to be evaluated.
 				</div>
 				<?php
 			}
@@ -54,10 +78,11 @@ function evaluator_page()
 			?>
 			<div class="alert alert-danger" role="alert">
 				Sorry ! <br>
-				You are not allowed to evaluate this task
+				Task not found
 			</div>
 			<?php
 		}
+		
 	} else {
 		if (!isset($_POST['verifier_nonce_evaluation']) || !wp_verify_nonce($_POST['verifier_nonce_evaluation'], 'save_evaluation_form')) {
 		?>
@@ -477,52 +502,50 @@ function get_evaluation_form($task_id, $type_task)
 	?>
 	<div class="container card">
 		<?php
-		if ($type_task == 'normal' || $type_task == 'developper') {
-			if ($type_task !=  $task->type_task) {
-		?>
-				<div class="alert alert-danger" role="alert">
-					Error Type Task! <br>
-				</div>
-			<?php
+			if ($type_task == 'normal' || $type_task == 'developper') {
+				if ($type_task !=  $task->type_task) {
+					?>
+					<div class="alert alert-danger" role="alert">
+						Error Type Task! <br>
+					</div>
+					<?php
+				} else {
+					?>
+					<div class="row">
+						<div class="col-sm-6 alert alert-success">
+							<div style="width: 100%;text-align: center;color:black">
+								<h6 class="pt-2" style="text-align: center; font-weight: bold;"><?= $task->title ?></h6>
+								<p>Find task details <a href="<?= $task->permalink_url ?>" class="text-primary">here</a></p>
+							</div>
+						</div>
+						<div class="col-sm-6 alert alert-primary">
+							<div class="row pb-2 pt-2 text-center">
+								<div class="col-sm-3"><strong style="text-decoration: underline;">Status: <br></strong> <?= get_task_status($task_id) ?> </div>
+								<div class="col-sm-4"><strong style="text-decoration: underline;">Due Date: <br></strong> <?= $task->duedate ?></div>
+								<div class="col-sm-5"><strong style="text-decoration: underline;">Date Completed: <br></strong> <?php if (!get_task_status($task_id, 'yes')) echo '--- -- --';
+																																else echo $task->finaly_date; ?></div>
+							</div>
+						</div>
+					</div>
+					<?php
+					if (!get_task_status($task_id, 'yes')) {
+						?>
+						<small id="emailHelp" class="form-text text-muted text-center">The task being evaluated is not yet marked as complete. <br>Make sure of that or take that into account. </small>
+						<?php
+					}
+					?>
+					<button class="btn btn-outline-primary" data-toggle="modal" data-target="#detail_criteria">Readme before review </button>
+					<?php
+					if ($type_task == 'normal') get_form_evaluation($criterias['normal'], $task_id);
+					else get_form_evaluation($criterias['developper'], $task_id);
+				}
 			} else {
-			?>
-				<div class="row">
-					<div class="col-sm-6 alert alert-success">
-						<div style="width: 100%;text-align: center;color:black">
-							<h6 class="pt-2" style="text-align: center; font-weight: bold;"><?= $task->title ?></h6>
-							<p>Find task details <a href="<?= $task->permalink_url ?>" class="text-primary">here</a></p>
-						</div>
-					</div>
-					<div class="col-sm-6 alert alert-primary">
-						<div class="row pb-2 pt-2 text-center">
-							<div class="col-sm-3"><strong style="text-decoration: underline;">Status: <br></strong> <?= get_task_status($task_id) ?> </div>
-							<div class="col-sm-4"><strong style="text-decoration: underline;">Due Date: <br></strong> <?= $task->duedate ?></div>
-							<div class="col-sm-5"><strong style="text-decoration: underline;">Date Completed: <br></strong> <?php if (!get_task_status($task_id, 'yes')) echo '--- -- --';
-																															else echo $task->finaly_date; ?></div>
-						</div>
-					</div>
+				?>
+				<div class="alert alert-danger" role="alert">
+					Error ! <br>
 				</div>
 				<?php
-				if (!get_task_status($task_id, 'yes')) {
-				?>
-					<small id="emailHelp" class="form-text text-muted text-center">The task being evaluated is not yet marked as complete. <br>Make sure of that or take that into account. </small>
-					<?php
-				}
-				?>
-				<button class="btn btn-outline-primary" data-toggle="modal" data-target="#detail_criteria">Readme before review </button>
-			<?php
 			}
-		} else {
-			?>
-			<div class="alert alert-danger" role="alert">
-				Error ! <br>
-			</div>
-		<?php
-		}
-		if ($type_task ==  $task->type_task) {
-			if ($type_task == 'normal') get_form_evaluation($criterias['normal'], $task_id);
-			else get_form_evaluation($criterias['developper'], $task_id);
-		}
 		?>
 	</div>
 <?php
