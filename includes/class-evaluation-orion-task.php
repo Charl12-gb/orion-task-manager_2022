@@ -323,19 +323,19 @@ function download_worklog($user_id, $month=null)
 		$spreadsheet->getActiveSheet()->setCellValue('C2', $name_user);
 		
 		//General Peformance
-		if( $performance >= 0 && $performance <= 39 ) $spreadsheet->getActiveSheet()->setCellValue('D7', $performance);
-		else if( $performance >= 40 && $performance <= 60 ) $spreadsheet->getActiveSheet()->setCellValue('E7', $performance);
-		else if( $performance >= 61 && $performance <= 85 ) $spreadsheet->getActiveSheet()->setCellValue('F7', $performance);
-		else $spreadsheet->getActiveSheet()->setCellValue('G7', $performance);
+		if( $performance >= 0 && $performance <= 39 ) $spreadsheet->getActiveSheet()->setCellValue('D6', $performance);
+		else if( $performance >= 40 && $performance <= 60 ) $spreadsheet->getActiveSheet()->setCellValue('E6', $performance);
+		else if( $performance >= 61 && $performance <= 85 ) $spreadsheet->getActiveSheet()->setCellValue('F6', $performance);
+		else $spreadsheet->getActiveSheet()->setCellValue('G6', $performance);
 	
 		//Initiative & Creativity
-		if( $customs_job >= 0 && $customs_job <= 39 ) $spreadsheet->getActiveSheet()->setCellValue('D9', $customs_job);
-		else if( $customs_job >= 40 && $customs_job <= 60 ) $spreadsheet->getActiveSheet()->setCellValue('E9', $customs_job);
-		else if( $customs_job >= 61 && $customs_job <= 85 ) $spreadsheet->getActiveSheet()->setCellValue('F9', $customs_job);
-		else $spreadsheet->getActiveSheet()->setCellValue('G9', $customs_job);
+		if( $customs_job >= 0 && $customs_job <= 39 ) $spreadsheet->getActiveSheet()->setCellValue('D8', $customs_job);
+		else if( $customs_job >= 40 && $customs_job <= 60 ) $spreadsheet->getActiveSheet()->setCellValue('E8', $customs_job);
+		else if( $customs_job >= 61 && $customs_job <= 85 ) $spreadsheet->getActiveSheet()->setCellValue('F8', $customs_job);
+		else $spreadsheet->getActiveSheet()->setCellValue('G8', $customs_job);
 	
-		$spreadsheet->getActiveSheet()->setCellValue('B21', $good_performance);
-		$spreadsheet->getActiveSheet()->setCellValue('C21', $bad_performance);
+		$spreadsheet->getActiveSheet()->setCellValue('B20', $good_performance);
+		$spreadsheet->getActiveSheet()->setCellValue('C20', $bad_performance);
 	
 
 		$url_ = $worklog_evaluation_file . '/'. $date_worklog;
@@ -364,58 +364,123 @@ function evaluation_cp( $month=null, $id_cp=null ){
 	$nxtm = strtotime("previous month");
 	if( $month != null ){  $month = $month/1; }
 	else { $month =  date("m", $nxtm)/1; }
-	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-cp-evaluation.xlsx';
+	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-cp-report.xlsx';
 
 	$upload = wp_upload_dir();
 	$worklog_evaluation = $upload['basedir'];
 	$worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation';
 	$url_save_file = $worklog_evaluation_file .'/';
+	$date_eval = $month . '-' . date('Y') . '_cp_Evaluation';
+
+	$url_ = $worklog_evaluation_file . '/'. $date_eval;
+	if( ! file_exists( $url_ ) ) {
+		mkdir( $url_ );
+	}
 	
 	$reader = IOFactory::createReader('Xlsx');
 	$spreadsheet = $reader->load( $url_file );
 	
+	$cellValues = $spreadsheet->getActiveSheet()->rangeToArray('A2:K3');
+
 	if( $id_cp == null ){
 		$users = get_all_users();
-		$nemberRow=3;
-		$nemberRowMerge=3;
+		$nemberRow=4;
 		foreach( $users as $id => $user ){
 			$numberFiels = 1;
 			$name_user = get_userdata($id)->display_name;
 			$objective_month = get_objective_of_month($month, date('Y'), $id);
+
 			if( $objective_month != null ){
+				$info_evaluation = unserialize( $objective_month->evaluation )['evaluation'];
+				$minMoyenne = unserialize( get_option('_performance_parameters') )['moyenne'];
+				$completed = $info_evaluation['completed'];
+				$moyenne = $info_evaluation['moyenne'];
+				if( $nemberRow > 4 ){
+					$spreadsheet->getActiveSheet()->setCellValue('C' . ($nemberRow+1), $name_user)
+						->setCellValue('E' . ($nemberRow+1), $completed)
+						->setCellValue('K' . ($nemberRow+1), $moyenne);
+
+					$spreadsheet->getActiveSheet()->fromArray($cellValues, null, 'A'. ($nemberRow+1));
+					$spreadsheet->getActiveSheet()->getStyle('B'. ($nemberRow+1) . ':K'. ($nemberRow+1))->getFill()
+							->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+							->getStartColor()->setARGB('F0B27A');
+					$spreadsheet->getActiveSheet()->getStyle('B'. ($nemberRow+2) . ':K'. ($nemberRow+2))->getFill()
+							->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+							->getStartColor()->setARGB('FDFEFE');
+					$spreadsheet->getActiveSheet()->mergeCells('F'. ($nemberRow+1) . ':J'. ($nemberRow+1));
+					$spreadsheet->getActiveSheet()->mergeCells('C'. ($nemberRow+2) . ':D'. ($nemberRow+2));
+	
+					$spreadsheet->getActiveSheet()->getStyle('B'. ($nemberRow+1) . ':K'. ($nemberRow+2))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+					$spreadsheet->getActiveSheet()->getStyle('B'. ($nemberRow+1) . ':K'. ($nemberRow+2))->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+	
+					$borders = [
+						'borders' => [
+							'allBorders' => [
+								'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+								'color' => ['argb' => '000'],
+							],
+						],
+					];
+	
+					$styleArray = array(
+						'font'  => array(
+							'bold' => true,
+							'size'  => 12,
+							'name' => 'Roboto'
+						)
+					);
+	
+					$spreadsheet->getActiveSheet()->getStyle('B'. ($nemberRow+1) . ':K'. ($nemberRow+2))->applyFromArray($borders);
+					$spreadsheet->getActiveSheet()->getStyle('B'. ($nemberRow+1) . ':K'. ($nemberRow+2))->applyFromArray($styleArray);
+					
+					if( $moyenne < $minMoyenne ){
+						$spreadsheet->getActiveSheet()->getStyle('F' . ($nemberRow+1) . ':K' . ($nemberRow+1))->getFill()
+							->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+							->getStartColor()->setARGB('FFFF0000');
+					}else{
+						$spreadsheet->getActiveSheet()->getStyle('F' . ($nemberRow+1) . ':K' . ($nemberRow+1))->getFill()
+							->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+							->getStartColor()->setARGB('ABEBC6');
+					}
+
+					$nemberRow += 3;
+				}
+				else{
+					$spreadsheet->getActiveSheet()->setCellValue('C1', $month . '-' . date('Y') )
+						->setCellValue('C2', $name_user)
+						->setCellValue('E2', $completed)
+						->setCellValue('K2', $moyenne);
+					if( $moyenne < $minMoyenne ){
+						$spreadsheet->getActiveSheet()->getStyle('F2:K2')->getFill()
+							->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+							->getStartColor()->setARGB('FFFF0000');
+					}else{
+						$spreadsheet->getActiveSheet()->getStyle('F2:K2')->getFill()
+							->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+							->getStartColor()->setARGB('ABEBC6');
+					}		
+				}
 				$objectives = unserialize( $objective_month->objective_section );
 				foreach( $objectives as $objective ){
 					if( $objective['status'] ) $status = 'YES';
 					else $status = 'NO';
 					
 					$spreadsheet->getActiveSheet()->insertNewRowBefore($nemberRow);
-					$spreadsheet->getActiveSheet()->setCellValue('B'.$nemberRow, $numberFiels);
-					$spreadsheet->getActiveSheet()->setCellValue('C'.$nemberRow, $objective['objective']);
-					$spreadsheet->getActiveSheet()->setCellValue('D'.$nemberRow, $status);
+					$spreadsheet->getActiveSheet()->mergeCells('C'. $nemberRow . ':D'. $nemberRow);
+					$spreadsheet->getActiveSheet()->setCellValue('B'.$nemberRow, $numberFiels)
+						->setCellValue('C'.$nemberRow, $objective['objective'])
+						->setCellValue('E'.$nemberRow, '-')
+						->setCellValue('F'.$nemberRow, $status)
+						->setCellValue('G'.$nemberRow, '-')
+						->setCellValue('H'.$nemberRow, '-')
+						->setCellValue('I'.$nemberRow, '-')
+						->setCellValue('J'.$nemberRow, '-')
+						->setCellValue('K'.$nemberRow, '-');
 					
 					$nemberRow++;
 					$numberFiels++;
 				}
-				$info_evaluation = unserialize( $objective_month->evaluation )['evaluation'];
-				$minMoyenne = unserialize( get_option('_performance_parameters') )['moyenne'];
-				$completed = $info_evaluation['completed'];
-				$moyenne = $info_evaluation['moyenne'];
-				$spreadsheet->getActiveSheet()->setCellValue('C'.$nemberRow, "MOYENNE : $moyenne");
-				$spreadsheet->getActiveSheet()->setCellValue('D'.$nemberRow, "COMPLETED : $completed");
-				$spreadsheet->getActiveSheet()->mergeCells('A'. $nemberRowMerge .':A'. $nemberRow .'');
-				$spreadsheet->getActiveSheet()->setCellValue('A'. $nemberRowMerge, $name_user);
-				if( $moyenne < $minMoyenne ){
-					$spreadsheet->getActiveSheet()->getStyle('B'.$nemberRow.':D'.$nemberRow)->getFill()
-						->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-						->getStartColor()->setARGB('FFFF0000');
-					$nemberRowMerge = $nemberRow+1;
-				}else{
-					$spreadsheet->getActiveSheet()->getStyle('B'.$nemberRow.':D'.$nemberRow)->getFill()
-						->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-						->getStartColor()->setARGB('40A497');
-					$nemberRowMerge = $nemberRow+1;
-				}
-				$nemberRow += 2;
+				cpEvaluateFile($id, $month, $date_eval, $objectives, $info_evaluation);
 			}
 		}
 	}
@@ -424,6 +489,78 @@ function evaluation_cp( $month=null, $id_cp=null ){
 		$writer = new Xlsx($spreadsheet);
 		$writer->save($file_name);
 		Task_Manager_Builder::sent_worklog_mail_( $file_name );
+	}
+}
+
+function cpEvaluateFile( $id , $month, $date_eval, $objectives, $info_evaluation ){
+	$upload = wp_upload_dir();
+	$worklog_evaluation = $upload['basedir'];
+	$worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation';
+	$url_save_file = $worklog_evaluation_file .'/';
+	
+	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-cp-evaluation.xlsx';
+	$reader = IOFactory::createReader('Xlsx');
+	$spreadsheet = $reader->load( $url_file );
+	$spreadsheet->setActiveSheetIndex(0);
+
+	$nemberRow=4;
+	$numberFiels = 1;
+	$name_user = get_userdata($id)->display_name;
+
+	$minMoyenne = unserialize( get_option('_performance_parameters') )['moyenne'];
+	$completed = $info_evaluation['completed'];
+	$moyenne = $info_evaluation['moyenne'];
+
+	$spreadsheet->getActiveSheet()->setCellValue('C1', $month . '-' . date('Y') )
+		->setCellValue('C2', $name_user)
+		->setCellValue('D1', "PROJECT MANAGER EVALUATION")
+		->setCellValue('E2', $completed)
+		->setCellValue('K2', $moyenne);
+
+	if( $moyenne < $minMoyenne ){
+		$spreadsheet->getActiveSheet()->getStyle('F2:K2')->getFill()
+			->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+			->getStartColor()->setARGB('FFFF0000');
+	}else{
+		$spreadsheet->getActiveSheet()->getStyle('F2:K2')->getFill()
+			->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+			->getStartColor()->setARGB('ABEBC6');
+	}		
+				
+	foreach( $objectives as $objective ){
+		if( $objective['status'] ) $status = 'YES';
+		else $status = 'NO';
+					
+		$spreadsheet->getActiveSheet()->insertNewRowBefore($nemberRow);
+		$spreadsheet->getActiveSheet()->mergeCells('C'. $nemberRow . ':D'. $nemberRow);
+		$spreadsheet->getActiveSheet()->setCellValue('B'.$nemberRow, $numberFiels)
+			->setCellValue('C'.$nemberRow, $objective['objective'])
+			->setCellValue('E'.$nemberRow, '-')
+			->setCellValue('F'.$nemberRow, $status)
+			->setCellValue('G'.$nemberRow, '-')
+			->setCellValue('H'.$nemberRow, '-')
+			->setCellValue('I'.$nemberRow, '-')
+			->setCellValue('J'.$nemberRow, '-')
+			->setCellValue('K'.$nemberRow, '-');			
+		$nemberRow++;
+		$numberFiels++;
+	}
+
+	// Evaluation
+	$spreadsheet->setActiveSheetIndex(1);
+	$spreadsheet->getActiveSheet()->setCellValue('C1', $month . '-' . date('Y') );
+	$spreadsheet->getActiveSheet()->setCellValue('C2', $name_user);
+		
+	//General Peformance
+	if( $moyenne >= 0 && $moyenne <= 39 ) $spreadsheet->getActiveSheet()->setCellValue('D6', $moyenne);
+	else if( $moyenne >= 40 && $moyenne <= 60 ) $spreadsheet->getActiveSheet()->setCellValue('E6', $moyenne);
+	else if( $moyenne >= 61 && $moyenne <= 85 ) $spreadsheet->getActiveSheet()->setCellValue('F6', $moyenne);
+	else $spreadsheet->getActiveSheet()->setCellValue('G6', $moyenne);
+	
+	$file_name = $url_save_file . $date_eval . '/' . $name_user .'_cp.xlsx';
+	if( ! file_exists( $file_name ) ){
+		$writer = new Xlsx($spreadsheet);
+		$writer->save($file_name);
 	}
 }
 

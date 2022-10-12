@@ -1673,6 +1673,35 @@ function objective_tab( $id_user = null, $month = null ){
 				</div>
 				<div class="col-sm-6" style="text-align:right;">
 					<span onclick="open_sub_templaye(98795)" class="btn btn-outline-primary"> <span id="change98795"> + Add Goals</span></span>
+					<span>
+						<?php
+						$download_cpEval = get_option('_worklog_authorized');
+                        if ($download_cpEval == 'true') {
+                            $debug_status  = get_option('_debug_authorized');
+                            if ($debug_status == 'true') {
+								$month = date('m');
+                            }else{
+								$nxtm = strtotime("previous month");
+								$month = date('m', $nxtm);
+                            }
+                            $upload = wp_upload_dir();
+                            $worklog_evaluation = $upload['basedir'];
+							$date_eval = $month . '-' . date('Y') . '_cp_Evaluation';
+                            $name_worklog = $date_eval . '/' . get_userdata(get_current_user_id())->display_name . '_cp.xlsx';
+                            $worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation/' . $name_worklog;
+
+                            if (file_exists($worklog_evaluation_file)) {
+                            ?>
+                                <form method="post" action="" id="sent_worklog_mail">
+                                    <input type="hidden" name="link_file" id="link_file" value="<?= $worklog_evaluation_file ?>">
+                                    <input type="hidden" name="file_name" id="file_name" value="<?= get_userdata(get_current_user_id())->display_name . '_worklog.xlsx' ?>">
+                                    <button type="submit" class="btn btn-outline-success">Download CP Evaluation</button>
+                                </form>
+                            <?php
+                            }
+                        }
+                        ?>
+					</span>
 				</div>
 			</div>
 		</div>
