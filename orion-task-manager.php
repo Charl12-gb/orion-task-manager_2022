@@ -85,6 +85,7 @@ function orion_task_manager_create_db()
 			permalink text NOT NULL,
 			project_manager bigint UNSIGNED NULL,
 			collaborator varchar(255),
+			archive BOOLEAN default(0),
 			FOREIGN KEY  (project_manager) REFERENCES $table_users(id),
 			PRIMARY KEY  (id)
 		);
@@ -99,6 +100,7 @@ function orion_task_manager_create_db()
 			id bigint NOT NULL,
 			categories_key varchar(255) UNIQUE,
 			categories_name varchar(255) NOT NULL,
+			evaluate BOOLEAN default(0),
 			PRIMARY KEY  (id)
 		);
 		CREATE TABLE $table_objectives(
@@ -167,6 +169,11 @@ function orion_task_manager_create_db()
 	$syn = get_option( '_synchronisation_time' );
 	if( $syn == null){
 		update_option('_synchronisation_time', 'twicedaily');
+	}
+
+	$debug = get_option( '_debug_authorized' );
+	if( $debug == null){
+		update_option('_debug_authorized', 'false');
 	}
 
 	$using = get_option( '_first_user_plugin' );

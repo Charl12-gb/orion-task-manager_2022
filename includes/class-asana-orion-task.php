@@ -8,74 +8,82 @@ function connect_asana()
 	$asana = new Asana(array('personalAccessToken' => $token_asana));
 	return $asana;
 }
-//******************************************************************************************* */
-//Ajouter ces propres heure de modification
-// add_filter( 'cron_schedules', 'moose_add_cron_interval' );
-// function moose_add_cron_interval( $schedules ) { 
-//     $schedules['ten_seconds'] = array(
-//         'interval' => 10,
-//         'display'  => esc_html__( 'Every Ten Seconds' ), );
-//     return $schedules;
-// }
 
-
-add_action('task_cron_hook', 'task_cron_sync');
-function task_cron_sync()
-{
-	sync_tag();
-	sync_projets();
-	sync_objectives_month();
-	sync_tasks();
-	sync_duedate_task();
-}
 
 if (!wp_next_scheduled('task_cron_hook')) {
 	$time_def = get_option('_synchronisation_time');
 	wp_schedule_event(time(), $time_def, 'task_cron_hook');
 }
 
-add_action('objective_cron_hook', 'objective_cron_sync');
-function objective_cron_sync(){
-	automatique_send_mail();
-	syncEmployeesFromAsana();
-	save_objective_section();
-	evaluation_project_manager();
-	if( date('m-Y') == '01-'. date('Y') ){
-		evaluation_cp();
-		worklog_file();
-	}
+add_action('task_cron_hook', 'task_cron_sync');
+function task_cron_sync(){
+	sync_tag();
+	sync_projets();
+	sync_objectives_month();
+	sync_tasks();
+	syncTaskStatus();
 }
 
 if (!wp_next_scheduled('objective_cron_hook')) {
 	wp_schedule_event(time(), 'daily', 'objective_cron_hook');
 }
 
-// add_action('report_cron_hook', 'report__cron_sync');
-// if (!wp_next_scheduled('report__cron_hook')) {
-// 	wp_schedule_event(time(), 'daily', 'report_cron_hook');
-// }
+add_action('objective_cron_hook', 'objective_cron_sync');
 
-// function report__cron_sync(){
-// 	$sent_info = unserialize( get_option('_report_sent_info') );
-// 	$today = date('Y-m-d');
-// 	if( $sent_info['last_day_month'] ){
-// 		$date_send_report = gmdate('Y-m-d', strtotime('last day of this month'));
-// 		if( strtotime( $today ) == strtotime( $date_send_report ) ){
-// 			//call function
-// 		}
-// 	}
-// 	if( $sent_info['last_friday_month'] ){
-// 		$mois = date('m');
-// 		$string = 'last friday of ' . date('F', mktime(0, 0, 0, $mois, 10)) . ' this year';
-// 		$date_send_report = gmdate('Y-m-d', strtotime($string));
-// 		if( strtotime( $today ) == strtotime( $date_send_report ) ){
-// 			//call function
-// 		}
-// 	}
-// }
+function objective_cron_sync(){
+	automatique_send_mail();
+	syncEmployeesFromAsana();
+	evaluation_project_manager();
+	if( date('d-m-Y') == '01-'. date('m-Y') ){
+		evaluation_cp(); // Evaluation des cp
+		worklog_file(); // Générer les worklog et envoi des rapports
+	}
+}
 
-//***************************************************************************************** */
+if (!wp_next_scheduled('bebug_cron_hook')) {
+	wp_schedule_event(time(), 'hourly', 'bebug_cron_hook');
+}
 
+add_action('cron_schedules', 'debugSendMail_cron_sync');
+
+function debugSendMail_cron_sync(){
+	$debug_status  = get_option('_debug_authorized');
+	if (!isset( $debug_status )) {
+		$debug_status = 'false';
+	}
+	if( $debug_status == 'true' ){
+		syncTaskStatus();
+		automatique_send_mail();
+	}
+}
+
+if (!wp_next_scheduled('bebug2_cron_hook')) {
+	wp_schedule_event(time(), 'twicedaily', 'bebug2_cron_hook');
+}
+
+add_action('bebug2_cron_hook', 'debugReportWorklog_cron_sync');
+
+function debugReportWorklog_cron_sync(){
+	$debug_status  = get_option('_debug_authorized');
+	if (!isset( $debug_status )) {
+		$debug_status = 'false';
+	}
+	if( $debug_status == 'true' ){
+		evaluation_project_manager(true);
+		evaluation_cp(date('m'));
+		worklog_file(date('m'));
+	}
+}
+
+add_filter( 'cron_schedules', 'bebugCron_add_cron_interval' );
+
+function bebugCron_add_cron_interval( $schedules ) {
+	$schedules['fifteen_minute'] = array(
+		'interval' => 900,
+		'display' => esc_html__( 'Every Ten Minute' ),
+	);
+	return $schedules;
+}
 /**
  * Obtenir l'espace de travail depuis asana
  */
@@ -136,6 +144,7 @@ function sync_new_project($data, $project_id=null)
 			);
 			return save_project($array, $project_id);
 		}else{
+			$collaborateurs = array_merge($data['collaborator'], array($data['project_manager']));
 			$array = array(
 				'id'		=> $result->gid,
 				'title'		=> $data['title'],
@@ -143,7 +152,7 @@ function sync_new_project($data, $project_id=null)
 				'permalink'	=> $result->permalink_url,
 				'slug' => $data['slug'],
 				'project_manager' => $data['project_manager'],
-				'collaborator' => serialize($data['collaborator'])
+				'collaborator' => serialize($collaborateurs)
 			);
 			$output = save_project($array);
 			if( $output ) return $result->gid;
@@ -158,7 +167,7 @@ function sync_new_project($data, $project_id=null)
 function sync_project_section( $project_id ){
 	$asana = connect_asana();
 	$sections_all = get_all_sections();
-	$sections_asana = $asana->getProjectSections($project_id);
+	$asana->getProjectSections($project_id);
 	if ($asana->getData() != null) {
 		foreach ($asana->getData() as $sections) {
 			$sync = true;
@@ -199,7 +208,9 @@ function sync_tag(){
 			}
 			if( $sync ){
 				$key_asana = str_replace(" ", "_", strtolower($categorie_asana->name));
-				$datas = array('id' => $categorie_asana->gid, 'categories_key' => $key_asana, 'categories_name' => ucfirst( $categorie_asana->name ));
+				if( $key_asana == 'implementation' ){ $evaluate = 1; }
+				else { $evaluate = 0; }
+				$datas = array('id' => $categorie_asana->gid, 'categories_key' => $key_asana, 'categories_name' => ucfirst( $categorie_asana->name ), 'evaluate' => $evaluate);
 				save_new_categories( $datas, null, true );
 			}
 		}
@@ -215,15 +226,18 @@ function sync_projets()
 	// See class comments and Asana API for full info
 	$projects = get_project_();
 	$asana = connect_asana();
-	$asana->getProjects();
+	$asana->getProjectsInWorkspace(get_option('_asana_workspace_id'));
+	
 	if ($asana->getData() != null) {
 		foreach ($asana->getData() as $project_asana) {
 			$sync = true;
 			if ($projects == null) $sync = true;
 			else {
 				if( $project_asana->gid == get_option('_project_manager_id') ) $sync = false;
-				foreach ($projects as $project) {
-					if ($project_asana->gid == $project->id) { $sync = false; }
+				else{
+				    foreach ($projects as $project) {
+    					if ($project_asana->gid == $project->id) { $sync = false; }
+    				}
 				}
 			}
 			if ($sync) {
@@ -233,24 +247,25 @@ function sync_projets()
 				}else $created = null;
 				$asana->getProject($project_asana->gid);
 				$project_asana_info = $asana->getData();
-				if( ( $project_asana_info->workspace->gid == get_option('_asana_workspace_id') ) || ( $project_asana->gid == get_option('_project_manager_id') ) ){
-					if ($project_asana->gid == get_option('_project_manager_id')) $project_manager = NULL;
-					else $project_manager = get_user_asana_id($created);
+				
+				if ($project_asana->gid == get_option('_project_manager_id')) $project_manager = NULL;
+				else $project_manager = get_user_asana_id($created);
 
-					if( isset( $project_asana_info->notes ) ) $description_project = $project_asana_info->notes;
-					else $description_project = null;
-					$data1 = array(
-						'id' => $project_asana->gid,
-						'title' => $project_asana->name,
-						'description' => $description_project,
-						'permalink' => $project_asana_info->permalink_url,
-						'slug' => str_replace(" ", ",", strtolower($project_asana->name)),
-						'project_manager' => $project_manager,
-						'collaborator' => get_asana_collaborator($project_asana->gid)
-					);
-					// Sauvegarde des projets inexistant dans la bdd
-					save_project($data1);
-				}
+				if( isset( $project_asana_info->notes ) ) $description_project = $project_asana_info->notes;
+				else $description_project = null;
+				$data1 = array(
+					'id' => $project_asana->gid,
+					'title' => $project_asana->name,
+					'description' => $description_project,
+					'permalink' => $project_asana_info->permalink_url,
+					'slug' => str_replace(" ", ",", strtolower($project_asana->name)),
+					'project_manager' => $project_manager,
+					'collaborator' => get_asana_collaborator($project_asana->gid)
+				);
+				// Sauvegarde des projets inexistant dans la bdd
+				
+				save_project($data1);
+					
 			}
 			sync_project_section( $project_asana->gid );
 		}
@@ -259,40 +274,44 @@ function sync_projets()
 }
 
 
+
 /**
  * Fonction permettant d'envoyer automatiquement 
  * les mails si la tache est terminée.
  */
 function automatique_send_mail(){
-	$worklogs = get_all_worklog('mail_status', 'no'); 	
-	$tandp_date = get_option('_orion_tandp_date');								// récupération des tâches dont mail n'est pas encore send
+	$worklogs = get_all_worklog('mail_status', 'no'); 	// récupération des tâches dont mail n'est pas encore send
 	$emails = get_email_(); // Email
 	if( $emails != null ){
 		if( $worklogs != null ){
 			foreach( $worklogs as $worklog ){ 										//parcourir la list
-				$task = get_task_('id', $worklog->id_task);	   						// on récupère les infor de la tâche 
-				if( $task[0]->categorie == 'revue' ){ 								// si categorie = revue
-					if( strtotime( $task[0]->created_at ) >= $tandp_date ){
-						if( $task[0]->dependancies != NULL ){ 							// si dependance est != null
-							$dependant = get_task_('id', $task[0]->dependancies); 		//On récupere la dependance
-							if( $dependant[0]->categorie == 'implementation' ){
-								if( $task[0]->assigne != NULL ){
-									$mail_template = get_email_( "0", $task[0]->type_task )[0];
-									if( $mail_template != null ){
-										$mail_content = $mail_template->content;
-										$subject = $mail_template->subject;
-										
-										$destinataire = get_userdata( $task[0]->assigne )->user_email ;
-										$title_main_task = get_task_main( $worklog->id_task );
-										$msg = content_msg($dependant[0]->id, $title_main_task, $task[0]->type_task, $mail_content);
-										mail_sending_form($destinataire, $subject, $msg);
-										update_worklog( array( 'mail_status'=> 'yes' ),array('id_task' => $worklog->id_task), array('%s') );
-									}
-								}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
-							}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
-						}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
-					}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
-				}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $worklog->id_task), array('%s') );
+				$task = get_task_('id', $worklog->id_task)[0];	   						// on récupère les infor de la tâche 
+				
+				// Type de template mail à utiliser
+				if( $task->type_task != null ) {  $mailType = $task->type_task; }
+				else { $mailType = 'normal'; }
+				if( isset( get_email_( "0", $mailType )[0] ) ){
+					$mail_template = get_email_( "0", $mailType )[0];
+					
+					if( $mail_template != null ){
+						if( $task->categorie != null ){
+							if( isEvaluateCategorie( $task->categorie ) ){
+								$mail_content = $mail_template->content;
+								$subject = $mail_template->subject;
+								$title_main_task = get_task_main( $task->id );
+								$revieuwTask = getReviewTaskForEvaluateTask( $task->id );
+								$cpId = getTaskProjectManager( $task->project_id );
+								$destinataire = get_userdata( $cpId )->user_email ;
+								if( ($revieuwTask != null) && ($revieuwTask->assigne != null)){ // Disposant de tâche de revue;
+									$destinataire = get_userdata( $revieuwTask->assigne )->user_email ;
+								}
+								$msg = content_msg($task->id, $title_main_task,  $mailType, $mail_content);
+								mail_sending_form($destinataire, $subject, $msg);
+								update_worklog( array( 'mail_status'=> 'yes' ),array('id_task' => $task->id), array('%s') );
+							}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $task->id), array('%s') );
+						}else update_worklog( array( 'mail_status'=> 'unable' ),array('id_task' => $task->id), array('%s') );
+					}
+				}
 			}
 		}
 	}
@@ -301,7 +320,7 @@ function automatique_send_mail(){
 /**
  * Synchronisation le status des tâches. (Completed or No)
  */
-function sync_duedate_task()
+function syncTaskStatus()
 {
 	$worklog_all = get_all_worklog();
 	$asana = connect_asana();
@@ -309,10 +328,12 @@ function sync_duedate_task()
 	foreach ($worklog_all as $worklog) {
 		$asana->getTask($worklog->id_task);
 		$detail_task = $asana->getData();
-		if ($worklog->status != $detail_task->completed){
-			if( $detail_task->completed ) $mail_status = 'no';
-			else $mail_status = NULL;			
-			update_worklog( array('finaly_date' => $detail_task->completed_at, 'status' => $detail_task->completed, 'mail_status' => $mail_status), array('id_task' => $worklog->id_task), array('%s', '%s') );
+		if( $detail_task != null ){
+			if ($worklog->status != $detail_task->completed){
+				if( $detail_task->completed ) $mail_status = 'no';
+				else $mail_status = NULL;			
+				update_worklog( array('finaly_date' => $detail_task->completed_at, 'status' => $detail_task->completed, 'mail_status' => $mail_status), array('id_task' => $worklog->id_task), array('%s', '%s') );
+			}
 		}
 	}
 
@@ -324,7 +345,6 @@ function sync_duedate_task()
 		if( $objective_month != null ){
 			$objectives = unserialize( $objective_month->objective_section );
 			foreach( $objectives as $taskid => $objective ){
-				echo 1;
 				$asana->getTask($taskid);
 				$detail_task = $asana->getData();
 				$objective_array += array($taskid => array('objective' => $objective['objective'], 'status' => $detail_task->completed ));
@@ -424,6 +444,34 @@ function sync_objectives_month(){
 		}
 	}
 	return 'objectif';
+}
+
+/**
+ * Sync task duedate from asana
+ * 
+ * @param int $projectId
+ */
+function synTaskForAsana( $projectId ){
+	$asana = connect_asana();
+	$tasks = get_task_();
+	foreach ($tasks as $task){
+		if($task->project_id == $projectId){
+			$asana->getTask($task->id);
+			$task_detail = $asana->getData();
+			if(($task->project_id) != (get_option('_project_manager_id'))){
+				if( isset( $task_detail->modified_at ) && ($task_detail->modified_at != null ) ){
+					if( ( date('Y-m-d H:i:s',strtotime($task_detail->modified_at)) ) != (date('Y-m-d H:i:s',strtotime($task->created_at))) ){
+						if( isset( $asana->getData()->assignee->gid ) ) { $assig = $asana->getData()->assignee->gid; }
+						else { $assig = null; }
+						$assigne = get_user_asana_id($assig);
+						if( $assigne != null ){
+							updateTaskFromAsana($task->id, $assigne, $asana->getData()->due_on);
+						}
+					}
+				}	
+			}
+		}
+	}
 }
 
 function task_id_only(){
@@ -648,7 +696,10 @@ function syncEmployeesFromAsana(){
 	$asana->getUsersInWorkspace(get_workspace());
 	if( $asana->getData() != null ){
 		foreach( $asana->getData() as $employe ){
-			get_user_asana_id( $employe->gid );
+			$user_id = get_user_asana_id( $employe->gid );
+			if( $user_id != null ){
+				update_user_meta($user_id, 'workspace_id', get_workspace());
+			}
 		}
 	}
 }
@@ -661,22 +712,50 @@ function syncEmployeesFromAsana(){
  * 
  * @param array $data
  */
-function traite_task_and_save($data)
-{
+function saveTaskInAsanaAndBdd($data){
 	$asana = connect_asana();
 	$array = $data['parametre']['task'];
-	$result = $asana->createTask(array(
+
+	if( isset($array['categorie']) && !empty($array['categorie']) ){
+		if ($array['categorie'] == 'implementation') {
+			$tags = get_categories_task(null,'implementation')->id;
+		}
+		else if ($array['categorie'] == 'revue') {
+			$tags = get_categories_task(null,'revue')->id;
+		}
+		else if ($array['categorie'] == 'test') {
+			$tags = get_categories_task(null,'test')->id;
+		}
+		else if ($array['categorie'] == 'integration') {
+			$tags = get_categories_task(null,'integration')->id;
+		}else{
+			if( ! empty( $array['categorie'] ) ){
+				$tag = get_categories_task(null, $array['categorie']);
+				if( $tag != null ) $tags = $tag->id;
+				else $tags = null;
+			}else{ $tags = null;}
+		}
+	}else{
+		$tags = null;
+	}
+
+	$save = array(
 		'workspace'			=> get_workspace(),
 		'name' 				=>	$array['title'],
 		'assignee_section' 	=> $array['section_project'],
 		'notes' 			=> $array['description'],
-		'assignee' 			=> get_userdata($array['assign'])->user_email,
 		'due_on' 			=> $array['duedate'],
-	));
+	);
+	if( $tags != null ) $save += array('tags'=> [$tags]);
+	if( $array['assign'] != null ) $save += array('assignee'=> get_userdata($array['assign'])->user_email);
+
+
+	$result = $asana->createTask($save);
+
 	$taskId = $asana->getData()->gid;
 	$asana->addProjectToTask($taskId, $array['project']);
 	if ($asana->hasError()) {
-		return false;
+		return 'errorAsana';
 	} else {
 		$task_asana = json_decode($result)->data;
 		$data_add = array(
@@ -687,7 +766,7 @@ function traite_task_and_save($data)
 			'title' => $array['title'],
 			'permalink_url' => $task_asana->permalink_url,
 			'type_task' => $array['type_task'],
-			'categorie' => NULL,
+			'categorie' => $array['categorie'],
 			'dependancies' => NULL,
 			'description' => $array['description'],
 			'assigne' => $array['assign'],
@@ -704,45 +783,43 @@ function traite_task_and_save($data)
 			'mail_status' => NULL
 		);
 		$output = save_new_task($data_add, $dataworklog);
-		if (!$output) return false;
+		if (!$output) return 'errorTaskSave';
 	}
 	if (isset($data['parametre']['subtask'])) {
-		return save_new_subtask($data['parametre']['subtask'], $taskId);
+		if( $array['categorie'] != null ){
+			return save_new_subtask($data['parametre']['subtask'], $taskId, $taskId);
+		}else{
+			return save_new_subtask($data['parametre']['subtask'], $taskId);
+		}
 	} else return true;
 }
 
 /**
  * Fonction permettant de créer une nouvelle section d'un project manager en utilisant son nom 
- * 
- * @param int $projectmanager
- * 
- * @return bool
  */
-function save_objective_section()
+function save_objective_section($user_id)
 {
-	$users = get_users(array( 'fields' => array( 'id' ) ));
-	foreach( $users as $user ){
-		if( is_project_manager( $user->id ) != null ){
-			$section_name =  get_userdata($user->id)->display_name;
-			$project = get_option('_project_manager_id');
-			$sectionExist = section_exist($section_name, $project);
-			if ($sectionExist) return false;
-			else {
-				$asana = connect_asana();
-				$asana->createSection(
-					$project,
-					array("name" => $section_name)
+	if( is_project_manager( $user_id ) != null ){
+		$section_name =  get_userdata($user_id)->display_name;
+		$project = get_option('_project_manager_id');
+		$sectionExist = section_exist($section_name, $project);
+		if ($sectionExist) return false;
+		else {
+			$asana = connect_asana();
+			$asana->createSection(
+				$project,
+				array("name" => $section_name)
+			);
+			$asana_output = $asana->getData();
+			if (isset($asana_output->gid)) {
+				$data2 = array(
+					'id' 		=> $asana_output->gid,
+					'project_id' => $project,
+					'section_name'		=> $asana_output->name
 				);
-				$asana_output = $asana->getData();
-				if (isset($asana_output->gid)) {
-					$data2 = array(
-						'id' 		=> $asana_output->gid,
-						'project_id' => $project,
-						'section_name'		=> $asana_output->name
-					);
-				} else return false;
-				return save_new_sections($data2);
-			}
+			} else return false;
+			save_new_sections($data2);
+			return $asana_output->gid;
 		}
 	}
 }
@@ -753,10 +830,10 @@ function save_objective_section()
  * @param array $data
  * @param int $parent_id
  */
-function save_new_subtask($data, $parent_id)
+function save_new_subtask($data, $parent_id, $implementationId=null)
 {
 	$asana = connect_asana();
-	$id_implementation = NULL;
+	$id_implementation = $implementationId;
 	$id_revue = NULL;
 	$id_test = NULL;
 	$id_integration = NULL;
@@ -764,30 +841,39 @@ function save_new_subtask($data, $parent_id)
 		if ($array['categorie'] == 'implementation') {
 			$tags = get_categories_task(null,'implementation')->id;
 		}
-		if ($array['categorie'] == 'revue') {
+		else if ($array['categorie'] == 'revue') {
 			$tags = get_categories_task(null,'revue')->id;
 		}
-		if ($array['categorie'] == 'test') {
+		else if ($array['categorie'] == 'test') {
 			$tags = get_categories_task(null,'test')->id;
 		}
-		if ($array['categorie'] == 'integration') {
+		else if ($array['categorie'] == 'integration') {
 			$tags = get_categories_task(null,'integration')->id;
+		}else{
+			if( ! empty( $array['categorie'] ) ){
+				$tag = get_categories_task(null, $array['categorie']);
+				if( $tag != null ) $tags = $tag->id;
+				else $tags = null;
+			}else{ $tags = null;}
 		}
-		$result = $asana->createSubTask(
-			$parent_id,
-			array(
-				'name' 				=>	$array['title'],
-				'assignee_section' 	=> $array['section_project'],
-				'notes' 			=> $array['description'],
-				'assignee' 			=> get_userdata($array['assign'])->user_email,
-				'due_on' 			=> $array['duedate'],
-				'tags'				=> [$tags]
-			)
+
+		$as_data = array(
+			'name'=> $array['title'],
+			'assignee_section'=> $array['section_project'],
+			'notes'=> $array['description'],
+			'assignee' => get_userdata($array['assign'])->user_email
 		);
+
+		if( $array['duedate'] != null ) $as_data += array('due_on'=> $array['duedate'],);
+		if( $tags != null ) $as_data += array('tags'=> [$tags]);
+		
+		$asana->createSubTask( $parent_id, $as_data );
 		$output = $asana->getData();
+
 		if (isset($output->gid)) {
 			$taskId = $output->gid;
-			if ($array['categorie'] == 'implementation') {
+			$categorieEvaluate = get_categories_task( $tags );
+			if( $categorieEvaluate->evaluate ){
 				$id_implementation = $taskId;
 			}
 			if ($array['categorie'] == 'revue') {
@@ -826,9 +912,9 @@ function save_new_subtask($data, $parent_id)
 			);
 			$subarray = array('id' => $taskId, 'id_task_parent' => $parent_id);
 			$sortir = save_new_task($data_add, $dataworklog, $subarray);
-			if (!$sortir) return false;
+			if (!$sortir) return 'errorSubTaskNoSave';
 		} else {
-			return 'noadd';
+			return 'errorSubTaskAsana';
 		}
 	}
 	if ($id_implementation != NULL) {
