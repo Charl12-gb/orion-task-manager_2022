@@ -579,7 +579,7 @@ function content_msg($id_task, $title_main_task, $type_task, $content)
 	$variable_table = array('task_name', 'project_name', 'task_link', 'form_link');
 	preg_match_all('/{{(.*?)}}/', $content, $outputs);
 	foreach ($outputs[1] as $output) {
-		echo $output . '=> ' . in_array($output, $variable_table) . '<br>';
+		$output . '=> ' . in_array($output, $variable_table) . '<br>';
 		if (in_array($output, $variable_table)) {
 			if ($output == 'task_name')
 				$val = "<strong style='color:blue'>" . $task->title . "</strong>";
