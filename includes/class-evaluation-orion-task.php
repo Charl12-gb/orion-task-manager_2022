@@ -5,42 +5,84 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 $upload = wp_upload_dir();
 $worklog_evaluation = $upload['basedir'];
 $worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation';
+
 /**
  * Page d'évaluation des tâches
+ * 
+ * @return mixed
  */
 function evaluator_page()
 {
 	if (isset($_GET['task_id'], $_GET['type_task']) && (!empty($_GET['task_id']) && !empty($_GET['type_task']))) {
 		$task_id = htmlentities($_GET['task_id']);
 		$type_task = htmlentities($_GET['type_task']);
-		if ($type_task == 'normal' || $type_task == 'developper') {
-			if (get_evaluation_info($task_id) == null) {
-?>
-				<div class="alert alert-danger" role="alert">
-					Sorry ! <br>
-					Task Not Found
-				</div>
-				<?php
-			} else {
-				if (get_evaluation_info($task_id)->evaluation == null) {
-					get_evaluation_form($task_id, $type_task);
-				} else {
-				?>
+
+		$reviewTask = getReviewTaskForEvaluateTask($task_id);
+		$user_id = get_current_user_id();
+		$taskEvaluate = get_task_('id', $task_id);
+		
+		if( $taskEvaluate != null ){
+			$task = $taskEvaluate[0];
+			if( isEvaluateCategorie( $task->categorie ) ){
+				$assign = getTaskProjectManager( $task->project_id );
+				if( $reviewTask != null ){
+					if( $reviewTask->assigne != null ) 
+						$assign = $reviewTask->assigne; 
+				}
+				if( $user_id == $assign){
+					if ($type_task == 'normal' || $type_task == 'developper') {
+						if (get_evaluation_info($task_id) == null) {
+							?>
+							<div class="alert alert-danger" role="alert">
+								Sorry ! <br>
+								Task Not Found
+							</div>
+							<?php
+						} else {
+							if (get_evaluation_info($task_id)->evaluation == null) {
+								get_evaluation_form($task_id, $type_task);
+							} else {
+								?>
+								<div class="alert alert-danger" role="alert">
+									Sorry ! <br>
+									Task already evaluated
+								</div>
+								<?php
+							}
+						}
+					} else {
+						?>
+						<div class="alert alert-danger" role="alert">
+							Sorry ! <br>
+							Invalid type
+						</div>
+						<?php
+					}
+				}else{
+					?>
 					<div class="alert alert-danger" role="alert">
 						Sorry ! <br>
-						Task already evaluated
+						You are not allowed to evaluate this task
 					</div>
-			<?php
+					<?php
 				}
+			}else{
+				?>
+				<div class="alert alert-danger" role="alert">
+					Error ! <br>
+					Impossible to evaluate this task because it is not to be evaluated.
+				</div>
+				<?php
 			}
-		} else {
+		}else{
 			?>
 			<div class="alert alert-danger" role="alert">
 				Sorry ! <br>
-				Invalid type
+				Task not found
 			</div>
-		<?php
+			<?php
 		}
+		
 	} else {
 		if (!isset($_POST['verifier_nonce_evaluation']) || !wp_verify_nonce($_POST['verifier_nonce_evaluation'], 'save_evaluation_form')) {
 		?>
@@ -87,7 +129,7 @@ function evaluator_page()
 /**
  * Evaluation des projects manager à la fin de chaque mois
  */
-function evaluation_project_manager()
+function evaluation_project_manager($periode=null)
 {
 	$string = 'last friday of ' . date('F', mktime(0, 0, 0, date('m'), 10)) . ' this year';
 	$last_friday = gmdate('Y-m-d', strtotime($string));
@@ -97,41 +139,54 @@ function evaluation_project_manager()
 	$evaluation_date = strtotime($date1);
 	$today_date = strtotime($date2);
 
-	if ($evaluation_date == $today_date) {
-		$objectives = get_objective_of_month(date('m')/1, date('Y'));
-		$tab_rapport_month = array();
-		foreach ($objectives as $objective) {
-			$total = 0;
-			$completed = 0;
-			$reste = 0;
-			$moyenne = 0;
-			$month_objectives = unserialize($objective->objective_section);
-			foreach ($month_objectives as $key => $month_objective) {
-				$total++;
-				if ($month_objective['status']) $completed++;
-			}
-			$reste = $total - $completed;
-			$moyenne = ($completed / $total) * 100;
-			$array_evaluation = array(
-				'objectives' => $month_objectives,
-				'evaluation' => array(
-					'total' => $total,
-					'completed' => $completed,
-					'reste' => $reste,
-					'moyenne' => $moyenne
-				)
-			);
-			$output = save_evaluation_info($array_evaluation, $objective->id_objective);
-			if ($output) array_push($tab_rapport_month, $objective->id_objective);
+	if( $periode != null ){
+		evaluateCpTask();
+	}else{
+		if ($evaluation_date == $today_date) {
+			evaluateCpTask();
 		}
 	}
 }
 
-function worklog_file(){
+function evaluateCpTask(){
+	$objectives = get_objective_of_month(date('m')/1, date('Y'));
+	$tab_rapport_month = array();
+	foreach ($objectives as $objective) {
+		$total = 0;
+		$completed = 0;
+		$reste = 0;
+		$moyenne = 0;
+		$month_objectives = unserialize($objective->objective_section);
+		foreach ($month_objectives as $key => $month_objective) {
+			$total++;
+			if ($month_objective['status']) $completed++;
+		}
+		$reste = $total - $completed;
+		$moyenne = ($completed / $total) * 100;
+		$array_evaluation = array(
+			'objectives' => $month_objectives,
+			'evaluation' => array(
+				'total' => $total,
+				'completed' => $completed,
+				'reste' => $reste,
+				'moyenne' => $moyenne
+			)
+		);
+		$output = save_evaluation_info($array_evaluation, $objective->id_objective);
+		if ($output) array_push($tab_rapport_month, $objective->id_objective);
+	}
+}
+
+
+function worklog_file($month=null){
 	$users = get_all_users();
 	$report = array();
 	foreach( $users as $user_id => $user ){
-		$output = download_worklog( $user_id );
+		if( $month != null ){
+			$output = download_worklog( $user_id, $month );
+		}else{
+			$output = download_worklog( $user_id );
+		}
 		$report += $output;
 	}
 	if( $report != null ){
@@ -168,7 +223,7 @@ function download_worklog($user_id, $month=null)
 		$date_worklog = date("M-Y", $strMont);
 	}
 	$tasks = get_task_('assigne', $user_id, 'worklog', $date_evaluation);
-
+	
 	//Worklog
 	$spreadsheet->setActiveSheetIndex(0);
 	$spreadsheet->getActiveSheet()->setCellValue('C2', $name_user);
@@ -243,14 +298,15 @@ function download_worklog($user_id, $month=null)
 		if( ($criteria3/$numberFiels) >= 4 ) $good_performance .= 'Commit | ';
 		else $bad_performance .= 'Commit | ';
 	
-		try {
+		if( ($numberFiels-$numberFielsNormal) > 0 ){
 			$perfo_coll = ($criteria4/($numberFiels-$numberFielsNormal));
-		} catch (\Throwable $th) {
+		}else{
 			$perfo_coll = 10;
 		}
-		try {
+
+		if( ($numberFiels-$numberFielsNormal) > 0 ){
 			$perfo_cons = ($criteria5/($numberFiels-$numberFielsNormal));
-		} catch (\Throwable $th) {
+		}else{
 			$perfo_cons = 10;
 		}
 
@@ -267,19 +323,19 @@ function download_worklog($user_id, $month=null)
 		$spreadsheet->getActiveSheet()->setCellValue('C2', $name_user);
 		
 		//General Peformance
-		if( $performance >= 0 && $performance <= 39 ) $spreadsheet->getActiveSheet()->setCellValue('D7', $performance);
-		else if( $performance >= 40 && $performance <= 60 ) $spreadsheet->getActiveSheet()->setCellValue('E7', $performance);
-		else if( $performance >= 61 && $performance <= 85 ) $spreadsheet->getActiveSheet()->setCellValue('F7', $performance);
-		else $spreadsheet->getActiveSheet()->setCellValue('G7', $performance);
+		if( $performance >= 0 && $performance <= 39 ) $spreadsheet->getActiveSheet()->setCellValue('D6', $performance);
+		else if( $performance >= 40 && $performance <= 60 ) $spreadsheet->getActiveSheet()->setCellValue('E6', $performance);
+		else if( $performance >= 61 && $performance <= 85 ) $spreadsheet->getActiveSheet()->setCellValue('F6', $performance);
+		else $spreadsheet->getActiveSheet()->setCellValue('G6', $performance);
 	
 		//Initiative & Creativity
-		if( $customs_job >= 0 && $customs_job <= 39 ) $spreadsheet->getActiveSheet()->setCellValue('D9', $customs_job);
-		else if( $customs_job >= 40 && $customs_job <= 60 ) $spreadsheet->getActiveSheet()->setCellValue('E9', $customs_job);
-		else if( $customs_job >= 61 && $customs_job <= 85 ) $spreadsheet->getActiveSheet()->setCellValue('F9', $customs_job);
-		else $spreadsheet->getActiveSheet()->setCellValue('G9', $customs_job);
+		if( $customs_job >= 0 && $customs_job <= 39 ) $spreadsheet->getActiveSheet()->setCellValue('D8', $customs_job);
+		else if( $customs_job >= 40 && $customs_job <= 60 ) $spreadsheet->getActiveSheet()->setCellValue('E8', $customs_job);
+		else if( $customs_job >= 61 && $customs_job <= 85 ) $spreadsheet->getActiveSheet()->setCellValue('F8', $customs_job);
+		else $spreadsheet->getActiveSheet()->setCellValue('G8', $customs_job);
 	
-		$spreadsheet->getActiveSheet()->setCellValue('B21', $good_performance);
-		$spreadsheet->getActiveSheet()->setCellValue('C21', $bad_performance);
+		$spreadsheet->getActiveSheet()->setCellValue('B20', $good_performance);
+		$spreadsheet->getActiveSheet()->setCellValue('C20', $bad_performance);
 	
 
 		$url_ = $worklog_evaluation_file . '/'. $date_worklog;
@@ -304,62 +360,128 @@ function download_worklog($user_id, $month=null)
 	return array();
 }
 
-function evaluation_cp( $id_cp=null ){
+function evaluation_cp( $month=null, $id_cp=null ){
 	$nxtm = strtotime("previous month");
-	$month =  date("m", $nxtm)/1;
-	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-cp-evaluation.xlsx';
+	if( $month != null ){  $month = $month/1; }
+	else { $month =  date("m", $nxtm)/1; }
+	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-cp-report.xlsx';
 
 	$upload = wp_upload_dir();
 	$worklog_evaluation = $upload['basedir'];
 	$worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation';
 	$url_save_file = $worklog_evaluation_file .'/';
+	$date_eval = $month . '-' . date('Y') . '_cp_Evaluation';
+
+	$url_ = $worklog_evaluation_file . '/'. $date_eval;
+	if( ! file_exists( $url_ ) ) {
+		mkdir( $url_ );
+	}
 	
 	$reader = IOFactory::createReader('Xlsx');
 	$spreadsheet = $reader->load( $url_file );
 	
+	$cellValues = $spreadsheet->getActiveSheet()->rangeToArray('A2:K3');
+
 	if( $id_cp == null ){
 		$users = get_all_users();
-		$nemberRow=3;
-		$nemberRowMerge=3;
+		$nemberRow=4;
 		foreach( $users as $id => $user ){
 			$numberFiels = 1;
 			$name_user = get_userdata($id)->display_name;
 			$objective_month = get_objective_of_month($month, date('Y'), $id);
+
 			if( $objective_month != null ){
+				$info_evaluation = unserialize( $objective_month->evaluation )['evaluation'];
+				$minMoyenne = unserialize( get_option('_performance_parameters') )['moyenne'];
+				$completed = $info_evaluation['completed'];
+				$moyenne = $info_evaluation['moyenne'];
+				if( $nemberRow > 4 ){
+					$spreadsheet->getActiveSheet()->setCellValue('C' . ($nemberRow+1), $name_user)
+						->setCellValue('E' . ($nemberRow+1), $completed)
+						->setCellValue('K' . ($nemberRow+1), $moyenne);
+
+					$spreadsheet->getActiveSheet()->fromArray($cellValues, null, 'A'. ($nemberRow+1));
+					$spreadsheet->getActiveSheet()->getStyle('B'. ($nemberRow+1) . ':K'. ($nemberRow+1))->getFill()
+							->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+							->getStartColor()->setARGB('F0B27A');
+					$spreadsheet->getActiveSheet()->getStyle('B'. ($nemberRow+2) . ':K'. ($nemberRow+2))->getFill()
+							->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+							->getStartColor()->setARGB('FDFEFE');
+					$spreadsheet->getActiveSheet()->mergeCells('F'. ($nemberRow+1) . ':J'. ($nemberRow+1));
+					$spreadsheet->getActiveSheet()->mergeCells('C'. ($nemberRow+2) . ':D'. ($nemberRow+2));
+	
+					$spreadsheet->getActiveSheet()->getStyle('B'. ($nemberRow+1) . ':K'. ($nemberRow+2))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+					$spreadsheet->getActiveSheet()->getStyle('B'. ($nemberRow+1) . ':K'. ($nemberRow+2))->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+	
+					$borders = [
+						'borders' => [
+							'allBorders' => [
+								'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+								'color' => ['argb' => '000'],
+							],
+						],
+					];
+	
+					$styleArray = array(
+						'font'  => array(
+							'bold' => true,
+							'size'  => 12,
+							'name' => 'Roboto'
+						)
+					);
+	
+					$spreadsheet->getActiveSheet()->getStyle('B'. ($nemberRow+1) . ':K'. ($nemberRow+2))->applyFromArray($borders);
+					$spreadsheet->getActiveSheet()->getStyle('B'. ($nemberRow+1) . ':K'. ($nemberRow+2))->applyFromArray($styleArray);
+					
+					if( $moyenne < $minMoyenne ){
+						$spreadsheet->getActiveSheet()->getStyle('F' . ($nemberRow+1) . ':K' . ($nemberRow+1))->getFill()
+							->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+							->getStartColor()->setARGB('FFFF0000');
+					}else{
+						$spreadsheet->getActiveSheet()->getStyle('F' . ($nemberRow+1) . ':K' . ($nemberRow+1))->getFill()
+							->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+							->getStartColor()->setARGB('ABEBC6');
+					}
+
+					$nemberRow += 3;
+				}
+				else{
+					$spreadsheet->getActiveSheet()->setCellValue('C1', $month . '-' . date('Y') )
+						->setCellValue('C2', $name_user)
+						->setCellValue('E2', $completed)
+						->setCellValue('K2', $moyenne);
+					if( $moyenne < $minMoyenne ){
+						$spreadsheet->getActiveSheet()->getStyle('F2:K2')->getFill()
+							->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+							->getStartColor()->setARGB('FFFF0000');
+					}else{
+						$spreadsheet->getActiveSheet()->getStyle('F2:K2')->getFill()
+							->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+							->getStartColor()->setARGB('ABEBC6');
+					}		
+				}
 				$objectives = unserialize( $objective_month->objective_section );
 				foreach( $objectives as $objective ){
 					if( $objective['status'] ) $status = 'YES';
 					else $status = 'NO';
 					
 					$spreadsheet->getActiveSheet()->insertNewRowBefore($nemberRow);
-					$spreadsheet->getActiveSheet()->setCellValue('B'.$nemberRow, $numberFiels);
-					$spreadsheet->getActiveSheet()->setCellValue('C'.$nemberRow, $objective['objective']);
-					$spreadsheet->getActiveSheet()->setCellValue('D'.$nemberRow, $status);
+					$spreadsheet->getActiveSheet()->mergeCells('C'. $nemberRow . ':D'. $nemberRow);
+					$spreadsheet->getActiveSheet()->setCellValue('B'.$nemberRow, $numberFiels)
+						->setCellValue('C'.$nemberRow, $objective['objective'])
+						->setCellValue('E'.$nemberRow, '-')
+						->setCellValue('F'.$nemberRow, $status)
+						->setCellValue('G'.$nemberRow, '-')
+						->setCellValue('H'.$nemberRow, '-')
+						->setCellValue('I'.$nemberRow, '-')
+						->setCellValue('J'.$nemberRow, '-')
+						->setCellValue('K'.$nemberRow, '-');
 					
 					$nemberRow++;
 					$numberFiels++;
 				}
-				$info_evaluation = unserialize( $objective_month->evaluation )['evaluation'];
-				$minMoyenne = unserialize( get_option('_performance_parameters') )['moyenne'];
-				$completed = $info_evaluation['completed'];
-				$moyenne = $info_evaluation['moyenne'];
-				$spreadsheet->getActiveSheet()->setCellValue('C'.$nemberRow, "MOYENNE : $moyenne");
-				$spreadsheet->getActiveSheet()->setCellValue('D'.$nemberRow, "COMPLETED : $completed");
-				$spreadsheet->getActiveSheet()->mergeCells('A'. $nemberRowMerge .':A'. $nemberRow .'');
-				$spreadsheet->getActiveSheet()->setCellValue('A'. $nemberRowMerge, $name_user);
-				if( $moyenne < $minMoyenne ){
-					$spreadsheet->getActiveSheet()->getStyle('B'.$nemberRow.':D'.$nemberRow)->getFill()
-						->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-						->getStartColor()->setARGB('FFFF0000');
-					$nemberRowMerge = $nemberRow+1;
-				}else{
-					$spreadsheet->getActiveSheet()->getStyle('B'.$nemberRow.':D'.$nemberRow)->getFill()
-						->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-						->getStartColor()->setARGB('40A497');
-					$nemberRowMerge = $nemberRow+1;
-				}
+				cpEvaluateFile($id, $month, $date_eval, $objectives, $info_evaluation);
 			}
-			$nemberRow += 2;
 		}
 	}
 	$file_name = $url_save_file . $month. '-' . date('Y') .'_evaluation_cp.xlsx';
@@ -367,6 +489,78 @@ function evaluation_cp( $id_cp=null ){
 		$writer = new Xlsx($spreadsheet);
 		$writer->save($file_name);
 		Task_Manager_Builder::sent_worklog_mail_( $file_name );
+	}
+}
+
+function cpEvaluateFile( $id , $month, $date_eval, $objectives, $info_evaluation ){
+	$upload = wp_upload_dir();
+	$worklog_evaluation = $upload['basedir'];
+	$worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation';
+	$url_save_file = $worklog_evaluation_file .'/';
+	
+	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-cp-evaluation.xlsx';
+	$reader = IOFactory::createReader('Xlsx');
+	$spreadsheet = $reader->load( $url_file );
+	$spreadsheet->setActiveSheetIndex(0);
+
+	$nemberRow=4;
+	$numberFiels = 1;
+	$name_user = get_userdata($id)->display_name;
+
+	$minMoyenne = unserialize( get_option('_performance_parameters') )['moyenne'];
+	$completed = $info_evaluation['completed'];
+	$moyenne = $info_evaluation['moyenne'];
+
+	$spreadsheet->getActiveSheet()->setCellValue('C1', $month . '-' . date('Y') )
+		->setCellValue('C2', $name_user)
+		->setCellValue('D1', "PROJECT MANAGER EVALUATION")
+		->setCellValue('E2', $completed)
+		->setCellValue('K2', $moyenne);
+
+	if( $moyenne < $minMoyenne ){
+		$spreadsheet->getActiveSheet()->getStyle('F2:K2')->getFill()
+			->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+			->getStartColor()->setARGB('FFFF0000');
+	}else{
+		$spreadsheet->getActiveSheet()->getStyle('F2:K2')->getFill()
+			->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+			->getStartColor()->setARGB('ABEBC6');
+	}		
+				
+	foreach( $objectives as $objective ){
+		if( $objective['status'] ) $status = 'YES';
+		else $status = 'NO';
+					
+		$spreadsheet->getActiveSheet()->insertNewRowBefore($nemberRow);
+		$spreadsheet->getActiveSheet()->mergeCells('C'. $nemberRow . ':D'. $nemberRow);
+		$spreadsheet->getActiveSheet()->setCellValue('B'.$nemberRow, $numberFiels)
+			->setCellValue('C'.$nemberRow, $objective['objective'])
+			->setCellValue('E'.$nemberRow, '-')
+			->setCellValue('F'.$nemberRow, $status)
+			->setCellValue('G'.$nemberRow, '-')
+			->setCellValue('H'.$nemberRow, '-')
+			->setCellValue('I'.$nemberRow, '-')
+			->setCellValue('J'.$nemberRow, '-')
+			->setCellValue('K'.$nemberRow, '-');			
+		$nemberRow++;
+		$numberFiels++;
+	}
+
+	// Evaluation
+	$spreadsheet->setActiveSheetIndex(1);
+	$spreadsheet->getActiveSheet()->setCellValue('C1', $month . '-' . date('Y') );
+	$spreadsheet->getActiveSheet()->setCellValue('C2', $name_user);
+		
+	//General Peformance
+	if( $moyenne >= 0 && $moyenne <= 39 ) $spreadsheet->getActiveSheet()->setCellValue('D6', $moyenne);
+	else if( $moyenne >= 40 && $moyenne <= 60 ) $spreadsheet->getActiveSheet()->setCellValue('E6', $moyenne);
+	else if( $moyenne >= 61 && $moyenne <= 85 ) $spreadsheet->getActiveSheet()->setCellValue('F6', $moyenne);
+	else $spreadsheet->getActiveSheet()->setCellValue('G6', $moyenne);
+	
+	$file_name = $url_save_file . $date_eval . '/' . $name_user .'_cp.xlsx';
+	if( ! file_exists( $file_name ) ){
+		$writer = new Xlsx($spreadsheet);
+		$writer->save($file_name);
 	}
 }
 
@@ -385,7 +579,7 @@ function content_msg($id_task, $title_main_task, $type_task, $content)
 	$variable_table = array('task_name', 'project_name', 'task_link', 'form_link');
 	preg_match_all('/{{(.*?)}}/', $content, $outputs);
 	foreach ($outputs[1] as $output) {
-		echo $output . '=> ' . in_array($output, $variable_table) . '<br>';
+		$output . '=> ' . in_array($output, $variable_table) . '<br>';
 		if (in_array($output, $variable_table)) {
 			if ($output == 'task_name')
 				$val = "<strong style='color:blue'>" . $task->title . "</strong>";
@@ -394,7 +588,7 @@ function content_msg($id_task, $title_main_task, $type_task, $content)
 			else if ($output == 'task_link')
 				$val = "<a class='btn-link' href='" . $task->permalink_url . "'>" . $task->permalink_url . "</a>";
 			else if ($output == 'form_link')
-				$val = "<a class='btn-outline-primary' href='" . get_site_url() . "/task-evaluation?task_id=" . $id_task . "&type_task=" . $type_task . "'><button>" . get_site_url() . "/task-evaluation</button></a>";
+				$val = "<a style='text-align:center' href='" . get_site_url() . "/task-evaluation?task_id=" . $id_task . "&type_task=" . $type_task . "'>here</a>";
 			else
 				$val = 'inconnu';
 			$content = preg_replace("/{{" . $output . "}}/", "$val", $content);
@@ -402,7 +596,8 @@ function content_msg($id_task, $title_main_task, $type_task, $content)
 			$content = preg_replace("/{{" . $output . "}}/", "inconnu", $content);
 		}
 	}
-	return $content . "<br><hr><h5><span style='text-decoration:underline; color:blue;'>Main Task : </span>$title_main_task</h5><hr>";
+	$content .= "<br><hr><h5><span style='text-decoration:underline; color:blue;'>Main Task : </span>$title_main_task</h5><hr>";
+	return  nl2br($content);
 }
 
 /**
@@ -444,52 +639,50 @@ function get_evaluation_form($task_id, $type_task)
 	?>
 	<div class="container card">
 		<?php
-		if ($type_task == 'normal' || $type_task == 'developper') {
-			if ($type_task !=  $task->type_task) {
-		?>
-				<div class="alert alert-danger" role="alert">
-					Error Type Task! <br>
-				</div>
-			<?php
+			if ($type_task == 'normal' || $type_task == 'developper') {
+				if ($type_task !=  $task->type_task) {
+					?>
+					<div class="alert alert-danger" role="alert">
+						Error Type Task! <br>
+					</div>
+					<?php
+				} else {
+					?>
+					<div class="row">
+						<div class="col-sm-6 alert alert-success">
+							<div style="width: 100%;text-align: center;color:black">
+								<h6 class="pt-2" style="text-align: center; font-weight: bold;"><?= $task->title ?></h6>
+								<p>Find task details <a href="<?= $task->permalink_url ?>" class="text-primary">here</a></p>
+							</div>
+						</div>
+						<div class="col-sm-6 alert alert-primary">
+							<div class="row pb-2 pt-2 text-center">
+								<div class="col-sm-3"><strong style="text-decoration: underline;">Status: <br></strong> <?= get_task_status($task_id) ?> </div>
+								<div class="col-sm-4"><strong style="text-decoration: underline;">Due Date: <br></strong> <?= $task->duedate ?></div>
+								<div class="col-sm-5"><strong style="text-decoration: underline;">Date Completed: <br></strong> <?php if (!get_task_status($task_id, 'yes')) echo '--- -- --';
+																																else echo $task->finaly_date; ?></div>
+							</div>
+						</div>
+					</div>
+					<?php
+					if (!get_task_status($task_id, 'yes')) {
+						?>
+						<small id="emailHelp" class="form-text text-muted text-center">The task being evaluated is not yet marked as complete. <br>Make sure of that or take that into account. </small>
+						<?php
+					}
+					?>
+					<button class="btn btn-outline-primary" data-toggle="modal" data-target="#detail_criteria">Readme before review </button>
+					<?php
+					if ($type_task == 'normal') get_form_evaluation($criterias['normal'], $task_id);
+					else get_form_evaluation($criterias['developper'], $task_id);
+				}
 			} else {
-			?>
-				<div class="row">
-					<div class="col-sm-6 alert alert-success">
-						<div style="width: 100%;text-align: center;color:black">
-							<h6 class="pt-2" style="text-align: center; font-weight: bold;"><?= $task->title ?></h6>
-							<p>Find task details <a href="<?= $task->permalink_url ?>" class="text-primary">here</a></p>
-						</div>
-					</div>
-					<div class="col-sm-6 alert alert-primary">
-						<div class="row pb-2 pt-2 text-center">
-							<div class="col-sm-3"><strong style="text-decoration: underline;">Status: <br></strong> <?= get_task_status($task_id) ?> </div>
-							<div class="col-sm-4"><strong style="text-decoration: underline;">Due Date: <br></strong> <?= $task->duedate ?></div>
-							<div class="col-sm-5"><strong style="text-decoration: underline;">Date Completed: <br></strong> <?php if (!get_task_status($task_id, 'yes')) echo '--- -- --';
-																															else echo $task->finaly_date; ?></div>
-						</div>
-					</div>
+				?>
+				<div class="alert alert-danger" role="alert">
+					Error ! <br>
 				</div>
 				<?php
-				if (!get_task_status($task_id, 'yes')) {
-				?>
-					<small id="emailHelp" class="form-text text-muted text-center">The task being evaluated is not yet marked as complete. <br>Make sure of that or take that into account. </small>
-					<?php
-				}
-				?>
-				<button class="btn btn-outline-primary" data-toggle="modal" data-target="#detail_criteria">Readme before review </button>
-			<?php
 			}
-		} else {
-			?>
-			<div class="alert alert-danger" role="alert">
-				Error ! <br>
-			</div>
-		<?php
-		}
-		if ($type_task ==  $task->type_task) {
-			if ($type_task == 'normal') get_form_evaluation($criterias['normal'], $task_id);
-			else get_form_evaluation($criterias['developper'], $task_id);
-		}
 		?>
 	</div>
 <?php

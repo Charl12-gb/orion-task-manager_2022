@@ -74,6 +74,7 @@ class Orion_Task_Manager_Public {
 		 */
 
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/orion-task-manager-public.css', array(), $this->version, 'all' );
+		wp_enqueue_style( 'icons', 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css', array(), $this->version, 'all' );
 		wp_enqueue_style( 'bootstrap', 'https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css', array(), $this->version, 'all' );
 	}
 

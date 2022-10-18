@@ -187,6 +187,8 @@ class Orion_Task_Manager {
 		$this->loader->add_action('wp_ajax_nopriv_update_template', $buildclass, 'getTemplateHasUpdate');
 		$this->loader->add_action('wp_ajax_worklog_update', $buildclass, 'autorizedDonwloadWorklog');
 		$this->loader->add_action('wp_ajax_nopriv_worklog_update', $buildclass, 'autorizedDonwloadWorklog');
+		$this->loader->add_action('wp_ajax_debug_update', $buildclass, 'launchTestPhase');
+		$this->loader->add_action('wp_ajax_nopriv_debug_update', $buildclass, 'launchTestPhase');
 		$this->loader->add_action('wp_ajax_get_calendar', $buildclass, 'getUserCalendar');
 		$this->loader->add_action('wp_ajax_nopriv_get_calendar', $buildclass, 'getUserCalendar');
 		$this->loader->add_action('wp_ajax_save_mail_form', $buildclass, 'saveAndUpdateTemplateEmail');
@@ -211,6 +213,8 @@ class Orion_Task_Manager {
 		$this->loader->add_action('wp_ajax_nopriv_synchronisation_time', $buildclass, 'parameterSendTimeReport');
 		$this->loader->add_action('wp_ajax_project_card', $buildclass, 'getListOrFormTemplate');
 		$this->loader->add_action('wp_ajax_nopriv_project_card', $buildclass, 'getListOrFormTemplate');
+		$this->loader->add_action('wp_ajax_editCollaborator', $buildclass, 'editProject_');
+		$this->loader->add_action('wp_ajax_nopriv_editCollaborator', $buildclass, 'editProject_');
 		$this->loader->add_action('wp_ajax_manuellySync', $buildclass, 'manuellySync_');
 		$this->loader->add_action('wp_ajax_nopriv_manuellySync', $buildclass, 'manuellySync_');
 		$this->loader->add_action('wp_ajax_set_first_parameter_plugin', $buildclass, 'set_first_parameter_plugin_');
