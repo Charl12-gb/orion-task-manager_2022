@@ -14,9 +14,8 @@ $worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation';
 function evaluator_page()
 {
 	if (isset($_GET['task_id'], $_GET['type_task']) && (!empty($_GET['task_id']) && !empty($_GET['type_task']))) {
-		$task_id = htmlentities($_GET['task_id']);
-		$type_task = htmlentities($_GET['type_task']);
-
+		$task_id = sanitize_text_field(htmlentities($_GET['task_id']));
+		$type_task = sanitize_text_field(htmlentities($_GET['type_task']));
 		$reviewTask = getReviewTaskForEvaluateTask($task_id);
 		$user_id = get_current_user_id();
 		$taskEvaluate = get_task_('id', $task_id);
@@ -34,8 +33,8 @@ function evaluator_page()
 						if (get_evaluation_info($task_id) == null) {
 							?>
 							<div class="alert alert-danger" role="alert">
-								Sorry ! <br>
-								Task Not Found
+								<?php _e('Sorry !', '') ?><br>
+								<?php _e('Task Not Found', '') ?>
 							</div>
 							<?php
 						} else {
@@ -44,8 +43,8 @@ function evaluator_page()
 							} else {
 								?>
 								<div class="alert alert-danger" role="alert">
-									Sorry ! <br>
-									Task already evaluated
+									<?php _e('Sorry !', '') ?><br>
+									<?php _e('Task already evaluated', '') ?>
 								</div>
 								<?php
 							}
@@ -53,32 +52,32 @@ function evaluator_page()
 					} else {
 						?>
 						<div class="alert alert-danger" role="alert">
-							Sorry ! <br>
-							Invalid type
+							<?php _e('Sorry !', '') ?><br>
+							<?php _e('Invalid type', '') ?>
 						</div>
 						<?php
 					}
 				}else{
 					?>
 					<div class="alert alert-danger" role="alert">
-						Sorry ! <br>
-						You are not allowed to evaluate this task
+						<?php _e('Sorry !', '') ?><br>
+						<?php _e('You are not allowed to evaluate this task', '') ?>
 					</div>
 					<?php
 				}
 			}else{
 				?>
 				<div class="alert alert-danger" role="alert">
-					Error ! <br>
-					Impossible to evaluate this task because it is not to be evaluated.
+					<?php _e('Sorry !', '') ?><br>
+					<?php _e('Impossible to evaluate this task because it is not to be evaluated.', '') ?>
 				</div>
 				<?php
 			}
 		}else{
 			?>
 			<div class="alert alert-danger" role="alert">
-				Sorry ! <br>
-				Task not found
+				<?php _e('Sorry !', '') ?><br>
+				<?php _e('Task not found', '') ?>
 			</div>
 			<?php
 		}
@@ -87,8 +86,8 @@ function evaluator_page()
 		if (!isset($_POST['verifier_nonce_evaluation']) || !wp_verify_nonce($_POST['verifier_nonce_evaluation'], 'save_evaluation_form')) {
 		?>
 			<div class="alert alert-danger" role="alert">
-				Error ! <br>
-				No task to evaluate.
+				<?php _e('Sorry !', '') ?><br>
+				<?php _e('No task to evaluate.', '') ?>
 			</div>
 			<?php
 		} else {
@@ -112,15 +111,15 @@ function evaluator_page()
 			if ($save) {
 			?>
 				<div class="alert alert-success" role="alert">
-					Task evaluate successfully
+					<?php _e('Task evaluate successfully', '') ?>
 				</div>
 			<?php
 			} else {
 			?>
 				<div class="alert alert-danger" role="alert">
-					Error ! <br>
+					<?php _e('Sorry !', '') ?> <br>
 				</div>
-	<?php
+			<?php
 			}
 		}
 	}
@@ -582,13 +581,13 @@ function content_msg($id_task, $title_main_task, $type_task, $content)
 		$output . '=> ' . in_array($output, $variable_table) . '<br>';
 		if (in_array($output, $variable_table)) {
 			if ($output == 'task_name')
-				$val = "<strong style='color:blue'>" . $task->title . "</strong>";
+				$val = "<strong style='color:blue'>" . _e($task->title, '') . "</strong>";
 			else if ($output == 'project_name')
-				$val = "<strong style='color:blue'>" . get_project_title($task->project_id) . "</strong>";
+				$val = "<strong style='color:blue'>" . _e(get_project_title($task->project_id),'') . "</strong>";
 			else if ($output == 'task_link')
-				$val = "<a class='btn-link' href='" . $task->permalink_url . "'>" . $task->permalink_url . "</a>";
+				$val = "<a class='btn-link' href='" . esc_url( $task->permalink_url ) . "'>" . $task->permalink_url . "</a>";
 			else if ($output == 'form_link')
-				$val = "<a style='text-align:center' href='" . get_site_url() . "/task-evaluation?task_id=" . $id_task . "&type_task=" . $type_task . "'>here</a>";
+				$val = "<a style='text-align:center' href='" . esc_url( get_site_url() . "/task-evaluation?task_id=" . $id_task . "&type_task=" . $type_task ) . "'>here</a>";
 			else
 				$val = 'inconnu';
 			$content = preg_replace("/{{" . $output . "}}/", "$val", $content);
@@ -613,13 +612,13 @@ function  mail_sending_form($destinataire, $subject, $message)
 {
 	$sender_info = unserialize(get_option('_sender_mail_info'));
 	// Pour les champs $expediteur / $copie / $destinataire, séparer par une virgule s'il y a plusieurs adresses
-	$expediteur = $sender_info['sender_email'];
+	$expediteur = htmlentities($sender_info['sender_email']);
 	$copie = $expediteur;
 	$copie_cachee = $expediteur;
 	$headers  = 'MIME-Version: 1.0' . "\n"; // Version MIME
 	$headers .= 'Content-type: text/html; charset=UTF-8' . "\n"; // l'en-tete Content-type pour le format HTML
 	$headers .= 'Reply-To: ' . $expediteur . "\n"; // Mail de reponse
-	$headers .= 'From: "' . $sender_info['sender_name'] . '"<' . $expediteur . '>' . "\n"; // Expediteur
+	$headers .= 'From: "' . htmlentities($sender_info['sender_name']) . '"<' . $expediteur . '>' . "\n"; // Expediteur
 	$headers .= 'Delivered-to: ' . $destinataire . "\n"; // Destinataire
 	$headers .= 'Cc: ' . $copie . "\n"; // Copie Cc
 	$headers .= 'Bcc: ' . $copie_cachee . "\n\n"; // Copie cachée Bcc        
@@ -643,7 +642,7 @@ function get_evaluation_form($task_id, $type_task)
 				if ($type_task !=  $task->type_task) {
 					?>
 					<div class="alert alert-danger" role="alert">
-						Error Type Task! <br>
+						<?php _e('Error Type Task!', '') ?>
 					</div>
 					<?php
 				} else {
@@ -651,23 +650,23 @@ function get_evaluation_form($task_id, $type_task)
 					<div class="row">
 						<div class="col-sm-6 alert alert-success">
 							<div style="width: 100%;text-align: center;color:black">
-								<h6 class="pt-2" style="text-align: center; font-weight: bold;"><?= $task->title ?></h6>
-								<p>Find task details <a href="<?= $task->permalink_url ?>" class="text-primary">here</a></p>
+								<h6 class="pt-2" style="text-align: center; font-weight: bold;"><?= esc_html($task->title) ?></h6>
+								<p>Find task details <a href="<?= esc_url($task->permalink_url) ?>" class="text-primary">here</a></p>
 							</div>
 						</div>
 						<div class="col-sm-6 alert alert-primary">
 							<div class="row pb-2 pt-2 text-center">
-								<div class="col-sm-3"><strong style="text-decoration: underline;">Status: <br></strong> <?= get_task_status($task_id) ?> </div>
-								<div class="col-sm-4"><strong style="text-decoration: underline;">Due Date: <br></strong> <?= $task->duedate ?></div>
+								<div class="col-sm-3"><strong style="text-decoration: underline;">Status: <br></strong> <?= esc_html(get_task_status($task_id)) ?> </div>
+								<div class="col-sm-4"><strong style="text-decoration: underline;">Due Date: <br></strong> <?= esc_html($task->duedate) ?></div>
 								<div class="col-sm-5"><strong style="text-decoration: underline;">Date Completed: <br></strong> <?php if (!get_task_status($task_id, 'yes')) echo '--- -- --';
-																																else echo $task->finaly_date; ?></div>
+																																else echo esc_html($task->finaly_date); ?></div>
 							</div>
 						</div>
 					</div>
 					<?php
 					if (!get_task_status($task_id, 'yes')) {
 						?>
-						<small id="emailHelp" class="form-text text-muted text-center">The task being evaluated is not yet marked as complete. <br>Make sure of that or take that into account. </small>
+						<small id="emailHelp" class="form-text text-muted text-center"><?= esc_html('The task being evaluated is not yet marked as complete. ') ?><br> <?= esc_html('Make sure of that or take that into account. ') ?></small>
 						<?php
 					}
 					?>
@@ -679,7 +678,7 @@ function get_evaluation_form($task_id, $type_task)
 			} else {
 				?>
 				<div class="alert alert-danger" role="alert">
-					Error ! <br>
+					<?= esc_html('Error !') ?>
 				</div>
 				<?php
 			}
@@ -715,7 +714,7 @@ function get_form_evaluation($criterias, $id_task)
 						<div class="form-check mb-2">
 							<div class="row card-header">
 								<div class="col-sm-8">
-									<strong><?= $criteria['criteria'] ?> : </strong>
+									<strong><?= esc_html($criteria['criteria']) ?> : </strong>
 								</div>
 								<div class="col-sm-2">
 									<input class="form-check-input" type="radio" onclick="block_(<?= $i ?>)" id="makeYes" required value="makeYes<?= $i ?>" name="make-radio<?= $i ?>">
@@ -735,7 +734,7 @@ function get_form_evaluation($criterias, $id_task)
 					<div class="col-sm-7" id="<?= $i ?>" style="display: none;">
 						<div class="row">
 							<div class="col-sm-4">
-								<input type="number" min="0" max="<?= $criteria['note'] ?>" name="note<?= $i ?>" name="note<?= $i ?>" class="form-control" placeholder="0">
+								<input type="number" min="0" max="<?= esc_html($criteria['note']) ?>" name="note<?= $i ?>" name="note<?= $i ?>" class="form-control" placeholder="0">
 							</div>
 							<div class="col-sm-8">
 								<textarea class="form-control m-0" id="description<?= $i ?>" name="description<?= $i ?>" rows="1" placeholder="Description ..."></textarea>
@@ -748,7 +747,7 @@ function get_form_evaluation($criterias, $id_task)
 		}
 		?>
 		<hr>
-		<input type="hidden" value="<?= $id_task ?>" name="task_id" id="task_id">
+		<input type="hidden" value="<?= esc_html($id_task) ?>" name="task_id" id="task_id">
 		<input type="hidden" value="<?= $i ?>" name="nbrecriteria" id="nbrecriteria">
 		<button class="btn btn-outline-primary" type="submit">Submit</button>
 		<hr>
@@ -769,8 +768,8 @@ function get_form_evaluation($criterias, $id_task)
 						<?php $k = 1;
 						foreach ($criterias_all['developper'] as $dev) {
 						?>
-							<h6> <span>Criteria <?= $k ?> : </span> <?= $dev['criteria'] ?> <span class="text-danger"> ( <?= $dev['note'] ?> )</span> <br></h6><br>
-							<p><?= nl2br($dev['description']) ?></p>
+							<h6> <span>Criteria <?= $k ?> : </span> <?= esc_html($dev['criteria']) ?> <span class="text-danger"> ( <?= esc_html($dev['note']) ?> )</span> <br></h6><br>
+							<p><?= esc_html(nl2br($dev['description'])) ?></p>
 						<?php
 							$k++;
 						}
@@ -782,8 +781,8 @@ function get_form_evaluation($criterias, $id_task)
 						<?php $k = 1;
 						foreach ($criterias_all['normal'] as $normal) {
 						?>
-							<h6> <span>Criteria <?= $k ?> : </span> <?= $normal['criteria'] ?> <span class="text-danger"> ( <?= $normal['note'] ?> )</span><br> </h6><br>
-							<p><?= nl2br($normal['description']) ?></p>
+							<h6> <span>Criteria <?= $k ?> : </span> <?= esc_html($normal['criteria']) ?> <span class="text-danger"> ( <?= esc_html($normal['note']) ?> )</span><br> </h6><br>
+							<p><?= esc_html(nl2br($normal['description'])) ?></p>
 						<?php
 							$k++;
 						}

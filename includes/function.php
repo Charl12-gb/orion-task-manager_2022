@@ -11,8 +11,8 @@ if (isset($_POST['tokens']) && !empty($_POST['tokens'])) {
 }
 
 if( isset( $_POST['link_file'] ) ){
-	$file_name = htmlentities( $_POST['file_name'] );
-	$url_file = htmlentities( $_POST['link_file'] );
+	$file_name = sanitize_text_field( $_POST['file_name'] );
+	$url_file = sanitize_text_field( $_POST['link_file'] );
 	$reader = IOFactory::createReader('Xlsx');
 	$spreadsheet = $reader->load($url_file);
 
@@ -35,16 +35,16 @@ function option_select($array, $default=null)
 	if( $default != null ){
 		foreach ($array as $key => $value) {
 			if( is_array($default) ){
-				if( in_array($key, $default) ) $option .= "<option value='$key' selected >$value</option>";
-				else $option .= "<option value='$key'>$value</option>";
+				if( in_array($key, $default) ) $option .= "<option value='$key' selected >". esc_html($value) . "</option>";
+				else $option .= "<option value='$key'>". esc_html($value) . "</option>";
 			}else{
-				if( $key == $default ) $option .= "<option value='$key' selected >$value</option>";
-				else $option .= "<option value='$key'>$value</option>";
+				if( $key == $default ) $option .= "<option value='$key' selected >". esc_html($value) . "</option>";
+				else $option .= "<option value='$key'>". esc_html($value) . "</option>";
 			}
 		}
 	}else{
 		foreach ($array as $key => $value) {
-			$option .= "<option value='$key'>$value</option>";
+			$option .= "<option value='$key'>". esc_html($value) . "</option>";
 		}
 	}
 	return $option;
@@ -629,12 +629,11 @@ function get_template_titles()
 /**
  * Get user id and name or email only
  * @param string|int $keyif( get_user_meta( 1, 'workspace_id', true ) == null ) echo 'vide';
-	else echo get_user_meta( 1, 'workspace_id', true );
+ *	else echo get_user_meta( 1, 'workspace_id', true );
  */
 function get_all_users($key = null)
 {
 	$users = array();
-	
 		if ($key != null) {
 			foreach (get_users() as $value) { 
 				if( (get_user_meta( $value->ID, 'workspace_id', true ) != null) && (get_user_meta( $value->ID, 'workspace_id', true ) == get_workspace()) ){
@@ -857,7 +856,7 @@ function useTemplate_save( $array ){
 		'description' => $array['description']
 	);
 	if (isset($array['nbrechamp'])) {
-		$nbrechamp = htmlentities($array['nbrechamp']) -1 ;
+		$nbrechamp = sanitize_text_field($array['nbrechamp']) -1 ;
 		for ($l = 1; $l <= $nbrechamp; $l++) {
 			$titre = 'title' .$l;
 			$categorie = 'categorie'.$l;
@@ -915,7 +914,7 @@ function manuel_save($array)
 				)
 			);
 			if (isset($array['nbrechamp'])) {
-				$nbrechamp = htmlentities($array['nbrechamp']) - 1;
+				$nbrechamp = sanitize_text_field($array['nbrechamp']) - 1;
 				for ($l = 1; $l <= $nbrechamp; $l++) {
 					$titre = 'sub_title' . $l;
 					$categorie = 'sub_categorie' . $l;
@@ -951,7 +950,7 @@ function manuel_save($array)
 				)
 			);
 			if( isset($array['nbresubtask']) ){
-				$nbrechamp = htmlentities($array['nbresubtask']);
+				$nbrechamp = sanitize_text_field($array['nbresubtask']);
 				for ($l = 1; $l <= $nbrechamp; $l++) {
 					$titre = 'manuel_title' . $l;
 					$categorie = 'manuel_categorie' . $l;
@@ -1045,8 +1044,8 @@ function traite_form_public($array){
  * Fonction permettant de sauvegarder les objectifs du cp
  */
 function saveProjectManagerObjection( $array ){
-	$nbre = htmlentities($array['nbreobj']);
-	$mois = htmlentities($array['mois']);
+	$nbre = sanitize_text_field($array['nbreobj']);
+	$mois = sanitize_text_field($array['mois']);
 	$annee = date('Y');
 	$workspace = get_workspace();
 
@@ -1086,7 +1085,7 @@ function saveProjectManagerObjection( $array ){
 				$objective_array = array();
 				for ($k = 1; $k <= $nbre; $k++) {
 					$ob = 'objective' . $k;
-					$objective = htmlentities($array[$ob]);
+					$objective = sanitize_text_field($array[$ob]);
 					$resulat = $asana->createSubTask($objective_id, array(
 						'name' => $objective,
 						'assignee' 			=> get_userdata(get_current_user_id())->user_email,
@@ -1136,7 +1135,7 @@ function get_task_calendar($id_user = null)
 			$month = date('m');
 			$year = date('Y');
 			?>
-			<h3><?= $monthName ?></h3>
+			<h3><?= esc_html($monthName) ?></h3>
 			<table class="table table-responsive-lg">
 				<tr>
 					<th>Monday</th>
@@ -1228,7 +1227,7 @@ function get_form_template($id_template = null)
 		$templates = get_templates_($id_template)[0]->option_value;
 		$template = unserialize($templates)['parametre'];
 	?>
-		<h3>List Template <button class="btn btn-outline-success btn_list_task" id="template_btn_list">List Template</button> </h3>
+		<h3><?php _e('List Template') ?><button class="btn btn-outline-success btn_list_task" id="template_btn_list">List Template</button> </h3>
 		<div class="form-group">
 			<div class="form-row">
 				<label for="InputTitle">Title Template</label>
@@ -1287,7 +1286,7 @@ function get_form_template($id_template = null)
 	<?php
 	} else {
 	?>
-	<h3>List Template <button class="btn btn-outline-success btn_list_task" id="template_btn_list">List Template</button> </h3>
+	<h3><?php _e('List Template') ?><button class="btn btn-outline-success btn_list_task" id="template_btn_list">List Template</button> </h3>
 		<div class="form-group">
 			<div class="form-row">
 				<label for="InputTitle">Title Template</label>
@@ -1409,8 +1408,8 @@ function project_form_add( $id_project=null ){
 function project_tab(){
 	$projects = get_project_();
 	?>
-		<h3>List Projects <button class="btn btn-outline-success collapsed" data-toggle="collapse" data-target="#collapseFour1" aria-expanded="false" aria-controls="collapseFour1">Add New Project</button> </h3>
-		<p>The list of projects with managers and a brief description</p>
+		<h3><?php _e('List Projects') ?><button class="btn btn-outline-success collapsed" data-toggle="collapse" data-target="#collapseFour1" aria-expanded="false" aria-controls="collapseFour1">Add New Project</button> </h3>
+		<p><?php _e('The list of projects with managers and a brief description') ?></p>
 		<hr>
 		<table class="table table-hover table-responsive-lg">
 			<thead class="thead-dark">
