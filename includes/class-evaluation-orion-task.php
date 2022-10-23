@@ -208,10 +208,9 @@ function download_worklog($user_id, $month=null)
 	$worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation';
 	$url_file = plugin_dir_path(__FILE__) . 'file_modele/template-worklog.xlsx';
 	$url_save_file = $worklog_evaluation_file .'/';
-	
-	$reader = IOFactory::createReader('Xlsx');
-	$spreadsheet = $reader->load( $url_file );
+
 	$name_user = get_userdata($user_id)->display_name;
+	
 	if( $month == null ){
 		$nxtm = strtotime("previous month");
 		$date_evaluation =  date("m-Y", $nxtm);
@@ -221,7 +220,15 @@ function download_worklog($user_id, $month=null)
 		$date_evaluation = date("m-Y", $strMont);
 		$date_worklog = date("M-Y", $strMont);
 	}
+
+	$file_name = $url_save_file . $date_worklog . '/' . $name_user .'_worklog.xlsx';
+	if( file_exists( $file_name ) ){
+		unlink( $file_name );
+	}
 	$tasks = get_task_('assigne', $user_id, 'worklog', $date_evaluation);
+	
+	$reader = IOFactory::createReader('Xlsx');
+	$spreadsheet = $reader->load( $url_file );
 	
 	//Worklog
 	$spreadsheet->setActiveSheetIndex(0);
@@ -342,10 +349,6 @@ function download_worklog($user_id, $month=null)
 			mkdir( $url_ );
 		}
 		
-		$file_name = $url_save_file . $date_worklog . '/' . $name_user .'_worklog.xlsx';
-		if( file_exists( $file_name ) ){
-			unlink( $file_name );
-		}
 		$writer = new Xlsx($spreadsheet);
 		$writer->save($file_name);
 
@@ -374,6 +377,11 @@ function evaluation_cp( $month=null, $id_cp=null ){
 	$url_ = $worklog_evaluation_file . '/'. $date_eval;
 	if( ! file_exists( $url_ ) ) {
 		mkdir( $url_ );
+	}
+
+	$file_name = $url_save_file . $month. '-' . date('Y') .'_evaluation_cp.xlsx';
+	if( file_exists( $file_name ) ){
+		unlink( $file_name );
 	}
 	
 	$reader = IOFactory::createReader('Xlsx');
@@ -483,10 +491,7 @@ function evaluation_cp( $month=null, $id_cp=null ){
 			}
 		}
 	}
-	$file_name = $url_save_file . $month. '-' . date('Y') .'_evaluation_cp.xlsx';
-	if( file_exists( $file_name ) ){
-		unlink( $file_name );
-	}
+	
 	$writer = new Xlsx($spreadsheet);
 	$writer->save($file_name);
 	Task_Manager_Builder::sent_worklog_mail_( $file_name );
