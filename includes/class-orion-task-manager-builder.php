@@ -146,25 +146,25 @@ class Task_Manager_Builder
     public static function set_first_parameter_plugin_()
     {
         if (isset($_POST['accessToken'])) {
-            update_option('_asana_access_token', htmlentities($_POST['accessToken']));
-            update_option('_asana_workspace_id', htmlentities($_POST['asana_workspace_id']));
-            update_option('_project_manager_id', htmlentities($_POST['projetId']));
+            update_option('_asana_access_token', sanitize_text_field($_POST['accessToken']));
+            update_option('_asana_workspace_id', sanitize_text_field($_POST['asana_workspace_id']));
+            update_option('_project_manager_id', sanitize_text_field($_POST['projetId']));
         }
         if (isset($_POST['sender_email'])) {
-            $sender_name = htmlentities($_POST['sender_name']);
-            $sender_email = htmlentities($_POST['sender_email']);
+            $sender_name = sanitize_text_field($_POST['sender_name']);
+            $sender_email = sanitize_text_field($_POST['sender_email']);
             $variable = serialize(array('sender_name' => $sender_name, 'sender_email' => $sender_email));
             update_option('_sender_mail_info', $variable);
 
-            $email_manager = htmlentities($_POST['email_manager']);
-            $date_report_sent = htmlentities($_POST['date_report_sent']);
+            $email_manager = sanitize_text_field($_POST['email_manager']);
+            $date_report_sent = sanitize_text_field($_POST['date_report_sent']);
             $array = serialize(array('email_manager' => $email_manager, 'send_date' => $date_report_sent, 'sent_cp' => ''));
             update_option('_report_sent_info', $array);
         }
         if (isset($_POST['email_rh'])) {
-            $email_rh = htmlentities($_POST['email_rh']);
-            $nbreSubPeroformance = htmlentities($_POST['nbreSubPeroformance']);
-            $moyenne = htmlentities($_POST['moyenne']);
+            $email_rh = sanitize_text_field($_POST['email_rh']);
+            $nbreSubPeroformance = sanitize_text_field($_POST['nbreSubPeroformance']);
+            $moyenne = sanitize_text_field($_POST['moyenne']);
             $array = serialize(array('email_rh' => $email_rh, 'nbreSubPeroformance' => $nbreSubPeroformance, 'moyenne' => $moyenne));
             update_option('_performance_parameters', $array);
         }
@@ -176,7 +176,7 @@ class Task_Manager_Builder
         if ($using != 'on') {
             ?>
             <h3 class="pt-2"><?php _e('Configuration T&P Manager', 'task'); ?></h3>
-            <?php $active_tableau = isset($_GET['set']) ? $_GET['set'] : 'o_task_manager'; ?>
+            <?php $active_tableau = isset($_GET['set']) ? sanitize_text_field($_GET['set']) : 'o_task_manager'; ?>
             <div class="wrap woocommerce wc_addons_wrap">
                 <nav class="nav-tab-wrapper woo-nav-tab-wrapper">
                     <a href="<?php echo esc_url(admin_url('admin.php?page=o_task_manager')); ?>" class="nav-tab <?php echo $active_tableau == 'o_task_manager' ? 'nav-tab-active' : ''; ?>"><?php _e('TASK', 'task'); ?></a>
@@ -250,7 +250,7 @@ class Task_Manager_Builder
                 }
             }
             if (wp_verify_nonce($_POST['verifier_new_task_form'], 'refreshProject')) {
-                $projectId = htmlentities( $_POST['projectRefresh'] );
+                $projectId = sanitize_text_field($_POST['projectRefresh']);
                 synTaskForAsana( $projectId );
                 $url = add_query_arg('status', 'success', wp_get_referer());
                 wp_safe_redirect($url);
@@ -296,7 +296,7 @@ class Task_Manager_Builder
     {
         $asana = connect_asana();
         if (isset($_POST['project_id']) && !empty($_POST['project_id'])) {
-            $project_id = htmlentities($_POST['project_id']);
+            $project_id = sanitize_text_field($_POST['project_id']);
             $post = wp_unslash($_POST);
             $output =  sync_new_project($post, $project_id);
         } else {
@@ -306,7 +306,7 @@ class Task_Manager_Builder
         }
         $sections = $_POST['section'];
         foreach ($sections as $section) {
-            $name_section = htmlentities($section['section']);
+            $name_section = sanitize_text_field($section['section']);
             if (!section_exist($name_section, $project_id)) {
                 $asana->createSection($project_id, array("name" => $name_section));
                 $result = $asana->getData();
@@ -326,15 +326,15 @@ class Task_Manager_Builder
         else echo false;
         wp_die();
     }
-
+    
     public static function editProject_(){
         if( $_POST['action'] == 'editCollaborator' ){
             $data = wp_unslash( $_POST );
-            $projectId = htmlentities( $_POST['project_id'] );
-            $col = array_merge($data['collaborators'], array($data['project_manager']));
+            $projectId = sanitize_text_field($_POST['project_id'] );
+            $col = array_merge($data['collaborators'], array(sanitize_text_field($data['project_manager'])));
             $collaborators = serialize( $col );
             $output = editCollaborateur($projectId, $collaborators);
-            if ($output) echo project_tab();
+            if ($output) echo (project_tab());
             else echo false;
         }
         wp_die();
@@ -346,7 +346,7 @@ class Task_Manager_Builder
     public static function create_template_()
     {
         if (isset($_POST['updatetempplate_id']) && !empty($_POST['updatetempplate_id'])) {
-            $template_id = htmlentities($_POST['updatetempplate_id']);
+            $template_id = sanitize_text_field($_POST['updatetempplate_id']);
             $send = array_diff($_POST, array('action' => 'create_template', 'updatetempplate_id' => $template_id));
         } else {
             $send = array_diff($_POST, array('action' => 'create_template'));
@@ -354,7 +354,7 @@ class Task_Manager_Builder
         }
         $data = wp_unslash($send);
         $sortir = save_new_templates($data, $template_id);
-        if ($sortir) echo  get_list_template();
+        if ($sortir) echo (get_list_template());
         else echo false;
         wp_die();
     }
@@ -364,11 +364,11 @@ class Task_Manager_Builder
      */
     public static function get_template_choose_()
     {
-        $id_template = htmlentities($_POST['template_id']);
-        $istemplate = htmlentities($_POST['istemplate']);
+        $id_template = sanitize_text_field($_POST['template_id']);
+        $istemplate = sanitize_text_field($_POST['istemplate']);
         if (!empty($id_template)) {
-            if ($istemplate == 'yes') echo get_template_form($id_template, true);
-            else echo get_template_form($id_template);
+            if ($istemplate == 'yes') echo (get_template_form($id_template, true));
+            else echo (get_template_form($id_template));
         } else {
             echo '';
         }
@@ -412,7 +412,7 @@ class Task_Manager_Builder
         // Headers
         $headers = 'From: "' . $sender_info['sender_name'] . '"<' . $sender_info['sender_email'] . '>' . "\r\n";
         $headers .= 'Mime-Version: 1.0' . "\r\n";
-        // $headers .= 'Content-Type: multipart/mixed;boundary=' . $boundary . "\r\n";
+    
         $headers .= 'Content-type: text/html; charset=UTF-8' . "\n";
         $headers .= "\r\n";
 
@@ -463,12 +463,12 @@ class Task_Manager_Builder
     public static function update_sender_mail()
     {
         if (isset($_POST['sender_name'])) {
-            $sender_name = htmlentities($_POST['sender_name']);
-            $sender_email = htmlentities($_POST['sender_email']);
+            $sender_name = sanitize_text_field($_POST['sender_name']);
+            $sender_email = sanitize_text_field($_POST['sender_email']);
             $variable = serialize(array('sender_name' => $sender_name, 'sender_email' => $sender_email));
             return update_option('_sender_mail_info', $variable);
         } else {
-            $user_id = htmlspecialchars($_POST['id_user']);
+            $user_id = sanitize_text_field($_POST['id_user']);
             if (empty($user_id)) {
                 echo '';
             } else {
@@ -486,10 +486,10 @@ class Task_Manager_Builder
     public static function getOptionTemplate()
     {
         if (isset($_POST['nbresubtask'])) {
-            $id_cham = htmlentities($_POST['nbresubtask']);
-            echo add_manuel_form($id_cham);
+            $id_cham = sanitize_text_field($_POST['nbresubtask']);
+            echo (add_manuel_form($id_cham));
         } else {
-            echo option_select(get_template_titles());
+            echo (option_select(get_template_titles()));
         }
         wp_die();
     }
@@ -500,14 +500,14 @@ class Task_Manager_Builder
      */
     public static function addCollaboratorOrSectionForOption()
     {
-        $action = htmlspecialchars($_POST['action']);
-        $id_project = htmlentities($_POST['project_id']);
+        $action = sanitize_text_field($_POST['action']);
+        $id_project = sanitize_text_field($_POST['project_id']);
         if ($action == 'get_option_section') {
             if (empty($id_project)) echo '';
-            else echo option_select(get_project_section($id_project));
+            else echo (option_select(get_project_section($id_project)));
         } else {
             if (empty($id_project)) echo '';
-            else echo option_select(get_project_collaborator($id_project), get_current_user_id());
+            else echo (option_select(get_project_collaborator($id_project), get_current_user_id()));
             wp_die();
         }
     }
@@ -518,8 +518,8 @@ class Task_Manager_Builder
      */
     public static function getUserFirstChoose()
     {
-        $type = htmlentities($_POST['type']);
-        $istemplate = htmlentities($_POST['istemplate']);
+        $type = sanitize_text_field($_POST['type']);
+        $istemplate = sanitize_text_field($_POST['istemplate']);
         if ($istemplate == 'yes') echo get_first_choose($type, true);
         else echo get_first_choose($type);
         wp_die();
@@ -541,33 +541,33 @@ class Task_Manager_Builder
      */
     public static function getListOrFormTemplate()
     {
-        $action = htmlspecialchars($_POST['action']);
-        $type = htmlentities($_POST['valeur']);
+        $action = sanitize_text_field($_POST['action']);
+        $type = sanitize_text_field($_POST['valeur']);
         if ($action == 'get_email_card') {
             if ($type == 'list_email') echo list_email_sending();
-            else echo get_email_task_tab();
+            else echo (get_email_task_tab());
         } elseif ($action == 'project_card') {
             if (isset($_POST['update_id'])) {
-                $id_project = htmlentities($_POST['update_id']);
-                echo project_form_add($id_project);
+                $id_project = sanitize_text_field($_POST['update_id']);
+                echo (project_form_add($id_project));
             }else if(isset($_POST['categorieIdUpdate'])){
-                $categorieId = htmlentities($_POST['categorieIdUpdate']);
-                echo updateEvaluateCategorie($categorieId);
+                $categorieId = sanitize_text_field($_POST['categorieIdUpdate']);
+                echo (updateEvaluateCategorie($categorieId));
             }elseif(isset($_POST['archive_project'])){
-                $id_project = htmlentities($_POST['archive_project']);
+                $id_project = sanitize_text_field($_POST['archive_project']);
                 if( getProjectStatus($id_project) ){
                     $archive = false;
                 }else $archive = true;
                 archiveProject( $id_project, $archive );
-                echo project_tab();
+                echo (project_tab());
             } else {
-                $type = htmlentities($_POST['valeur']);
+                $type = sanitize_text_field($_POST['valeur']);
                 if ($type == 'project_btn_list') echo project_tab();
-                else echo project_form_add();
+                else echo (project_form_add());
             }
         } else {
             if ($type == 'template_btn_add') echo get_form_template();
-            else echo get_list_template();
+            else echo (get_list_template());
         }
         wp_die();
     }
@@ -578,18 +578,18 @@ class Task_Manager_Builder
     public static function deleteTemplateOrCategorie()
     {
         $action = htmlspecialchars($_POST['action']);
-        $id_template = htmlentities($_POST['id_template']);
+        $id_template = sanitize_text_field($_POST['id_template']);
         if ($action == 'delete_email_') {
             delete_template($id_template, 'email');
-            echo list_email_sending();
+            echo (list_email_sending());
         } else if ($action == 'delete_categorie_') {
-            $id_categorie = htmlentities($_POST['id_categorie']);
+            $id_categorie = sanitize_text_field($_POST['id_categorie']);
             $retour = delete_categories_($id_categorie);
-            if ($retour) echo get_categories_();
+            if ($retour) echo (get_categories_());
             else echo false;
         } else {
             delete_template($id_template, 'task');
-            echo get_list_template();
+            echo (get_list_template());
         }
         wp_die();
     }
@@ -599,8 +599,8 @@ class Task_Manager_Builder
      */
     public static function getTemplateHasUpdate()
     {
-        $id_template = htmlentities($_POST['id_template']);
-        echo get_form_template($id_template);
+        $id_template = sanitize_text_field($_POST['id_template']);
+        echo (get_form_template($id_template));
         wp_die();
     }
 
@@ -620,7 +620,7 @@ class Task_Manager_Builder
             }
         }
         update_option('_worklog_authorized', $new_status);
-        echo Task_Manager_Builder::worklog_tab();
+        echo (Task_Manager_Builder::worklog_tab());
         wp_die();
     }
 
@@ -639,7 +639,7 @@ class Task_Manager_Builder
             }
         }
         update_option('_debug_authorized', $new_status);
-        echo Task_Manager_Builder::debug_tab();
+        _e(Task_Manager_Builder::debug_tab());
         wp_die();
     }
 
@@ -648,9 +648,9 @@ class Task_Manager_Builder
      */
     public static function getUserCalendar()
     {
-        $user_id = htmlentities($_POST['id_user']);
-        if (empty($user_id)) echo get_task_calendar();
-        else echo get_task_calendar($user_id);
+        $user_id = sanitize_text_field($_POST['id_user']);
+        if (empty($user_id)) _e(get_task_calendar());
+        else _e(get_task_calendar($user_id));
         wp_die();
     }
 
@@ -659,13 +659,13 @@ class Task_Manager_Builder
      */
     public static function saveAndUpdateTemplateEmail()
     {
-        $update = htmlentities($_POST['update']);
-        $id_template_email = htmlentities($_POST['id_template']);
+        $update = sanitize_text_field($_POST['update']);
+        $id_template_email = sanitize_text_field($_POST['id_template']);
         $send = array_diff($_POST, array('action' => 'save_mail_form', 'update' => $update, 'id_template' => $id_template_email));
         $data = wp_unslash($send);
         if ($update  === 'true') $ok = save_new_mail_form($data, $id_template_email);
         else $ok = save_new_mail_form($data);
-        if ($ok) echo list_email_sending();
+        if ($ok) _e(list_email_sending());
         else echo 'false';
         wp_die();
     }
@@ -678,7 +678,7 @@ class Task_Manager_Builder
         $send = array_diff($_POST, array('action' => 'save_criteria_evaluation'));
         $data = wp_unslash($send);
         update_option('_evaluation_criterias', serialize($data['valeur']));
-        echo  create_task_criteria();
+        _e(create_task_criteria());
         wp_die();
     }
 
@@ -688,12 +688,12 @@ class Task_Manager_Builder
     public static function saveTaskCategorie()
     {
         if (isset($_POST['get_categorie'])) {
-            echo option_select(get_categorie_format());
+            _e(option_select(get_categorie_format()));
         } else {
             $send = array_diff($_POST, array('action' => 'save_categories'));
             $data = wp_unslash($send);
             save_new_categories($data);
-            echo get_categories_();
+            _e(get_categories_());
         }
         wp_die();
     }
@@ -703,9 +703,9 @@ class Task_Manager_Builder
      */
     public static function getEditTemplateEmailForm()
     {
-        $id_template_mail = htmlentities($_POST['id_template_mail']);
-        if (!empty($id_template_mail)) echo get_email_task_tab($id_template_mail);
-        else echo get_email_task_tab();
+        $id_template_mail = sanitize_text_field($_POST['id_template_mail']);
+        if (!empty($id_template_mail)) _e(get_email_task_tab($id_template_mail));
+        else _e(get_email_task_tab());
         wp_die();
     }
 
@@ -714,10 +714,10 @@ class Task_Manager_Builder
      */
     public static function updateTaskCategorie()
     {
-        $id_categorie = htmlentities($_POST['id_categorie']);
-        $valeur = htmlentities($_POST['valeur']);
+        $id_categorie = sanitize_text_field($_POST['id_categorie']);
+        $valeur = sanitize_text_field($_POST['valeur']);
         save_new_categories($valeur, $id_categorie);
-        echo get_categories_();
+        _e(get_categories_());
         wp_die();
     }
 
@@ -727,26 +727,26 @@ class Task_Manager_Builder
     public static function parameterSendTimeReport()
     {
         if (isset($_POST['email_manager']) && !empty($_POST['email_manager'])) {
-            $email_manager = htmlentities($_POST['email_manager']);
-            $date_report_sent = htmlentities($_POST['date_report_sent']);
-            $sent_cp = htmlentities($_POST['sent_cp']);
+            $email_manager = sanitize_text_field($_POST['email_manager']);
+            $date_report_sent = sanitize_text_field($_POST['date_report_sent']);
+            $sent_cp = sanitize_text_field($_POST['sent_cp']);
             $array = serialize(array('email_manager' => $email_manager, 'send_date' => $date_report_sent, 'sent_cp' => $sent_cp));
-            echo update_option('_report_sent_info', $array);
+            _e(update_option('_report_sent_info', $array));
         }
         if (isset($_POST['email_rh']) && !empty($_POST['email_rh'])) {
-            $email_rh = htmlentities($_POST['email_rh']);
-            $nbreSubPeroformance = htmlentities($_POST['nbreSubPeroformance']);
-            $moyenne = htmlentities($_POST['moyenne']);
+            $email_rh = sanitize_text_field($_POST['email_rh']);
+            $nbreSubPeroformance = sanitize_text_field($_POST['nbreSubPeroformance']);
+            $moyenne = sanitize_text_field($_POST['moyenne']);
             $array = serialize(array('email_rh' => $email_rh, 'nbreSubPeroformance' => $nbreSubPeroformance, 'moyenne' => $moyenne));
-            echo update_option('_performance_parameters', $array);
+            _e(update_option('_performance_parameters', $array));
         }
         if (isset($_POST['id_project_manager']) && !empty($_POST['id_project_manager'])) {
-            $id_project_manager = htmlentities($_POST['id_project_manager']);
-            echo $output = update_option('_project_manager_id', $id_project_manager);
+            $id_project_manager = sanitize_text_field($_POST['id_project_manager']);
+            _e(update_option('_project_manager_id', $id_project_manager));
         }
         if (isset($_POST['sync_time'])) {
-            $time = htmlentities($_POST['sync_time']);
-            echo update_option('_synchronisation_time', $time);
+            $time = sanitize_text_field($_POST['sync_time']);
+            _e(update_option('_synchronisation_time', $time));
         }
         if (isset($_POST['all_sync'])) {
             if ($_POST['all_sync'] == 'categorie') {
@@ -778,9 +778,9 @@ class Task_Manager_Builder
         }
 
         if (isset($_POST['asana_workspace_id'])) {
-            $asana_workspace_id = htmlentities($_POST['asana_workspace_id']);
+            $asana_workspace_id = sanitize_text_field($_POST['asana_workspace_id']);
             $out =  update_option('_asana_workspace_id', $asana_workspace_id);
-            $out1 =  update_option('_project_manager_id', htmlentities($_POST['id_project_manager']));
+            $out1 =  update_option('_project_manager_id', sanitize_text_field($_POST['id_project_manager']));
             $out3 = delete_all_();
             if (($out == true) and ($out1 == true) and ($out3 == true)) echo true;
             else echo false;
@@ -799,20 +799,20 @@ class Task_Manager_Builder
         <div id="debug_card">
             <div class="container-fluid pt-3">
                 <div class="card">
-                    <h5 class="card-header">Enable Debugging</h5>
+                    <h5 class="card-header"><?php _e('Enable Debugging', '') ?></h5>
                     <div class="card-body">
                         <div class="custom-control custom-checkbox my-1 mr-sm-2 debug_authorized" id="debug">
                             <input type="checkbox" <?php if ($active) echo 'checked'; ?> class="custom-control-input" id="id_debug_authorized">
                             <label class="custom-control-label <?php if ($active) echo 'text-success';
-                                                                else echo 'text-danger'; ?>" for="id_debug_authorized">Click here to enable or disable debugging</label>
+                                                                else echo 'text-danger'; ?>" for="id_debug_authorized"><?php _e('Click here to enable or disable debugging','') ?></label>
                             <?php
                             if ($active) {
                             ?>
-                                <div class="text-success">Debugging is active</div>
+                                <div class="text-success"><?php _e('Debugging is active','') ?></div>
                             <?php
                             } else {
                             ?>
-                                <div class="text-danger">Debugging is disabled</div>
+                                <div class="text-danger"><?php _e('Debugging is disabled','') ?></div>
                             <?php
                             }
                             ?>
@@ -841,26 +841,26 @@ class Task_Manager_Builder
                     <div class="card-header" id="headingFour">
                         <h5 class="mb-0">
                             <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
-                                Categories
+                                <?php _e('Categories','') ?>
                             </button>
                         </h5>
-                        <p class="mt-0 mb-0">Add more task categories</p>
+                        <p class="mt-0 mb-0"><?php _e('Add more task categories','') ?></p>
                     </div>
                     <div class="card-header" id="headingThree">
                         <h5 class="mb-0">
                             <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-                                Project
+                                <?php _e('Project','') ?>
                             </button>
                         </h5>
-                        <p class="mt-0 mb-0">Create and edit projects from here</p>
+                        <p class="mt-0 mb-0"><?php _e('Create and edit projects from here','') ?></p>
                     </div>
                     <div class="card-header" id="headingOne">
                         <h5 class="mb-0">
                             <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                                Template
+                                <?php _e('Template','') ?>
                             </button>
                         </h5>
-                        <p class="mt-0 mb-0">Create and modify templates to facilitate the creation of tasks for project managers</p>
+                        <p class="mt-0 mb-0"><?php _e('Create and modify templates to facilitate the creation of tasks for project managers','') ?></p>
                     </div>
                 </div>
                 <div class="col-sm-8 card">
@@ -871,7 +871,7 @@ class Task_Manager_Builder
                                 <form action="" method="post" id="create_template">
                                 </form>
                                 <div id="template_card">
-                                    <?= get_list_template(); ?>
+                                    <?= esc_html(get_list_template()); ?>
                                 </div>
                             </div>
                         </div>
@@ -879,12 +879,12 @@ class Task_Manager_Builder
                     <div id="collapseFour" class="collapse show" aria-labelledby="headingFour" data-parent="#accordion">
                         <div class="card-body">
                             <div>
-                                <h3><span id="template_label">List Categories</span> </h3>
-                                <span>The default categories are: implementation, revue, test and integration</span>
+                                <h3><span id="template_label"><?php _e('List Categories','') ?></span> </h3>
+                                <span><?php _e('The default categories are: implementation, revue, test and integration','') ?></span>
                                 <div id="add_success_categories"></div>
                                 <hr>
                                 <div id="categories_card">
-                                    <?= get_categories_() ?>
+                                    <?= esc_html(get_categories_()) ?>
                                 </div>
                             </div>
                         </div>
@@ -892,12 +892,12 @@ class Task_Manager_Builder
                     <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordion">
                         <div id="add_success1"></div>
                         <div class="card-body" id="project_card">
-                            <?= project_tab() ?>
+                            <?= esc_html(project_tab()) ?>
                         </div>
                     </div>
                     <div id="collapseFour1" class="collapse" aria-labelledby="headingFour1" data-parent="#accordion">
                         <div class="card-body">
-                            <?= project_form_add() ?>
+                            <?= esc_html(project_form_add()) ?>
                         </div>
                     </div>
                 </div>
@@ -918,20 +918,20 @@ class Task_Manager_Builder
         <div id="worklog_card">
             <div class="container-fluid pt-3">
                 <div class="card">
-                    <h5 class="card-header">Enable Worklog</h5>
+                    <h5 class="card-header"><?php _e('Enable Worklog','') ?></h5>
                     <div class="card-body">
                         <div class="custom-control custom-checkbox my-1 mr-sm-2 worklog_authorized" id="worklog">
                             <input type="checkbox" <?php if ($active) echo 'checked'; ?> class="custom-control-input" id="id_worklog_authorized">
                             <label class="custom-control-label <?php if ($active) echo 'text-success';
-                                                                else echo 'text-danger'; ?>" for="id_worklog_authorized">Check to allow downloading of the worklog file</label>
+                                                                else echo 'text-danger'; ?>" for="id_worklog_authorized"><?php _e('Check to allow downloading of the worklog file','') ?></label>
                             <?php
                             if ($active) {
                             ?>
-                                <div class="text-success">Download permission accept</div>
+                                <div class="text-success"><?php _e('Download permission accept','') ?></div>
                             <?php
                             } else {
                             ?>
-                                <div class="text-danger">Download permission denied</div>
+                                <div class="text-danger"><?php _e('Download permission denied','') ?></div>
                             <?php
                             }
                             ?>
@@ -953,40 +953,40 @@ class Task_Manager_Builder
                     <div class="card-header" id="headingEvaluation1">
                         <h5 class="mb-0">
                             <button class="btn btn-link" data-toggle="collapse" data-target="#collapseEvaluation1" aria-expanded="true" aria-controls="collapseEvaluation1">
-                                Task evaluation criteria
+                                <?php _e('Task evaluation criteria','') ?>
                             </button>
                         </h5>
-                        <p class="mt-0 mb-0">Add the evaluation criteria</p>
+                        <p class="mt-0 mb-0"><?php _e('Add the evaluation criteria','') ?></p>
                     </div>
                     <div class="card-header" id="headingEvaluation2">
                         <h5 class="mb-0">
                             <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseEvaluation2" aria-expanded="false" aria-controls="collapseEvaluation2">
-                                Mail Template
+                                <?php _e('Mail Template','') ?>
                             </button>
                         </h5>
-                        <p class="mt-0 mb-0">Create email submit form templates</p>
+                        <p class="mt-0 mb-0"><?php _e('Create email submit form templates','') ?></p>
                     </div>
                     <div class="card-header" id="headingEvaluationPM">
                         <h5 class="mb-0">
                             <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseEvaluationPM" aria-expanded="false" aria-controls="collapseEvaluationPM">
-                                Project Manager
+                                <?php _e('Project Manager','') ?>
                             </button>
                         </h5>
-                        <p class="mt-0 mb-0">Define the new project manager section</p>
+                        <p class="mt-0 mb-0"><?php _e('Define the new project manager section','') ?></p>
                     </div>
                     <div class="card-header" id="headingEvaluation">
-                        <p class="mt-0 mb-0">Create an evaluation page to add the following short code: [task_evaluation]</p>
+                        <p class="mt-0 mb-0"><?php _e('Create an evaluation page to add the following short code: [task_evaluation]','') ?></p>
                     </div>
                 </div>
                 <div class="col-sm-8 card">
                     <div id="collapseEvaluation1" class="collapse show" aria-labelledby="headingEvaluation1" data-parent="#accordion">
                         <div class="card-body" id="criteria_evaluation_tab">
-                            <?= create_task_criteria(); ?>
+                            <?= esc_html(create_task_criteria()); ?>
                         </div>
                     </div>
                     <div id="collapseEvaluationPM" class="collapse" aria-labelledby="headingEvaluationPM" data-parent="#accordion">
                         <div class="card-body" id="criteria_evaluation_tab">
-                            <?= get_project_manager_tab(); ?>
+                            <?= esc_html(get_project_manager_tab()); ?>
                         </div>
                     </div>
                     <div id="collapseEvaluation2" class="collapse" aria-labelledby="headingEvaluation2" data-parent="#accordion">
@@ -994,7 +994,7 @@ class Task_Manager_Builder
                             <div class="mb-3">
                                 <span class="add_success" id="add_success"></span>
                                 <div class="container row">
-                                    <h5 class="pb-2 pl-3">Email Sending Information</h5>
+                                    <h5 class="pb-2 pl-3"><?php _e('Email Sending Information','') ?></h5>
                                     <form class="form-inline" id="add_sender_info" method="POST" action="">
                                         <div class="form-group mx-sm-3 mb-2">
                                             <label for="inputPassword2" class="sr-only">Name Sender</label>
@@ -1010,7 +1010,7 @@ class Task_Manager_Builder
                             </div>
                             <h5 class="card-header btn_evaluation_add" id="btn_evaluation_add">Mail Template <span class="btn btn-outline-success btn_emails" id="new_email">New Email Template</span> </h5>
                             <div class="card-body" id="evaluator_tab">
-                                <?= list_email_sending(); ?>
+                                <?= esc_html(list_email_sending()); ?>
                             </div>
                         </div>
                     </div>
@@ -1030,26 +1030,26 @@ class Task_Manager_Builder
                     <div class="card-header" id="headingInter1">
                         <h5 class="mb-0">
                             <button class="btn btn-link" data-toggle="collapse" data-target="#collapseInter1" aria-expanded="true" aria-controls="collapseInter1">
-                                ASANA access token
+                                <?php _e('ASANA access token','') ?>
                             </button>
                         </h5>
-                        <p class="mt-0 mb-0">Add asana access token</p>
+                        <p class="mt-0 mb-0"><?php _e('Add asana access token','') ?></p>
                     </div>
                     <div class="card-header" id="headingInter3">
                         <h5 class="mb-0">
                             <button class="btn btn-link" data-toggle="collapse" data-target="#collapseInter3" aria-expanded="true" aria-controls="collapseInter3">
-                                Workspace
+                                <?php _e('Workspace','') ?>
                             </button>
                         </h5>
-                        <p class="mt-0 mb-0">Add asana workspace id</p>
+                        <p class="mt-0 mb-0"><?php _e('Add asana workspace id','') ?></p>
                     </div>
                     <div class="card-header" id="headingInter2">
                         <h5 class="mb-0">
                             <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseInter2" aria-expanded="false" aria-controls="collapseInter2">
-                                Synchronization
+                                <?php _e('Synchronization','') ?>
                             </button>
                         </h5>
-                        <p class="mt-0 mb-0">Set Task Sync Frequency</p>
+                        <p class="mt-0 mb-0"><?php _e('Set Task Sync Frequency','') ?></p>
                     </div>
                 </div>
                 <div class="col-sm-8 card">
@@ -1060,10 +1060,10 @@ class Task_Manager_Builder
                                 if ($token != '') {
                                     $submit = 'UPDATE';
                                     $token = 'XXXX-XXXX-XXXX-XXX';
-                                ?><div class="alert alert-success">ASANA ACTIVE <input type="checkbox" checked readonly></div><?php
+                                ?><div class="alert alert-success"><?php _e('ASANA ACTIVE','') ?> <input type="checkbox" checked readonly></div><?php
                                                                                                                                     } else {
                                                                                                                                         $submit = 'SAVE';
-                                                                                                                                        ?><div class="alert alert-danger">Activated ASANA <a href="https://app.asana.com/" target="_blank">https://app.asana.com/</a></div><?php
+                                                                                                                                        ?><div class="alert alert-danger"><?php _e('Activated ASANA','') ?> <a href="https://app.asana.com/" target="_blank">https://app.asana.com/</a></div><?php
                                                                                                                                                                                                                                                                     }
                                                                                                                                                                                                                                                                         ?>
                             </div>
@@ -1111,16 +1111,16 @@ class Task_Manager_Builder
                             <form id="workspace_asana" class="config_asana" method="post" action="">
                                 <div class="form-row mt-4 mb-2">
                                     <div class="col">
-                                        <label><strong>Asana Workspace Id</strong></label>
-                                        <input class="form-control" type="text" name="asana_workspace_id" id="asana_workspace_id" placeholder="Asana Workspace Id" value="<?php if (get_option('_asana_workspace_id') != null) echo get_option('_asana_workspace_id'); ?>">
-                                        <input type="hidden" name="asana_workspace_id_old" id="asana_workspace_id_old" value="<?= get_option('_asana_workspace_id') ?>">
+                                        <label><strong><?php _e('Asana Workspace Id','') ?></strong></label>
+                                        <input class="form-control" type="text" name="asana_workspace_id" id="asana_workspace_id" placeholder="Asana Workspace Id" value="<?php if (get_option('_asana_workspace_id') != null) echo esc_html(get_option('_asana_workspace_id')); ?>">
+                                        <input type="hidden" name="asana_workspace_id_old" id="asana_workspace_id_old" value="<?= esc_html(get_option('_asana_workspace_id')) ?>">
                                     </div>
                                 </div>
 
                                 <!-- -------------------------------------Modal start------------------------------------------------------ -->
                                 <!-- Button trigger modal -->
                                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#staticBackdrop">
-                                    UPDATE
+                                    <?php _e('UPDATE','') ?>
                                 </button>
 
                                 <!-- Modal -->
@@ -1261,10 +1261,10 @@ class Task_Manager_Builder
                     <div class="card-header" id="headingEvaluation1">
                         <h5 class="mb-0">
                             <button class="btn btn-link" data-toggle="" data-target="#" aria-expanded="true" aria-controls="">
-                                Performance Parameter
+                            <?php _e('Performance Parameter','') ?>
                             </button>
                         </h5>
-                        <p class="mt-0 mb-0">Set performance parameters</p>
+                        <p class="mt-0 mb-0"><?php _e('Set performance parameters','') ?></p>
                     </div>
                 </div>
                 <div class="col-sm-8 card">
@@ -1275,17 +1275,17 @@ class Task_Manager_Builder
                                 <div class="form-row">
                                     <div class="col">
                                         <label for="">Human resources department email</label>
-                                        <input type="email" name="email_rh" id="email_rh" class="form-control" placeholder="Human resources department email" value="<?= $sent_info['email_rh'] ?>" required>
+                                        <input type="email" name="email_rh" id="email_rh" class="form-control" placeholder="Human resources department email" value="<?= esc_html($sent_info['email_rh']) ?>" required>
                                     </div>
                                 </div>
                                 <div class="form-row mt-4">
                                     <div class="col">
                                         <label for="">Total allowed underperformance <strong data-toggle="tooltip" data-placement="top" title="The total number of times an employee must be underperformed during the year.">?</strong></label>
-                                        <input type="number" min="3" max="6" name="nbreSubPeroformance" id="nbreSubPeroformance" class="form-control" placeholder="Number of underperformance" value="<?= $sent_info['nbreSubPeroformance'] ?>" required>
+                                        <input type="number" min="3" max="6" name="nbreSubPeroformance" id="nbreSubPeroformance" class="form-control" placeholder="Number of underperformance" value="<?= esc_html($sent_info['nbreSubPeroformance']) ?>" required>
                                     </div>
                                     <div class="col">
                                         <label for="">Minimum average</label>
-                                        <input type="number" min="50" max="100" name="moyenne" id="moyenne" class="form-control" placeholder="Minimum average" value="<?= $sent_info['moyenne'] ?>" required>
+                                        <input type="number" min="50" max="100" name="moyenne" id="moyenne" class="form-control" placeholder="Minimum average" value="<?= esc_html($sent_info['moyenne']) ?>" required>
                                     </div>
                                 </div>
                                 <hr>
@@ -1308,24 +1308,24 @@ class Task_Manager_Builder
         $post_author = get_current_user_id();
         $download_worklog = get_option('_worklog_authorized');
         if (isset($_GET['status'])) {
-            if ((htmlentities($_GET['status']) == 'success') || (htmlentities($_GET['status']) == 'successObj') ){ ?> <div class="alert alert-success" role="alert">Successfuly ! </div> <?php }
+            if ((sanitize_text_field($_GET['status']) == 'success') || (sanitize_text_field($_GET['status']) == 'successObj') ){ ?> <div class="alert alert-success" role="alert">Successfuly ! </div> <?php }
             else{ 
-                if( (htmlentities($_GET['status']) == 'errorTypeTask') || (htmlentities($_GET['status']) == 'impossible') ){
+                if( (sanitize_text_field($_GET['status']) == 'errorTypeTask') || (sanitize_text_field($_GET['status']) == 'impossible') ){
                     ?> <div class="alert alert-danger" role="alert">A problem came at the level of the type of the task. <br>Review your task type and try again ! </div> <?php
                 }
-                else if( htmlentities($_GET['status']) == 'errorAsana'){
+                else if( sanitize_text_field($_GET['status']) == 'errorAsana'){
                     ?> <div class="alert alert-danger" role="alert">A problem has occurred with ASANA. unsaved task. <br>Try again later. <br>Review your task type and try again ! </div> <?php
                 }
-                else if( htmlentities($_GET['status']) == 'errorTaskSave'){
+                else if( sanitize_text_field($_GET['status']) == 'errorTaskSave'){
                     ?> <div class="alert alert-danger" role="alert">Problem occurred while saving the task. <br><strong>Try again.</strong> If the problem persists, contact the administrator ! </div> <?php
                 }
-                else if( htmlentities($_GET['status']) == 'objectiveExist'){
+                else if( sanitize_text_field($_GET['status']) == 'objectiveExist'){
                     ?> <div class="alert alert-danger" role="alert">Sorry, you've already set goals for this month !</div> <?php
                 }
-                else if( htmlentities($_GET['status']) == 'noObjective'){
+                else if( sanitize_text_field($_GET['status']) == 'noObjective'){
                     ?> <div class="alert alert-danger" role="alert">Sorry please enter the goals to achieve and try again ! </div> <?php
                 }
-                else if( htmlentities($_GET['status']) == 'errorAsanaObj'){
+                else if( sanitize_text_field($_GET['status']) == 'errorAsanaObj'){
                     ?> <div class="alert alert-danger" role="alert">Error occurred in ASANA. Please try again later. ! </div> <?php
                 }
                 else{ ?> <div class="alert alert-danger" role="alert">Failed operation try again ! </div> <?php }
@@ -1364,7 +1364,7 @@ class Task_Manager_Builder
                             <div class="row">
                                 <div class="col-sm-6" style="text-align:left;">
                                     <h3>
-                                        Task Lists
+                                        <?php _e('Task Lists', 'task'); ?>
                                     </h3>
                                     <p>List of projects on which you collaborate. <br> Click on one of the projects, you see your tasks</p>
                                 </div>
@@ -1410,7 +1410,7 @@ class Task_Manager_Builder
                     </div>
                     <div id="collapse3" class="collapse" aria-labelledby="heading3" data-parent="#accordion">
                         <div>
-                            <h3>Create a Task</h3>
+                            <h3><?php _e('Create a Task', 'task'); ?></h3>
                             <p>
                                 <strong class="text-warning">WARNING:</strong> Before creating a task, make sure that the collaborating members of the selected<br>
                                 project have <strong>an account on ASANA and that they are invited</strong> to do so in the project.<br>
@@ -1426,7 +1426,7 @@ class Task_Manager_Builder
                         <div>
                             <div class="row">
                                 <div class="col-sm-6" style="text-align:left;">
-                                    <h3>Calendar</h3>
+                                    <h3><?php _e('Calendar', 'task'); ?></h3></h3>
                                 </div>
                             </div>
                             <div class="form-group">
