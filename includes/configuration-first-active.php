@@ -176,9 +176,6 @@
         document.querySelector(`.step--3`).classList.remove("step-active")
         document.querySelector(`.step--4`).classList.add("step-active")
         formBtn3.parentElement.style.display = "none"
-//         document.querySelector(".form--message").innerHTML = `
-//    <h1 class="form--message-text">Your account is successfully created </h1>
-//    `
         e.preventDefault()
     })
 
