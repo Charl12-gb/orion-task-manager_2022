@@ -1676,14 +1676,14 @@ function objective_tab( $id_user = null, $month = null ){
                         if ($download_cpEval == 'true') {
                             $debug_status  = get_option('_debug_authorized');
                             if ($debug_status == 'true') {
-								$month = date('m');
+								$m = date('m');
                             }else{
 								$nxtm = strtotime("previous month");
-								$month = date('m', $nxtm);
+								$m = date('m', $nxtm);
                             }
                             $upload = wp_upload_dir();
                             $worklog_evaluation = $upload['basedir'];
-							$date_eval = $month . '-' . date('Y') . '_cp_Evaluation';
+							$date_eval = $m . '-' . date('Y') . '_cp_Evaluation';
                             $name_worklog = $date_eval . '/' . get_userdata(get_current_user_id())->display_name . '_cp.xlsx';
                             $worklog_evaluation_file = $worklog_evaluation . '/worklog_evaluation/' . $name_worklog;
 
