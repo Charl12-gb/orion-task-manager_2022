@@ -343,18 +343,18 @@ function download_worklog($user_id, $month=null)
 		}
 		
 		$file_name = $url_save_file . $date_worklog . '/' . $name_user .'_worklog.xlsx';
-		if( ! file_exists( $file_name ) ){
-			$writer = new Xlsx($spreadsheet);
-			$writer->save($file_name);
-
-			//Plan de perdormance
-			$minMoyenne = unserialize( get_option('_performance_parameters') )['moyenne'];
-			if( $performance < $minMoyenne ){
-				Task_Manager_Builder::sent_worklog_mail_( $file_name, array(), $user_id );
-			}
-			return array( $name_user .'_worklog.xlsx' => $file_name );
+		if( file_exists( $file_name ) ){
+			unlink( $file_name );
 		}
-		return array();
+		$writer = new Xlsx($spreadsheet);
+		$writer->save($file_name);
+
+		//Plan de perdormance
+		$minMoyenne = unserialize( get_option('_performance_parameters') )['moyenne'];
+		if( $performance < $minMoyenne ){
+			Task_Manager_Builder::sent_worklog_mail_( $file_name, array(), $user_id );
+		}
+		return array( $name_user .'_worklog.xlsx' => $file_name );
 	}
 	return array();
 }
@@ -484,11 +484,12 @@ function evaluation_cp( $month=null, $id_cp=null ){
 		}
 	}
 	$file_name = $url_save_file . $month. '-' . date('Y') .'_evaluation_cp.xlsx';
-	if( ! file_exists( $file_name ) ){
-		$writer = new Xlsx($spreadsheet);
-		$writer->save($file_name);
-		Task_Manager_Builder::sent_worklog_mail_( $file_name );
+	if( file_exists( $file_name ) ){
+		unlink( $file_name );
 	}
+	$writer = new Xlsx($spreadsheet);
+	$writer->save($file_name);
+	Task_Manager_Builder::sent_worklog_mail_( $file_name );
 }
 
 function cpEvaluateFile( $id , $month, $date_eval, $objectives, $info_evaluation ){
@@ -581,13 +582,13 @@ function content_msg($id_task, $title_main_task, $type_task, $content)
 		$output . '=> ' . in_array($output, $variable_table) . '<br>';
 		if (in_array($output, $variable_table)) {
 			if ($output == 'task_name')
-				$val = "<strong style='color:blue'>" . _e($task->title, '') . "</strong>";
+				$val = "<strong style='color:blue'>" . $task->title . "</strong>";
 			else if ($output == 'project_name')
-				$val = "<strong style='color:blue'>" . _e(get_project_title($task->project_id),'') . "</strong>";
+				$val = "<strong style='color:blue'>" . get_project_title($task->project_id) . "</strong>";
 			else if ($output == 'task_link')
-				$val = "<a class='btn-link' href='" . esc_url( $task->permalink_url ) . "'>" . $task->permalink_url . "</a>";
+				$val = "<a class='btn-link' href='" . $task->permalink_url . "'>" . $task->permalink_url . "</a>";
 			else if ($output == 'form_link')
-				$val = "<a style='text-align:center' href='" . esc_url( get_site_url() . "/task-evaluation?task_id=" . $id_task . "&type_task=" . $type_task ) . "'>here</a>";
+				$val = "<a style='text-align:center' href='" . get_site_url() . "/task-evaluation?task_id=" . $id_task . "&type_task=" . $type_task . "'>here</a>";
 			else
 				$val = 'inconnu';
 			$content = preg_replace("/{{" . $output . "}}/", "$val", $content);
@@ -612,13 +613,13 @@ function  mail_sending_form($destinataire, $subject, $message)
 {
 	$sender_info = unserialize(get_option('_sender_mail_info'));
 	// Pour les champs $expediteur / $copie / $destinataire, séparer par une virgule s'il y a plusieurs adresses
-	$expediteur = htmlentities($sender_info['sender_email']);
+	$expediteur = $sender_info['sender_email'];
 	$copie = $expediteur;
 	$copie_cachee = $expediteur;
 	$headers  = 'MIME-Version: 1.0' . "\n"; // Version MIME
 	$headers .= 'Content-type: text/html; charset=UTF-8' . "\n"; // l'en-tete Content-type pour le format HTML
 	$headers .= 'Reply-To: ' . $expediteur . "\n"; // Mail de reponse
-	$headers .= 'From: "' . htmlentities($sender_info['sender_name']) . '"<' . $expediteur . '>' . "\n"; // Expediteur
+	$headers .= 'From: "' . $sender_info['sender_name'] . '"<' . $expediteur . '>' . "\n"; // Expediteur
 	$headers .= 'Delivered-to: ' . $destinataire . "\n"; // Destinataire
 	$headers .= 'Cc: ' . $copie . "\n"; // Copie Cc
 	$headers .= 'Bcc: ' . $copie_cachee . "\n\n"; // Copie cachée Bcc        
@@ -639,13 +640,6 @@ function get_evaluation_form($task_id, $type_task)
 	<div class="container card">
 		<?php
 			if ($type_task == 'normal' || $type_task == 'developper') {
-				if ($type_task !=  $task->type_task) {
-					?>
-					<div class="alert alert-danger" role="alert">
-						<?php _e('Error Type Task!', '') ?>
-					</div>
-					<?php
-				} else {
 					?>
 					<div class="row">
 						<div class="col-sm-6 alert alert-success">
@@ -674,7 +668,6 @@ function get_evaluation_form($task_id, $type_task)
 					<?php
 					if ($type_task == 'normal') get_form_evaluation($criterias['normal'], $task_id);
 					else get_form_evaluation($criterias['developper'], $task_id);
-				}
 			} else {
 				?>
 				<div class="alert alert-danger" role="alert">

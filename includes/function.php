@@ -90,13 +90,9 @@ function get_evaluation_info($task_id)
 function save_evaluation_info($array, $task_id): bool
 {
 	global $wpdb;
-	if (get_evaluation_info($task_id)->evaluation == null) {
 		$table = $wpdb->prefix . 'worklog';
 		$format = array('%s');
 		return $wpdb->update($table, array('evaluation' => serialize($array), 'evaluation_date' => date('m-Y')), array('id_task' => $task_id), $format);
-	} else {
-		return false;
-	}
 }
 
 /**
@@ -435,6 +431,7 @@ function get_all_worklog( $column=null, $value=null )
 {
 	global $wpdb;
 	$table = $wpdb->prefix . 'worklog';
+	// $wpdb->query("UPDATE $table SET mail_status = 'no'");
 	if( $column != null AND $value != null )
 		$sql = "SELECT * FROM $table WHERE $column='$value'";
 	else
@@ -1160,7 +1157,7 @@ function get_task_calendar($id_user = null)
 										if (date('d', strtotime($task->duedate)/1) == $d) {
 											if( $task->title != '' ){
 												$exist_Task = true;
-												$array += array( $k => array( 'id' => $task->id,'title' => $task->title, 'assign' => $task->assigne ) );
+												$array += array( $k => array( 'id' => $task->id,'title' => $task->title, 'assign' => $task->assigne, 'duedate'=>$task->duedate, 'type_task' => $task->type_task ) );
 												$k++;
 											}
 										}
@@ -1206,6 +1203,7 @@ function modal_event_calendar($date_event, $array)
 								<div class="alert alert-primary" role="alert">
 								<p class="row text-center ml-3 mt-0 mb-1"><?php if( get_task_main( $data['id'] ) != null ) echo stripslashes(get_task_main( $data['id'] )) . '<--'; ?> <strong><?= stripslashes($data['title']) ?></strong> </p>
 								<small id="emailHelp" class="form-text text-muted"><strong style="text-decoration: underline;">Status:</strong> <?= ' '.get_task_status( $data['id'] ) ?><?php if( get_userdata(  $data['assign'] ) ) { ?> | <strong style="text-decoration: underline;"> Assigne:</strong><?= ' '.get_userdata(  $data['assign'] )->display_name ?> <?php } ?></small>  
+								<strong><small class="form-text text-muted"><strong style="text-decoration: underline;">Type Task:</strong> <?= $data['type_task'] ?></small></strong>  
 							</div>
 							<?php
 							}
