@@ -9,7 +9,7 @@ function connect_asana()
 	return $asana;
 }
 
-
+// wp_cron 1
 if (!wp_next_scheduled('task_cron_hook')) {
 	$time_def = get_option('_synchronisation_time');
 	wp_schedule_event(time(), $time_def, 'task_cron_hook');
@@ -22,48 +22,7 @@ function task_cron_sync(){
 	sync_objectives_month();
 	sync_tasks();
 	syncTaskStatus();
-}
 
-if (!wp_next_scheduled('objective_cron_hook')) {
-	wp_schedule_event(time(), 'daily', 'objective_cron_hook');
-}
-
-add_action('objective_cron_hook', 'objective_cron_sync');
-
-function objective_cron_sync(){
-	automatique_send_mail();
-	syncEmployeesFromAsana();
-	evaluation_project_manager();
-	if( date('d-m-Y') == '01-'. date('m-Y') ){
-		evaluation_cp(); // Evaluation des cp
-		worklog_file(); // Générer les worklog et envoi des rapports
-	}
-}
-
-if (!wp_next_scheduled('bebug_cron_hook')) {
-	wp_schedule_event(time(), 'hourly', 'bebug_cron_hook');
-}
-
-add_action('cron_schedules', 'debugSendMail_cron_sync');
-
-function debugSendMail_cron_sync(){
-	$debug_status  = get_option('_debug_authorized');
-	if (!isset( $debug_status )) {
-		$debug_status = 'false';
-	}
-	if( $debug_status == 'true' ){
-		syncTaskStatus();
-		automatique_send_mail();
-	}
-}
-
-if (!wp_next_scheduled('bebug2_cron_hook')) {
-	wp_schedule_event(time(), 'twicedaily', 'bebug2_cron_hook');
-}
-
-add_action('bebug2_cron_hook', 'debugReportWorklog_cron_sync');
-
-function debugReportWorklog_cron_sync(){
 	$debug_status  = get_option('_debug_authorized');
 	if (!isset( $debug_status )) {
 		$debug_status = 'false';
@@ -75,15 +34,62 @@ function debugReportWorklog_cron_sync(){
 	}
 }
 
-add_filter( 'cron_schedules', 'bebugCron_add_cron_interval' );
+// wp_cron 2
+if (!wp_next_scheduled('objective_cron_hook')) {
+	wp_schedule_event(time(), 'daily', 'objective_cron_hook');
+}
+add_action('objective_cron_hook', 'objective_cron_sync');
+function objective_cron_sync(){
+	evaluation_project_manager();
+	if( date('d-m-Y') == '01-'. date('m-Y') ){
+		evaluation_cp(); // Evaluation des cp
+		worklog_file(); // Générer les worklog et envoi des rapports
+	}
+}
 
-function bebugCron_add_cron_interval( $schedules ) {
-	$schedules['fifteen_minute'] = array(
-		'interval' => 900,
-		'display' => esc_html__( 'Every Ten Minute' ),
+// Manuel cron
+
+add_filter( 'cron_schedules', 'myprefix_custom_cron_schedule' );
+function myprefix_custom_cron_schedule( $schedules ) {
+    $schedules['fifteen_minute'] = array(
+        'interval' => 900,
+        'display'  => __( 'Every 15 minute' ),
+    );
+    return $schedules;
+}
+
+add_filter( 'cron_schedules', 'sync_add_cron_interval' );
+function sync_add_cron_interval( $schedules ) {
+	$schedules['thirty_minute'] = array(
+		'interval' => 1800,
+		'display' => esc_html__( 'Thurty Ten Minute' ),
 	);
 	return $schedules;
 }
+if ( ! wp_next_scheduled( 'synch_cron_hook' ) ) {
+	wp_schedule_event( time(), 'thirty_minute', 'synch_cron_hook' );
+}
+add_action( 'synch_cron_hook', 'automatique_send_mail' );
+function synch_cron_sync(){
+	automatique_send_mail();
+	syncEmployeesFromAsana();
+}
+
+if ( ! wp_next_scheduled( 'myprefix_cron_hook' ) ) {
+	wp_schedule_event( time(), 'fifteen_minute', 'myprefix_cron_hook' );
+}
+add_action( 'myprefix_cron_hook', 'debugSendMail_cron_sync' );
+function debugSendMail_cron_sync(){
+	$debug_status  = get_option('_debug_authorized');
+	if( $debug_status == 'true' ){
+		syncTaskStatus();
+		automatique_send_mail();
+	}else{
+		syncTaskStatus();
+	}
+}
+
+
 /**
  * Obtenir l'espace de travail depuis asana
  */
@@ -272,8 +278,6 @@ function sync_projets()
 	}
 	return 'projet';
 }
-
-
 
 /**
  * Fonction permettant d'envoyer automatiquement 
@@ -491,6 +495,7 @@ function sync_tasks()
 {
 	$array_task_id = task_id_only();
 	$asana = connect_asana();
+	$activeDate = date("Y-m");
 	$asana->getProjectsInWorkspace(get_option('_asana_workspace_id'));
 	if ($asana->getData() != null) {
 		foreach ($asana->getData() as $project_asana) {
@@ -500,11 +505,10 @@ function sync_tasks()
 					$task_asana = $asana->getData();
 					if ($task_asana != null) {
 						foreach ($task_asana as $task_as) {
-							$sync = true;
-							//si la task n'est pas dans la bdd, on recupère ces information
-							if ($sync) {
-								$asana->getTask($task_as->gid);
-								$task_info = $asana->getData();
+							$asana->getTask($task_as->gid);
+							$task_info = $asana->getData();
+							$create_at = date("Y-m", strtotime($task_info->created_at));
+							if( $create_at >= $activeDate ){
 								if( isset( $asana->getData()->assignee->gid ) ) $assig = $asana->getData()->assignee->gid;
 								else $assig = null;
 								$assigne = get_user_asana_id($assig);
@@ -524,17 +528,22 @@ function sync_tasks()
 											$sub_categorie == "implementation";
 											$id_implementation = $task_as->gid;
 										}
-										if ($task_info->tags[0]->gid == get_categories_task(null,'revue')->id) {
+										else if ($task_info->tags[0]->gid == get_categories_task(null,'revue')->id) {
 											$sub_categorie == "revue";
 											$id_revue = $task_as->gid;
 										}
-										if ($task_info->tags[0]->gid == get_categories_task(null,'test')->id) {
+										else if ($task_info->tags[0]->gid == get_categories_task(null,'test')->id) {
 											$sub_categorie == "test";
 											$id_test = $task_as->gid;
 										}
-										if ($task_info->tags[0]->gid == get_categories_task(null,'integration')->id) {
+										else if ($task_info->tags[0]->gid == get_categories_task(null,'integration')->id) {
 											$sub_categorie == "integration";
 											$id_integration = $task_as->gid;
+										}else{
+											if( isset($task_info->tags[0]) ){
+												$categorie = get_categories_task($task_info->tags[0]->gid);
+												$sub_categorie = $categorie->categories_name;	
+											}
 										}
 									}
 	
@@ -584,21 +593,31 @@ function sync_tasks()
 											else $sub_assigne = null;
 											if (isset($info_subtask->tags[0]->gid)) {
 												$sub_categorie = $info_subtask->tags[0]->name;
-												if ($info_subtask->tags[0]->gid == get_categories_task(null,'implementation')->id) {
-													$sub_categorie == "implementation";
-													$id_implementation = $sub_task->gid;
-												}
-												if ($info_subtask->tags[0]->gid == get_categories_task(null,'revue')->id) {
-													$sub_categorie == "revue";
-													$id_revue = $sub_task->gid;
-												}
-												if ($info_subtask->tags[0]->gid == get_categories_task(null,'test')->id) {
-													$sub_categorie == "test";
-													$id_test = $sub_task->gid;
-												}
-												if ($info_subtask->tags[0]->gid == get_categories_task(null,'integration')->id) {
-													$sub_categorie == "integration";
-													$id_integration = $sub_task->gid;
+												if(get_categories_task(null,'implementation') != null){
+													if ($info_subtask->tags[0]->gid == get_categories_task(null,'implementation')->id) {
+														$sub_categorie == "implementation";
+														$id_implementation = $sub_task->gid;
+													}
+												}else if(get_categories_task(null,'revue') != null){
+													if ($info_subtask->tags[0]->gid == get_categories_task(null,'revue')->id) {
+														$sub_categorie == "revue";
+														$id_revue = $sub_task->gid;
+													}
+												}else if(get_categories_task(null,'test') != null){
+													if ($info_subtask->tags[0]->gid == get_categories_task(null,'test')->id) {
+														$sub_categorie == "test";
+														$id_test = $sub_task->gid;
+													}
+												}else if(get_categories_task(null,'integration') != null){
+													if ($info_subtask->tags[0]->gid == get_categories_task(null,'integration')->id) {
+														$sub_categorie == "integration";
+														$id_integration = $sub_task->gid;
+													}
+												}else{
+													if( isset($task_info->tags[0]) ){
+														$categorie = get_categories_task($task_info->tags[0]->gid);
+														$sub_categorie = $categorie->categories_name;
+													}
 												}
 											}
 											$asana->getTaskStories($sub_task->gid);
