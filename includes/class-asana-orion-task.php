@@ -141,12 +141,19 @@ function sync_new_project($data, $project_id=null)
 	$result = $asana->getData();
 	if (isset($result->gid)) {
 		if( $project_id != null ){
+			$dataCollaboratore = get_project_collaborator($project_id, true);
+			if( ! in_array(array($data['project_manager']), $dataCollaboratore) ){
+				$dataCollaboratore = array_merge($dataCollaboratore, array($data['project_manager']));
+			}
+			
 			$array = array(
 				'title'		=> $data['title'],
 				'description' => $data['description'],
 				'permalink'	=> $result->permalink_url,
 				'slug' => $data['slug'],
-				'project_manager' => $data['project_manager']
+				'project_manager' => $data['project_manager'],
+				'collaborator' => serialize($dataCollaboratore)
+
 			);
 			return save_project($array, $project_id);
 		}else{

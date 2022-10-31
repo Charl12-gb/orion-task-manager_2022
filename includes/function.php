@@ -165,8 +165,7 @@ function save_project($data, $project_id=null)
 	global $wpdb;
 	$table = $wpdb->prefix . 'project';
 	if( $project_id != null ){
-		$format = array('%s', '%s', '%s', '%s', '%d');
-		return $wpdb->update($table, $data, array('id' => $project_id), $format);
+		return $wpdb->update($table, $data, array('id' => $project_id));
 	}else{
 		$format = array('%d', '%s', '%s', '%s', '%s', '%d', '%s');
 		return $wpdb->insert($table, $data, $format);
@@ -977,18 +976,23 @@ function manuel_save($array)
  * Récupérer les collaborateurs d'un projet
  * @param int $id_project
  */
-function get_project_collaborator(int $id_project)
+function get_project_collaborator(int $id_project, $serialise=false)
 {
 	$collaborators = array();
-	foreach (is_project_manager() as $project) {
-		if ($project['id'] == $id_project) {
-			foreach (unserialize($project['collaborator']) as $collaborator) {
-				$the_user = get_user_by('ID', $collaborator);
-				$collaborators += array($the_user->ID => $the_user->user_email);
+	if( $serialise ){
+		$project = get_project_( $id_project );
+		return unserialize($project->collaborator);
+	}else{
+		foreach (is_project_manager() as $project) {
+			if ($project['id'] == $id_project) {
+				foreach (unserialize($project['collaborator']) as $collaborator) {
+					$the_user = get_user_by('ID', $collaborator);
+					$collaborators += array($the_user->ID => $the_user->user_email);
+				}
 			}
 		}
+		return $collaborators;
 	}
-	return $collaborators;
 }
 
 /**
