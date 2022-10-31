@@ -71,6 +71,7 @@ if ( ! wp_next_scheduled( 'synch_cron_hook' ) ) {
 }
 add_action( 'synch_cron_hook', 'automatique_send_mail' );
 function synch_cron_sync(){
+	desactiveSectionDontUse();
 	automatique_send_mail();
 	syncEmployeesFromAsana();
 }
@@ -121,6 +122,34 @@ function get_asana_collaborator($project_id)
 		array_push($collaborator,  get_user_asana_id($collaborator_as->gid));
 	}
 	return serialize($collaborator);
+}
+
+function desactiveSectionDontUse($projectId=null){
+	
+	if( $projectId != null ){
+		updateProjectSectionStatus($projectId);
+	}else{
+		$projects = get_project_(-1);
+		if( $projects != null ){
+			foreach( $projects as $project ){
+				updateProjectSectionStatus($project->id);
+			}
+		}
+	}
+}
+
+function updateProjectSectionStatus( $projectId ){
+	$asana = connect_asana();
+	desactiveSection($projectId);
+	$asana->getProjectSections($projectId);
+	$sections = $asana->getData();
+	if( $sections != null ){
+		global $wpdb;
+		$table = $wpdb->prefix . 'sections';
+		foreach( $sections as $section ){
+			$wpdb->update($table, array('section_status' => true), array('id' => $section->gid));
+		}
+	}
 }
 
 /**

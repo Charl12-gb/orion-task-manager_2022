@@ -445,8 +445,14 @@ function get_all_sections($id_project = null)
 	if ($id_project == null)
 		$sql = "SELECT * FROM $table";
 	else
-		$sql = "SELECT * FROM $table WHERE project_id = $id_project";
+		$sql = "SELECT * FROM $table WHERE project_id = $id_project AND section_status = " . true;
 	return $wpdb->get_results($sql);
+}
+
+function desactiveSection( $projectId ){
+	global $wpdb;
+	$table = $wpdb->prefix . 'sections';
+	$wpdb->update($table, array('section_status' => 0), array('project_id' => $projectId));
 }
 
 /**

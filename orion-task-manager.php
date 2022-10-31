@@ -93,6 +93,7 @@ function orion_task_manager_create_db()
 			id bigint NOT NULL,
 			project_id bigint NOT NULL,
 			section_name varchar(255) NOT NULL,
+			section_status BOOLEAN default(1),
 			FOREIGN KEY  (project_id) REFERENCES $table_project(id),
 			PRIMARY KEY  (id)
 		);
